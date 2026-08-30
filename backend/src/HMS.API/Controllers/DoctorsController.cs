@@ -1,0 +1,57 @@
+using HMS.Application.Common.Models;
+using HMS.Application.Features.Doctors;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace HMS.API.Controllers;
+
+public class DoctorsController : ApiControllerBase
+{
+    private readonly IDoctorService _doctorService;
+
+    public DoctorsController(IDoctorService doctorService) => _doctorService = doctorService;
+
+    [HttpGet]
+    [AllowAnonymous] // Patients need to browse doctors before logging in to book an appointment
+    public async Task<ActionResult<PagedResult<DoctorDto>>> Search([FromQuery] PagedRequest request) => Ok(await _doctorService.SearchAsync(request));
+
+    [HttpGet("by-department/{departmentId:int}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IReadOnlyList<DoctorDto>>> GetByDepartment(int departmentId) => Ok(await _doctorService.GetByDepartmentAsync(departmentId));
+
+    [HttpGet("{id:int}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<DoctorDto>> GetById(int id) => Ok(await _doctorService.GetByIdAsync(id));
+
+    [HttpPost]
+    [Authorize(Roles = RoleNames.AdminOnly)]
+    public async Task<ActionResult<DoctorDto>> Create(UpsertDoctorRequest request)
+    {
+        var created = await _doctorService.CreateAsync(request);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = RoleNames.AdminOnly)]
+    public async Task<IActionResult> Update(int id, UpsertDoctorRequest request)
+    {
+        await _doctorService.UpdateAsync(id, request);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = RoleNames.AdminOnly)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _doctorService.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/signature")]
+    [Authorize(Roles = RoleNames.Doctor)]
+    public async Task<IActionResult> UploadSignature(int id, [FromBody] string signatureUrl)
+    {
+        await _doctorService.UploadSignatureAsync(id, signatureUrl);
+        return NoContent();
+    }
+}

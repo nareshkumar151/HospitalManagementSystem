@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HMS.API/HMS.API.csproj" />
+    <Project Path="src/HMS.Application/HMS.Application.csproj" />
+    <Project Path="src/HMS.Domain/HMS.Domain.csproj" />
+    <Project Path="src/HMS.Infrastructure/HMS.Infrastructure.csproj" />
+  </Folder>
+</Solution>

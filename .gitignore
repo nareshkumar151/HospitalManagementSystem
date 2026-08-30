@@ -1,0 +1,22 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/src/HMS.API/Logs/
+*.user
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Editors / OS
+.vs/
+.vscode/
+*.suo
+.DS_Store
+Thumbs.db
+
+# Local secrets (never commit a real JWT secret or connection string override)
+**/appsettings.*.local.json
+.env
+.env.local
