@@ -16,7 +16,13 @@ export const tokenStorage = {
   },
 }
 
-export const apiClient = axios.create({ baseURL: '/api/v1' })
+// Relative '/api/v1' works locally because vite.config.ts proxies it to the API dev server, and would also
+// work in production if frontend+backend were served from the same origin. Deployed separately (e.g. an
+// Azure Static Web App calling an Azure App Service API), set VITE_API_BASE_URL to the API's full origin
+// at build time (see frontend/.env.production.example) so the SPA knows where to send requests.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api/v1` : '/api/v1'
+
+export const apiClient = axios.create({ baseURL: API_BASE_URL })
 
 apiClient.interceptors.request.use((config) => {
   const token = tokenStorage.getAccessToken()
@@ -30,7 +36,9 @@ async function refreshAccessToken(): Promise<string> {
   const refreshToken = tokenStorage.getRefreshToken()
   if (!refreshToken) throw new Error('No refresh token available')
 
-  const response = await axios.post('/api/v1/auth/refresh', { refreshToken })
+  // Plain axios, not apiClient, so it skips the Authorization interceptor - but it must still target the
+  // same API origin as everything else.
+  const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken })
   const { accessToken, refreshToken: newRefreshToken } = response.data
   tokenStorage.setTokens(accessToken, newRefreshToken)
   return accessToken

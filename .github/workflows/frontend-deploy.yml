@@ -1,0 +1,50 @@
+name: Deploy Frontend to Azure Static Web Apps
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-deploy.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [dev]
+    paths:
+      - 'frontend/**'
+  workflow_dispatch: {}
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Build and Deploy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # needed for PR preview comments
+          action: upload
+          app_location: 'frontend'
+          output_location: 'dist'
+          skip_app_build: false
+        env:
+          # Baked into the bundle at build time (Oryx runs `npm run build` inside this action) - see
+          # frontend/src/api/client.ts and frontend/.env.production.example. Set this repo's Actions
+          # variable VITE_API_BASE_URL to your App Service's URL, e.g. https://hms-api.azurewebsites.net
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request
+    steps:
+      - name: Close PR
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: close
