@@ -34,6 +34,31 @@ BEGIN
 END
 GO
 
+-- Resolves a role-holder's login (e.g. a Doctors.Id) to their Users.Id, for features that need to notify
+-- "whoever can log in as this profile" (appointment alerts, etc). Returns no rows if that profile has no
+-- login yet - callers must treat that as "nobody to notify", not an error.
+CREATE OR ALTER PROCEDURE sp_User_GetIdByLinkedProfile
+    @LinkedProfileId INT, @RoleName NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP 1 Id FROM Users
+    WHERE LinkedProfileId = @LinkedProfileId AND RoleName = @RoleName AND IsDeleted = 0 AND IsActive = 1;
+END
+GO
+
+-- All active logins holding a given role (optionally scoped to one branch) - used to fan a single event
+-- (e.g. "this medicine just went out of stock") out to everyone who should see it, not just one user.
+CREATE OR ALTER PROCEDURE sp_User_GetIdsByRole
+    @RoleName NVARCHAR(50), @BranchId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id FROM Users
+    WHERE RoleName = @RoleName AND IsDeleted = 0 AND IsActive = 1 AND (@BranchId IS NULL OR BranchId = @BranchId);
+END
+GO
+
 CREATE OR ALTER PROCEDURE sp_User_Insert
     @Username NVARCHAR(50), @Email NVARCHAR(150), @PasswordHash NVARCHAR(300),
     @RoleId INT, @RoleName NVARCHAR(50), @LinkedProfileId INT = NULL, @BranchId INT = NULL,

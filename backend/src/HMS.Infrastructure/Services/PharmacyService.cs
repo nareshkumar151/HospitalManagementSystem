@@ -1,7 +1,9 @@
 using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
 using HMS.Application.Common.Models;
+using HMS.Application.Features.Notifications;
 using HMS.Application.Features.Pharmacy;
+using HMS.Domain.Enums;
 
 namespace HMS.Infrastructure.Services;
 
@@ -9,11 +11,13 @@ public class PharmacyService : IPharmacyService
 {
     private readonly ISqlDataAccess _db;
     private readonly IAuditService _auditService;
+    private readonly INotificationService _notificationService;
 
-    public PharmacyService(ISqlDataAccess db, IAuditService auditService)
+    public PharmacyService(ISqlDataAccess db, IAuditService auditService, INotificationService notificationService)
     {
         _db = db;
         _auditService = auditService;
+        _notificationService = notificationService;
     }
 
     public async Task<PagedResult<MedicineDto>> SearchAsync(PagedRequest request)
@@ -73,6 +77,7 @@ public class PharmacyService : IPharmacyService
     {
         await _db.ExecuteAsync("sp_Medicine_AdjustStock", new { request.MedicineId, request.Quantity, request.Reason, UserId = userId });
         await _auditService.LogAsync("MedicineStockAdjusted", "Medicine", request.MedicineId.ToString(), request.Reason);
+        await NotifyPharmacistsIfOutOfStockAsync(request.MedicineId);
     }
 
     public async Task<PharmacySaleDto> DispenseAsync(DispenseSaleRequest request, int pharmacistUserId)
@@ -111,6 +116,7 @@ public class PharmacyService : IPharmacyService
                 UnitPrice = unitPrice,
                 UserId = pharmacistUserId
             });
+            await NotifyPharmacistsIfOutOfStockAsync(medicineId);
         }
 
         if (request.PrescriptionId.HasValue)
@@ -136,6 +142,32 @@ public class PharmacyService : IPharmacyService
     private async Task<MedicineDto> GetByIdInternalAsync(int id)
         => await _db.QuerySingleOrDefaultAsync<MedicineDto>("sp_Medicine_GetById", new { Id = id })
            ?? throw new NotFoundException(nameof(Domain.Entities.Medicine), id);
+
+    /// <summary> Fans an in-app alert out to every pharmacist AND administrator at this medicine's branch the
+    /// moment a sale or stock adjustment drains it to zero. Best-effort: a notification failure must never
+    /// break dispensing or stock adjustment, so failures here are swallowed rather than surfaced to the caller. </summary>
+    private async Task NotifyPharmacistsIfOutOfStockAsync(int medicineId)
+    {
+        try
+        {
+            var medicine = await GetByIdInternalAsync(medicineId);
+            if (medicine.Stock > 0) return;
+
+            var pharmacistUserIds = await _db.QueryAsync<int>("sp_User_GetIdsByRole", new { RoleName = "Pharmacist", medicine.BranchId });
+            var adminUserIds = await _db.QueryAsync<int>("sp_User_GetIdsByRole", new { RoleName = "Administrator", medicine.BranchId });
+            var message = $"Out of stock: {medicine.MedicineName} (Batch {medicine.BatchNumber}). Please reorder.";
+
+            foreach (var userId in pharmacistUserIds.Concat(adminUserIds))
+            {
+                await _notificationService.QueueAsync(new SendNotificationRequest(
+                    userId, null, NotificationChannel.Push, NotificationCategory.Medicine, message));
+            }
+        }
+        catch
+        {
+            // Notification delivery is a courtesy, not part of the dispense/adjustment contract.
+        }
+    }
 
     internal record SaleHeaderRow(int Id, string InvoiceNumber, int PatientId, string PatientName, decimal TotalAmount, DateTime SaleDate);
 }

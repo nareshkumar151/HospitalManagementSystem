@@ -44,12 +44,17 @@ export const registerPatient = (payload: {
   }
 
 export const logout = (): AppThunk<void> => (dispatch) => {
+  // Capture both tokens *before* clearing storage - the revoke call below needs the still-valid access
+  // token to pass this endpoint's [Authorize], and apiClient's request interceptor reads it from storage
+  // at send time. Clearing first (as this used to) meant every logout sent that call with no Authorization
+  // header, so it 401'd and the refresh token was never actually revoked server-side.
+  const accessToken = tokenStorage.getAccessToken()
   const refreshToken = tokenStorage.getRefreshToken()
   tokenStorage.clear()
   dispatch({ type: AUTH_LOGOUT })
   if (refreshToken) {
-    // Fire-and-forget server-side revoke; the client is already logged out either way.
-    apiClient.post('/auth/logout', { refreshToken }).catch(() => undefined)
+    // Fire-and-forget server-side revoke; the client is already logged out locally either way.
+    apiClient.post('/auth/logout', { refreshToken }, { headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => undefined)
   }
 }
 

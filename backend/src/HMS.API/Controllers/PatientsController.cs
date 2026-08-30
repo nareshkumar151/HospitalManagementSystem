@@ -19,7 +19,12 @@ public class PatientsController : ApiControllerBase
 
     [HttpGet]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Receptionist + "," + RoleNames.Doctor + "," + RoleNames.Nurse)]
-    public async Task<ActionResult<PagedResult<PatientDto>>> Search([FromQuery] PagedRequest request) => Ok(await _patientService.SearchAsync(request));
+    public async Task<ActionResult<PagedResult<PatientDto>>> Search([FromQuery] PagedRequest request)
+    {
+        // A doctor sees only patients they have an appointment history with, not the hospital-wide roster.
+        var doctorId = User.IsInRole(RoleNames.Doctor) ? CurrentLinkedProfileId : null;
+        return Ok(await _patientService.SearchAsync(request, doctorId));
+    }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PatientDto>> GetById(int id)

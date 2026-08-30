@@ -24,7 +24,10 @@ export function authReducer(state = initialState, action: AuthAction): AuthState
     case AUTH_RESTORE_SESSION:
       return { ...state, user: action.payload, status: action.payload ? 'succeeded' : 'idle' }
     case AUTH_LOGOUT:
-      return { ...initialState }
+      // NOT `{ ...initialState }` - that object was captured once at module load from whatever token was
+      // in localStorage *then*, so spreading it here would silently restore the very session being logged
+      // out of (tokenStorage.clear() empties localStorage, but this stale object still had a `user`).
+      return { user: null, status: 'idle', error: null }
     default:
       return state
   }
