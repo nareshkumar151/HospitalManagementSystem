@@ -13,7 +13,7 @@ public class InventoryController : ApiControllerBase
     public InventoryController(IInventoryService inventoryService) => _inventoryService = inventoryService;
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<InventoryItemDto>>> GetAll([FromQuery] InventoryItemType? type) => Ok(await _inventoryService.GetAllAsync(type));
+    public async Task<ActionResult<IReadOnlyList<InventoryItemDto>>> GetAll([FromQuery] InventoryItemType? type) => Ok(await _inventoryService.GetAllAsync(CurrentBranchId, type));
 
     [HttpPost]
     public async Task<ActionResult<InventoryItemDto>> Create(UpsertInventoryItemRequest request) => Ok(await _inventoryService.CreateAsync(request));
@@ -26,8 +26,8 @@ public class InventoryController : ApiControllerBase
     }
 
     [HttpGet("low-stock")]
-    public async Task<ActionResult<IReadOnlyList<InventoryItemDto>>> LowStock() => Ok(await _inventoryService.GetLowStockAsync());
+    public async Task<ActionResult<IReadOnlyList<InventoryItemDto>>> LowStock() => Ok(await _inventoryService.GetLowStockAsync(CurrentBranchId));
 
     [HttpGet("expiring-soon")]
-    public async Task<ActionResult<IReadOnlyList<InventoryItemDto>>> ExpiringSoon([FromQuery] int withinDays = 30) => Ok(await _inventoryService.GetExpiringSoonAsync(withinDays));
+    public async Task<ActionResult<IReadOnlyList<InventoryItemDto>>> ExpiringSoon([FromQuery] int withinDays = 30) => Ok(await _inventoryService.GetExpiringSoonAsync(CurrentBranchId, withinDays));
 }

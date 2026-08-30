@@ -24,5 +24,5 @@ public class InsuranceController : ApiControllerBase
     public async Task<ActionResult<IReadOnlyList<InsuranceClaimDto>>> GetByPatient(int patientId) => Ok(await _insuranceService.GetByPatientAsync(patientId));
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<InsuranceClaimDto>>> GetAll([FromQuery] ClaimStatus? status) => Ok(await _insuranceService.GetAllAsync(status));
+    public async Task<ActionResult<IReadOnlyList<InsuranceClaimDto>>> GetAll([FromQuery] ClaimStatus? status) => Ok(await _insuranceService.GetAllAsync(CurrentBranchId, status));
 }

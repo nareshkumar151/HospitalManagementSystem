@@ -17,6 +17,6 @@ public interface IOperationTheatreService
     Task<SurgeryDto> ScheduleAsync(ScheduleSurgeryRequest request);
     Task<SurgeryDto> CompleteAsync(int id, CompleteSurgeryRequest request);
     Task<SurgeryDto> CancelAsync(int id, string reason);
-    Task<IReadOnlyList<SurgeryDto>> GetTodaysScheduleAsync();
+    Task<IReadOnlyList<SurgeryDto>> GetTodaysScheduleAsync(int branchId);
     Task<IReadOnlyList<SurgeryDto>> GetByPatientAsync(int patientId);
 }

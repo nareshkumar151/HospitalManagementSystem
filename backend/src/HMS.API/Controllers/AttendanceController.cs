@@ -36,11 +36,11 @@ public class AttendanceController : ApiControllerBase
     [HttpGet("all")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.HR)]
     public async Task<ActionResult<IReadOnlyList<AttendanceDto>>> GetAllForMonth([FromQuery] DateTime month)
-        => Ok(await _attendanceService.GetAllForMonthAsync(month));
+        => Ok(await _attendanceService.GetAllForMonthAsync(month, CurrentBranchId));
 
     [HttpGet("summary")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.HR)]
-    public async Task<ActionResult<AttendanceSummaryDto>> GetSummary() => Ok(await _attendanceService.GetTodaySummaryAsync());
+    public async Task<ActionResult<AttendanceSummaryDto>> GetSummary() => Ok(await _attendanceService.GetTodaySummaryAsync(CurrentBranchId));
 
     [HttpPost("leave-requests")]
     [Authorize(Roles = RoleNames.EmployeeSelfService)]
@@ -65,10 +65,10 @@ public class AttendanceController : ApiControllerBase
     public async Task<ActionResult<IReadOnlyList<LeaveRequestDto>>> GetLeaveRequests([FromQuery] LeaveStatus? status)
     {
         if (IsHrOrAdmin())
-            return Ok(await _attendanceService.GetLeaveRequestsAsync(status));
+            return Ok(await _attendanceService.GetLeaveRequestsAsync(CurrentBranchId, status));
 
         if (CurrentLinkedProfileId is not { } ownEmployeeId) return Forbid();
-        return Ok(await _attendanceService.GetLeaveRequestsAsync(status, ownEmployeeId));
+        return Ok(await _attendanceService.GetLeaveRequestsAsync(CurrentBranchId, status, ownEmployeeId));
     }
 
     private bool IsHrOrAdmin() => User.IsInRole(RoleNames.Administrator) || User.IsInRole(RoleNames.HR);

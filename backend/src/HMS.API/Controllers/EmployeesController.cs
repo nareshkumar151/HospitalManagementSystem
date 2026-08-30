@@ -13,7 +13,7 @@ public class EmployeesController : ApiControllerBase
     public EmployeesController(IEmployeeService employeeService) => _employeeService = employeeService;
 
     [HttpGet]
-    public async Task<ActionResult<PagedResult<EmployeeDto>>> Search([FromQuery] PagedRequest request) => Ok(await _employeeService.SearchAsync(request));
+    public async Task<ActionResult<PagedResult<EmployeeDto>>> Search([FromQuery] PagedRequest request) => Ok(await _employeeService.SearchAsync(request, CurrentBranchId));
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EmployeeDto>> GetById(int id) => Ok(await _employeeService.GetByIdAsync(id));

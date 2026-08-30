@@ -15,24 +15,25 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE sp_Patient_Search
-    @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL, @DoctorId INT = NULL
+    @BranchId INT, @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL, @DoctorId INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    -- @DoctorId scopes the roster to "this doctor's patients" (anyone they've ever had an appointment
-    -- with) instead of the hospital-wide list - used for the Doctor role only; Admin/Receptionist pass NULL.
+    -- @BranchId always scopes to one hospital - a patient roster must never blend across hospitals.
+    -- @DoctorId narrows it further to "this doctor's patients" (anyone they've ever had an appointment
+    -- with) on top of that - used for the Doctor role only; Admin/Receptionist/Nurse pass NULL for it.
     SELECT Id, UHID, AadhaarNumber, FullName, Gender, DateOfBirth, Age, Mobile, Email, Address, BloodGroup,
            EmergencyContactName, EmergencyContactNumber, ReferredByDoctorName, ReferralHospital, ReferralNotes,
            InsuranceCompany, InsurancePolicyNumber, Allergies, BranchId, CreatedAt
     FROM Patients p
-    WHERE IsDeleted = 0
+    WHERE IsDeleted = 0 AND p.BranchId = @BranchId
       AND (@Search IS NULL OR FullName LIKE '%' + @Search + '%' OR Mobile LIKE '%' + @Search + '%' OR UHID LIKE '%' + @Search + '%')
       AND (@DoctorId IS NULL OR EXISTS (SELECT 1 FROM Appointments a WHERE a.PatientId = p.Id AND a.DoctorId = @DoctorId))
     ORDER BY CreatedAt DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
 
     SELECT COUNT(*) AS TotalCount FROM Patients p
-    WHERE IsDeleted = 0
+    WHERE IsDeleted = 0 AND p.BranchId = @BranchId
       AND (@Search IS NULL OR FullName LIKE '%' + @Search + '%' OR Mobile LIKE '%' + @Search + '%' OR UHID LIKE '%' + @Search + '%')
       AND (@DoctorId IS NULL OR EXISTS (SELECT 1 FROM Appointments a WHERE a.PatientId = p.Id AND a.DoctorId = @DoctorId));
 END

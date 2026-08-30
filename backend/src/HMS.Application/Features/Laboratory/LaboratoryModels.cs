@@ -27,6 +27,6 @@ public interface ILaboratoryService
     Task<LabTestOrderDto> CollectSampleAsync(int orderId, int technicianUserId);
     Task<LabTestOrderDto> UploadReportAsync(int orderId, UploadLabReportRequest request, int technicianUserId);
     Task<LabTestOrderDto> ReviewReportAsync(int orderId, ReviewLabReportRequest request);
-    Task<IReadOnlyList<LabTestOrderDto>> GetPendingAsync();
+    Task<IReadOnlyList<LabTestOrderDto>> GetPendingAsync(int branchId);
     Task<IReadOnlyList<LabTestOrderDto>> GetByPatientAsync(int patientId);
 }

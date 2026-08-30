@@ -23,7 +23,7 @@ public class PatientsController : ApiControllerBase
     {
         // A doctor sees only patients they have an appointment history with, not the hospital-wide roster.
         var doctorId = User.IsInRole(RoleNames.Doctor) ? CurrentLinkedProfileId : null;
-        return Ok(await _patientService.SearchAsync(request, doctorId));
+        return Ok(await _patientService.SearchAsync(request, CurrentBranchId, doctorId));
     }
 
     [HttpGet("{id:int}")]

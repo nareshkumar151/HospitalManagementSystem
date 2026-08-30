@@ -11,5 +11,5 @@ public interface IPayrollService
     /// <summary> Computes PF/ESI statutory deductions off the employee's basic salary and generates a payslip. </summary>
     Task<PayrollDto> GenerateAsync(GeneratePayrollRequest request);
     Task<IReadOnlyList<PayrollDto>> GetByEmployeeAsync(int employeeId);
-    Task<IReadOnlyList<PayrollDto>> GetByPeriodAsync(string payPeriod);
+    Task<IReadOnlyList<PayrollDto>> GetByPeriodAsync(string payPeriod, int branchId);
 }

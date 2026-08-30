@@ -16,7 +16,7 @@ public class DoctorService : IDoctorService
         _auditService = auditService;
     }
 
-    public async Task<PagedResult<DoctorDto>> SearchAsync(PagedRequest request)
+    public async Task<PagedResult<DoctorDto>> SearchAsync(PagedRequest request, int? branchId = null)
     {
         var (items, counts) = await _db.QueryMultipleAsync<DoctorDto, int>("sp_Doctor_Search", new
         {
@@ -24,7 +24,7 @@ public class DoctorService : IDoctorService
             request.PageSize,
             request.Search,
             DepartmentId = (int?)null,
-            BranchId = (int?)null
+            BranchId = branchId
         });
 
         return new PagedResult<DoctorDto>

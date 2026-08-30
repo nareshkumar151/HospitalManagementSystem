@@ -93,7 +93,7 @@ export default function App() {
             <Route path="insurance" element={<InsurancePage />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Doctor', 'Nurse']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse']} />}>
             <Route path="operation-theatre" element={<OperationTheatrePage />} />
             <Route path="medical-records" element={<MedicalRecordsPage />} />
           </Route>

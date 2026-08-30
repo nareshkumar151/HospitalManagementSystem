@@ -34,15 +34,18 @@ BEGIN
 END
 GO
 
+-- @BranchId keeps one hospital's claims queue from mixing with another's. NULL is intentionally accepted
+-- (bypassing the filter) only for InsuranceService's internal "read back the row I just wrote by its own
+-- id" lookup - every controller-facing call always passes a real branch id.
 CREATE OR ALTER PROCEDURE sp_InsuranceClaim_GetAll
-    @Status NVARCHAR(20) = NULL
+    @BranchId INT = NULL, @Status NVARCHAR(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.BillId, c.InsuranceCompany, c.PolicyNumber,
            c.CoverageAmount, c.ApprovedAmount, c.Status, c.SubmittedAt, c.Remarks
     FROM InsuranceClaims c JOIN Patients p ON p.Id = c.PatientId
-    WHERE c.IsDeleted = 0 AND (@Status IS NULL OR c.Status = @Status)
+    WHERE c.IsDeleted = 0 AND (@BranchId IS NULL OR p.BranchId = @BranchId) AND (@Status IS NULL OR c.Status = @Status)
     ORDER BY c.SubmittedAt DESC;
 END
 GO

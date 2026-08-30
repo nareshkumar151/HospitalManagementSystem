@@ -20,11 +20,11 @@ public interface IAttendanceService
     Task<AttendanceDto> CheckOutAsync(CheckOutRequest request);
     Task<IReadOnlyList<AttendanceDto>> GetByEmployeeAsync(int employeeId, DateTime? month = null);
     /// <summary> Every employee's attendance rows for the month containing <paramref name="month"/> - the Admin/HR month-wise matrix. </summary>
-    Task<IReadOnlyList<AttendanceDto>> GetAllForMonthAsync(DateTime month);
-    Task<AttendanceSummaryDto> GetTodaySummaryAsync();
+    Task<IReadOnlyList<AttendanceDto>> GetAllForMonthAsync(DateTime month, int branchId);
+    Task<AttendanceSummaryDto> GetTodaySummaryAsync(int branchId);
 
     Task<LeaveRequestDto> ApplyLeaveAsync(ApplyLeaveRequest request);
     Task<LeaveRequestDto> ReviewLeaveAsync(int leaveRequestId, ReviewLeaveRequest request, int reviewerUserId);
     /// <summary> Pass <paramref name="employeeId"/> to scope this to one employee's own requests (self-service); leave null for the full HR/Admin review queue. </summary>
-    Task<IReadOnlyList<LeaveRequestDto>> GetLeaveRequestsAsync(LeaveStatus? status = null, int? employeeId = null);
+    Task<IReadOnlyList<LeaveRequestDto>> GetLeaveRequestsAsync(int branchId, LeaveStatus? status = null, int? employeeId = null);
 }

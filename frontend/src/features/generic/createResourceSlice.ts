@@ -29,7 +29,7 @@ export type ResourceAction<T> =
 export interface ResourceSlice<T> {
   reducer: (state: ResourceState<T> | undefined, action: ResourceAction<T>) => ResourceState<T>
   fetchAll: (params?: Record<string, unknown>, pathOverride?: string) => GenericThunk<Promise<void>>
-  create: (payload: Record<string, unknown>, refetchParams?: Record<string, unknown>) => GenericThunk<Promise<T>>
+  create: (payload: Record<string, unknown>, refetchParams?: Record<string, unknown>, createPathOverride?: string) => GenericThunk<Promise<T>>
   update: (id: number, payload: Record<string, unknown>, refetchParams?: Record<string, unknown>) => GenericThunk<Promise<void>>
 }
 
@@ -65,10 +65,14 @@ export function createResourceSlice<T>(actionPrefix: string, endpoint: string): 
     }
   }
 
-  const create = (payload: Record<string, unknown>, refetchParams?: Record<string, unknown>): GenericThunk<Promise<T>> =>
+  // `createPathOverride` covers resources whose list endpoint is a specialized view (e.g. Operation
+  // Theatre's `/operationtheatre/today`) rather than the collection's own base route - posting a new
+  // record has to go to the real create endpoint (`/operationtheatre`), not the read-only "today" view,
+  // even though fetchAll's default `endpoint` is correctly the "today" view for every GET.
+  const create = (payload: Record<string, unknown>, refetchParams?: Record<string, unknown>, createPathOverride?: string): GenericThunk<Promise<T>> =>
     async (dispatch) => {
       try {
-        const { data } = await apiClient.post<T>(endpoint, payload)
+        const { data } = await apiClient.post<T>(createPathOverride ?? endpoint, payload)
         await dispatch(fetchAll(refetchParams))
         return data
       } catch (error) {

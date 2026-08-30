@@ -36,6 +36,9 @@ export const fetchDoctors = (params: { pageNumber?: number; pageSize?: number; s
   async (dispatch) => {
     dispatch({ type: START })
     try {
+      // The backend derives branch scoping from the signed-in user's own token server-side (an
+      // authenticated staff call can't opt out of it, and there's nothing to opt into here) - a genuinely
+      // anonymous pre-login browse, or SuperAdmin, sees every branch's doctors, which is correct for both.
       const { data } = await apiClient.get<PagedResult<DoctorDto>>('/doctors', {
         params: { pageNumber: params.pageNumber ?? 1, pageSize: params.pageSize ?? 50, search: params.search },
       })
@@ -47,6 +50,8 @@ export const fetchDoctors = (params: { pageNumber?: number; pageSize?: number; s
 
 export const fetchDepartments = (): AppThunk<Promise<void>> => async (dispatch) => {
   try {
+    // The backend scopes this to the caller's own branch server-side (from the JWT), so unlike fetchDoctors
+    // there's no client-supplied branchId to attach here.
     const { data } = await apiClient.get<DepartmentDto[]>('/departments')
     dispatch({ type: DEPTS_SUCCESS, payload: data })
   } catch (error) {

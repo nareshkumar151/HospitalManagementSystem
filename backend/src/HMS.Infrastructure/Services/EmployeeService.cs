@@ -16,7 +16,7 @@ public class EmployeeService : IEmployeeService
         _auditService = auditService;
     }
 
-    public async Task<PagedResult<EmployeeDto>> SearchAsync(PagedRequest request)
+    public async Task<PagedResult<EmployeeDto>> SearchAsync(PagedRequest request, int branchId)
     {
         var (items, counts) = await _db.QueryMultipleAsync<EmployeeDto, int>("sp_Employee_Search", new
         {
@@ -24,7 +24,7 @@ public class EmployeeService : IEmployeeService
             request.PageSize,
             request.Search,
             DepartmentId = (int?)null,
-            BranchId = (int?)null
+            BranchId = branchId
         });
 
         return new PagedResult<EmployeeDto>

@@ -22,7 +22,7 @@ public class RadiologyController : ApiControllerBase
 
     [HttpGet("orders/pending")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.LabTechnician + "," + RoleNames.Doctor)]
-    public async Task<ActionResult<IReadOnlyList<RadiologyOrderDto>>> GetPending() => Ok(await _radiologyService.GetPendingAsync());
+    public async Task<ActionResult<IReadOnlyList<RadiologyOrderDto>>> GetPending() => Ok(await _radiologyService.GetPendingAsync(CurrentBranchId));
 
     [HttpGet("orders/patient/{patientId:int}")]
     public async Task<ActionResult<IReadOnlyList<RadiologyOrderDto>>> GetByPatient(int patientId)

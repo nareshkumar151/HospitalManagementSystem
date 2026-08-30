@@ -18,5 +18,5 @@ public class PayrollController : ApiControllerBase
     public async Task<ActionResult<IReadOnlyList<PayrollDto>>> GetByEmployee(int employeeId) => Ok(await _payrollService.GetByEmployeeAsync(employeeId));
 
     [HttpGet("period/{payPeriod}")]
-    public async Task<ActionResult<IReadOnlyList<PayrollDto>>> GetByPeriod(string payPeriod) => Ok(await _payrollService.GetByPeriodAsync(payPeriod));
+    public async Task<ActionResult<IReadOnlyList<PayrollDto>>> GetByPeriod(string payPeriod) => Ok(await _payrollService.GetByPeriodAsync(payPeriod, CurrentBranchId));
 }

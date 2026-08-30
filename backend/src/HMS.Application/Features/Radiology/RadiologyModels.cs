@@ -15,5 +15,5 @@ public interface IRadiologyService
     Task<RadiologyOrderDto> OrderAsync(OrderRadiologyRequest request, int doctorId);
     Task<RadiologyOrderDto> UploadReportAsync(int orderId, UploadRadiologyReportRequest request, int uploadedByUserId);
     Task<IReadOnlyList<RadiologyOrderDto>> GetByPatientAsync(int patientId);
-    Task<IReadOnlyList<RadiologyOrderDto>> GetPendingAsync();
+    Task<IReadOnlyList<RadiologyOrderDto>> GetPendingAsync(int branchId);
 }

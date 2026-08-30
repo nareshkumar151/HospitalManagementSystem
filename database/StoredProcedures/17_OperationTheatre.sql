@@ -49,15 +49,21 @@ BEGIN
 END
 GO
 
+-- @BranchId scopes "today's schedule" to one hospital branch, so Branch A's OT staff never sees Branch B's
+-- surgeries mixed into the same work queue.
 CREATE OR ALTER PROCEDURE sp_Surgery_GetTodaysSchedule
+    @BranchId INT
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT s.Id, s.PatientId, p.FullName AS PatientName, s.IpdAdmissionId, s.SurgeryName, s.SurgeonDoctorId,
            doc.FullName AS SurgeonName, s.AssistantDoctorId, s.NurseUserId, s.Equipment, s.ScheduledAt,
            s.CompletedAt, s.OperationNotes, s.Anesthesia, s.OperationCost, s.Status
-    FROM Surgeries s JOIN Patients p ON p.Id = s.PatientId JOIN Doctors doc ON doc.Id = s.SurgeonDoctorId
-    WHERE CAST(s.ScheduledAt AS DATE) = CAST(SYSUTCDATETIME() AS DATE) AND s.IsDeleted = 0
+    FROM Surgeries s
+    JOIN Patients p ON p.Id = s.PatientId
+    JOIN Doctors doc ON doc.Id = s.SurgeonDoctorId
+    JOIN IpdAdmissions a ON a.Id = s.IpdAdmissionId
+    WHERE CAST(s.ScheduledAt AS DATE) = CAST(SYSUTCDATETIME() AS DATE) AND s.IsDeleted = 0 AND a.BranchId = @BranchId
     ORDER BY s.ScheduledAt;
 END
 GO

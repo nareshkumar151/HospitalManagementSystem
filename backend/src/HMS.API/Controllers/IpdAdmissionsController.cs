@@ -18,7 +18,7 @@ public class IpdAdmissionsController : ApiControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = RoleNames.FrontDesk)]
+    [Authorize(Roles = RoleNames.FrontDesk + "," + RoleNames.Nurse)]
     public async Task<ActionResult<IpdAdmissionDto>> Admit(AdmitPatientRequest request)
     {
         var created = await _ipdAdmissionService.AdmitAsync(request);

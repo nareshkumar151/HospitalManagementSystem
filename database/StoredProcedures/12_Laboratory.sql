@@ -109,7 +109,9 @@ BEGIN
 END
 GO
 
+-- @BranchId keeps one hospital's pending lab queue from mixing with another's.
 CREATE OR ALTER PROCEDURE sp_LabTestOrder_GetPending
+    @BranchId INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -119,7 +121,7 @@ BEGIN
     JOIN Patients p ON p.Id = o.PatientId
     JOIN Doctors doc ON doc.Id = o.DoctorId
     JOIN LabTestCatalog c ON c.Id = o.LabTestCatalogId
-    WHERE o.Status <> 'Reviewed' AND o.IsDeleted = 0
+    WHERE o.Status <> 'Reviewed' AND o.IsDeleted = 0 AND p.BranchId = @BranchId
     ORDER BY o.OrderedAt;
 END
 GO

@@ -14,9 +14,9 @@ public record RecordMovementRequest(StockMovementType MovementType, int Quantity
 
 public interface IInventoryService
 {
-    Task<IReadOnlyList<InventoryItemDto>> GetAllAsync(InventoryItemType? type = null);
+    Task<IReadOnlyList<InventoryItemDto>> GetAllAsync(int branchId, InventoryItemType? type = null);
     Task<InventoryItemDto> CreateAsync(UpsertInventoryItemRequest request);
     Task RecordMovementAsync(int itemId, RecordMovementRequest request, int userId);
-    Task<IReadOnlyList<InventoryItemDto>> GetLowStockAsync();
-    Task<IReadOnlyList<InventoryItemDto>> GetExpiringSoonAsync(int withinDays = 30);
+    Task<IReadOnlyList<InventoryItemDto>> GetLowStockAsync(int branchId);
+    Task<IReadOnlyList<InventoryItemDto>> GetExpiringSoonAsync(int branchId, int withinDays = 30);
 }

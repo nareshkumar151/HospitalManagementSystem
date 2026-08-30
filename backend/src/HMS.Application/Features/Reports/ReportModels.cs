@@ -12,11 +12,11 @@ public record BedOccupancyRow(string WardName, int TotalBeds, int Occupied, int 
 
 public interface IReportService
 {
-    Task<IReadOnlyList<PatientRegisterRow>> GetPatientRegisterAsync(DateRangeRequest range);
-    Task<IReadOnlyList<DailyVisitsRow>> GetDailyVisitsAsync(DateRangeRequest range);
-    Task<IReadOnlyList<DoctorPerformanceRow>> GetDoctorPerformanceAsync(DateRangeRequest range);
-    Task<IReadOnlyList<RevenueReportRow>> GetRevenueReportAsync(DateRangeRequest range);
-    Task<IReadOnlyList<PharmacyStockReportRow>> GetPharmacyStockReportAsync();
-    Task<IReadOnlyList<DepartmentRevenueRow>> GetDepartmentWiseRevenueAsync(DateRangeRequest range);
-    Task<IReadOnlyList<BedOccupancyRow>> GetBedOccupancyReportAsync();
+    Task<IReadOnlyList<PatientRegisterRow>> GetPatientRegisterAsync(DateRangeRequest range, int branchId);
+    Task<IReadOnlyList<DailyVisitsRow>> GetDailyVisitsAsync(DateRangeRequest range, int branchId);
+    Task<IReadOnlyList<DoctorPerformanceRow>> GetDoctorPerformanceAsync(DateRangeRequest range, int branchId);
+    Task<IReadOnlyList<RevenueReportRow>> GetRevenueReportAsync(DateRangeRequest range, int branchId);
+    Task<IReadOnlyList<PharmacyStockReportRow>> GetPharmacyStockReportAsync(int branchId);
+    Task<IReadOnlyList<DepartmentRevenueRow>> GetDepartmentWiseRevenueAsync(DateRangeRequest range, int branchId);
+    Task<IReadOnlyList<BedOccupancyRow>> GetBedOccupancyReportAsync(int branchId);
 }

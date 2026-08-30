@@ -23,7 +23,7 @@ public class MedicalRecordsController : ApiControllerBase
 
     [HttpGet("ip-patient-list")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Doctor + "," + RoleNames.Nurse)]
-    public async Task<ActionResult<IReadOnlyList<IpPatientListRowDto>>> GetIpPatientList() => Ok(await _medicalRecordService.GetIpPatientListAsync());
+    public async Task<ActionResult<IReadOnlyList<IpPatientListRowDto>>> GetIpPatientList() => Ok(await _medicalRecordService.GetIpPatientListAsync(CurrentBranchId));
 
     [HttpDelete("{id:int}")]
     [Authorize(Roles = RoleNames.AdminOnly)]

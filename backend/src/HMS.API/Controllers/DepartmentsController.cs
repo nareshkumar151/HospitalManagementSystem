@@ -10,9 +10,12 @@ public class DepartmentsController : ApiControllerBase
 
     public DepartmentsController(IDepartmentService departmentService) => _departmentService = departmentService;
 
+    // No page in this app browses departments pre-login (unlike Doctors' anonymous booking-browse), so this
+    // is always an authenticated staff call - server-enforce the caller's own branch rather than trusting an
+    // optional client-supplied query param, which a raw API call could simply omit to see every hospital's
+    // departments.
     [HttpGet]
-    [AllowAnonymous]
-    public async Task<ActionResult<IReadOnlyList<DepartmentDto>>> GetAll([FromQuery] int? branchId) => Ok(await _departmentService.GetAllAsync(branchId));
+    public async Task<ActionResult<IReadOnlyList<DepartmentDto>>> GetAll() => Ok(await _departmentService.GetAllAsync(CurrentBranchId));
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]

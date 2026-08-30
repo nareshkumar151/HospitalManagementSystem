@@ -35,7 +35,7 @@ public class OperationTheatreService : IOperationTheatreService
         return await GetByIdAsync(id);
     }
 
-    public Task<IReadOnlyList<SurgeryDto>> GetTodaysScheduleAsync() => _db.QueryAsync<SurgeryDto>("sp_Surgery_GetTodaysSchedule");
+    public Task<IReadOnlyList<SurgeryDto>> GetTodaysScheduleAsync(int branchId) => _db.QueryAsync<SurgeryDto>("sp_Surgery_GetTodaysSchedule", new { BranchId = branchId });
 
     private async Task<SurgeryDto> GetByIdAsync(int id)
         => await _db.QuerySingleOrDefaultAsync<SurgeryDto>("sp_Surgery_GetById", new { Id = id })

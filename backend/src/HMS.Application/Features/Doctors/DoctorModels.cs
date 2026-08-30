@@ -15,7 +15,7 @@ public record UpsertDoctorRequest(
 
 public interface IDoctorService
 {
-    Task<PagedResult<DoctorDto>> SearchAsync(PagedRequest request);
+    Task<PagedResult<DoctorDto>> SearchAsync(PagedRequest request, int? branchId = null);
     Task<IReadOnlyList<DoctorDto>> GetByDepartmentAsync(int departmentId);
     Task<DoctorDto> GetByIdAsync(int id);
     Task<DoctorDto> CreateAsync(UpsertDoctorRequest request);

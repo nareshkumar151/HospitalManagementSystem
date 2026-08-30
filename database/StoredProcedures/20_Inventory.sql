@@ -31,12 +31,12 @@ GO
 
 /* ==================== Inventory Items ==================== */
 CREATE OR ALTER PROCEDURE sp_InventoryItem_GetAll
-    @Type NVARCHAR(30) = NULL
+    @BranchId INT, @Type NVARCHAR(30) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT Id, ItemName, Type, Unit, Stock, ReorderLevel, ExpiryDate, VendorId, BranchId
-    FROM InventoryItems WHERE IsDeleted = 0 AND (@Type IS NULL OR Type = @Type)
+    FROM InventoryItems WHERE IsDeleted = 0 AND BranchId = @BranchId AND (@Type IS NULL OR Type = @Type)
     ORDER BY ItemName;
 END
 GO
@@ -74,22 +74,23 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE sp_InventoryItem_GetLowStock
+    @BranchId INT
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT Id, ItemName, Type, Unit, Stock, ReorderLevel, ExpiryDate, VendorId, BranchId
-    FROM InventoryItems WHERE IsDeleted = 0 AND Stock <= ReorderLevel ORDER BY Stock;
+    FROM InventoryItems WHERE IsDeleted = 0 AND BranchId = @BranchId AND Stock <= ReorderLevel ORDER BY Stock;
 END
 GO
 
 CREATE OR ALTER PROCEDURE sp_InventoryItem_GetExpiringSoon
-    @WithinDays INT = 30
+    @BranchId INT, @WithinDays INT = 30
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT Id, ItemName, Type, Unit, Stock, ReorderLevel, ExpiryDate, VendorId, BranchId
     FROM InventoryItems
-    WHERE IsDeleted = 0 AND ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, @WithinDays, SYSUTCDATETIME())
+    WHERE IsDeleted = 0 AND BranchId = @BranchId AND ExpiryDate IS NOT NULL AND ExpiryDate <= DATEADD(DAY, @WithinDays, SYSUTCDATETIME())
     ORDER BY ExpiryDate;
 END
 GO

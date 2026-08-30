@@ -24,15 +24,17 @@ BEGIN
 END
 GO
 
-/* "IP Patient list" operation - patients currently or previously admitted, with their latest admission. */
+/* "IP Patient list" operation - patients currently or previously admitted, with their latest admission.
+   @BranchId keeps one hospital's medical-records list from including another hospital's admissions. */
 CREATE OR ALTER PROCEDURE sp_MedicalRecord_GetIpPatientList
+    @BranchId INT
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT p.Id AS PatientId, p.UHID, p.FullName, p.Mobile, a.AdmissionNumber, a.Status, a.AdmissionDate, a.DischargeDate
     FROM Patients p
     JOIN IpdAdmissions a ON a.PatientId = p.Id
-    WHERE a.Id IN (SELECT MAX(Id) FROM IpdAdmissions GROUP BY PatientId)
+    WHERE a.Id IN (SELECT MAX(Id) FROM IpdAdmissions GROUP BY PatientId) AND a.BranchId = @BranchId
     ORDER BY a.AdmissionDate DESC;
 END
 GO

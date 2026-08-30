@@ -13,7 +13,11 @@ public class DoctorsController : ApiControllerBase
 
     [HttpGet]
     [AllowAnonymous] // Patients need to browse doctors before logging in to book an appointment
-    public async Task<ActionResult<PagedResult<DoctorDto>>> Search([FromQuery] PagedRequest request) => Ok(await _doctorService.SearchAsync(request));
+    // Server-derived only, never client-supplied: a signed-in user with a real branchId claim (Doctor,
+    // Nurse, Administrator...) is always forced to their own branch here regardless of what a raw API call
+    // might pass, closing off the "just omit the query param" bypass. A genuinely anonymous pre-login
+    // request, or SuperAdmin (no single branch), falls through to the unscoped, every-branch view.
+    public async Task<ActionResult<PagedResult<DoctorDto>>> Search([FromQuery] PagedRequest request) => Ok(await _doctorService.SearchAsync(request, CurrentBranchIdOrNull));
 
     [HttpGet("by-department/{departmentId:int}")]
     [AllowAnonymous]

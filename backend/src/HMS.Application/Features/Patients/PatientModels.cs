@@ -56,8 +56,8 @@ public record PatientHistoryDto(
 
 public interface IPatientService
 {
-    /// <summary> `doctorId` scopes results to patients that doctor has an appointment history with - pass null for the unscoped, hospital-wide list (Admin/Receptionist). </summary>
-    Task<PagedResult<PatientDto>> SearchAsync(PagedRequest request, int? doctorId = null);
+    /// <summary> Always scoped to `branchId` (one hospital). `doctorId` narrows it further to patients that doctor has an appointment history with - pass null for the branch-wide roster (Admin/Receptionist/Nurse). </summary>
+    Task<PagedResult<PatientDto>> SearchAsync(PagedRequest request, int branchId, int? doctorId = null);
     Task<PatientDto> GetByIdAsync(int id);
     Task<PatientDto?> GetByUhidAsync(string uhid);
     Task<PatientDto> CreateAsync(UpsertPatientRequest request);

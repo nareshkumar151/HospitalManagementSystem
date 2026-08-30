@@ -56,7 +56,7 @@ public class LaboratoryController : ApiControllerBase
 
     [HttpGet("orders/pending")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.LabTechnician + "," + RoleNames.Doctor)]
-    public async Task<ActionResult<IReadOnlyList<LabTestOrderDto>>> GetPending() => Ok(await _laboratoryService.GetPendingAsync());
+    public async Task<ActionResult<IReadOnlyList<LabTestOrderDto>>> GetPending() => Ok(await _laboratoryService.GetPendingAsync(CurrentBranchId));
 
     [HttpGet("orders/patient/{patientId:int}")]
     public async Task<ActionResult<IReadOnlyList<LabTestOrderDto>>> GetByPatient(int patientId)

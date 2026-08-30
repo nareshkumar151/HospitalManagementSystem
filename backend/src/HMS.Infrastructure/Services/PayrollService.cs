@@ -48,6 +48,6 @@ public class PayrollService : IPayrollService
     public Task<IReadOnlyList<PayrollDto>> GetByEmployeeAsync(int employeeId)
         => _db.QueryAsync<PayrollDto>("sp_Payroll_GetByEmployee", new { EmployeeId = employeeId });
 
-    public Task<IReadOnlyList<PayrollDto>> GetByPeriodAsync(string payPeriod)
-        => _db.QueryAsync<PayrollDto>("sp_Payroll_GetByPeriod", new { PayPeriod = payPeriod });
+    public Task<IReadOnlyList<PayrollDto>> GetByPeriodAsync(string payPeriod, int branchId)
+        => _db.QueryAsync<PayrollDto>("sp_Payroll_GetByPeriod", new { PayPeriod = payPeriod, BranchId = branchId });
 }

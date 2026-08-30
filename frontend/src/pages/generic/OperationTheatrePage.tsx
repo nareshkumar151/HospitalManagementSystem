@@ -37,9 +37,11 @@ export function OperationTheatrePage() {
     if (!admission || !surgeonId || !surgeryName || !scheduledAt) return
     setSubmitting(true)
     try {
-      await dispatch(surgeryResource.create({
-        patientId: admission.patientId, ipdAdmissionId: admission.id, surgeryName, surgeonDoctorId: surgeonId, scheduledAt, operationCost: cost,
-      }))
+      await dispatch(surgeryResource.create(
+        { patientId: admission.patientId, ipdAdmissionId: admission.id, surgeryName, surgeonDoctorId: surgeonId, scheduledAt, operationCost: cost },
+        undefined,
+        '/operationtheatre', // the resource's default endpoint ('/operationtheatre/today') is a GET-only view; scheduling has to POST to the base route.
+      ))
       toast.success('Surgery scheduled.')
       setModalOpen(false); setSurgeryName(''); setSurgeonId(''); setScheduledAt(''); setCost(0); setAdmissionId('')
     } catch (error) {

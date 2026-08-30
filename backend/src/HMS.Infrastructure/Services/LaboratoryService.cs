@@ -68,7 +68,7 @@ public class LaboratoryService : ILaboratoryService
         return await GetOrderByIdAsync(orderId);
     }
 
-    public Task<IReadOnlyList<LabTestOrderDto>> GetPendingAsync() => QueryOrdersAsync("sp_LabTestOrder_GetPending");
+    public Task<IReadOnlyList<LabTestOrderDto>> GetPendingAsync(int branchId) => QueryOrdersAsync("sp_LabTestOrder_GetPending", new { BranchId = branchId });
 
     public Task<IReadOnlyList<LabTestOrderDto>> GetByPatientAsync(int patientId)
         => QueryOrdersAsync("sp_LabTestOrder_GetByPatient", new { PatientId = patientId });

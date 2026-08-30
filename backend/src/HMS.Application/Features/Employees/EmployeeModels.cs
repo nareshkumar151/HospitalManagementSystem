@@ -15,7 +15,7 @@ public record UpsertEmployeeRequest(
 
 public interface IEmployeeService
 {
-    Task<PagedResult<EmployeeDto>> SearchAsync(PagedRequest request);
+    Task<PagedResult<EmployeeDto>> SearchAsync(PagedRequest request, int branchId);
     Task<EmployeeDto> GetByIdAsync(int id);
     Task<EmployeeDto> CreateAsync(UpsertEmployeeRequest request);
     Task UpdateAsync(int id, UpsertEmployeeRequest request);

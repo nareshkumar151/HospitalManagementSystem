@@ -51,6 +51,6 @@ public class RadiologyService : IRadiologyService
     public Task<IReadOnlyList<RadiologyOrderDto>> GetByPatientAsync(int patientId)
         => _db.QueryAsync<RadiologyOrderDto>("sp_RadiologyOrder_GetByPatient", new { PatientId = patientId });
 
-    public Task<IReadOnlyList<RadiologyOrderDto>> GetPendingAsync()
-        => _db.QueryAsync<RadiologyOrderDto>("sp_RadiologyOrder_GetPending");
+    public Task<IReadOnlyList<RadiologyOrderDto>> GetPendingAsync(int branchId)
+        => _db.QueryAsync<RadiologyOrderDto>("sp_RadiologyOrder_GetPending", new { BranchId = branchId });
 }

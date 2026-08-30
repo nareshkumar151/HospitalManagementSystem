@@ -19,8 +19,8 @@ public class MedicalRecordService : IMedicalRecordService
     public Task<IReadOnlyList<MedicalRecordDto>> GetByPatientAsync(int patientId, string? recordType = null)
         => _db.QueryAsync<MedicalRecordDto>("sp_MedicalRecord_GetByPatient", new { PatientId = patientId, RecordType = recordType });
 
-    public Task<IReadOnlyList<IpPatientListRowDto>> GetIpPatientListAsync()
-        => _db.QueryAsync<IpPatientListRowDto>("sp_MedicalRecord_GetIpPatientList");
+    public Task<IReadOnlyList<IpPatientListRowDto>> GetIpPatientListAsync(int branchId)
+        => _db.QueryAsync<IpPatientListRowDto>("sp_MedicalRecord_GetIpPatientList", new { BranchId = branchId });
 
     public Task DeleteAsync(int id) => _db.ExecuteAsync("sp_MedicalRecord_Delete", new { Id = id });
 }

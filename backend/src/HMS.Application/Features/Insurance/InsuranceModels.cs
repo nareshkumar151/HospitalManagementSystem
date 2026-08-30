@@ -14,5 +14,5 @@ public interface IInsuranceService
     Task<InsuranceClaimDto> SubmitAsync(SubmitClaimRequest request);
     Task<InsuranceClaimDto> UpdateStatusAsync(int id, UpdateClaimStatusRequest request);
     Task<IReadOnlyList<InsuranceClaimDto>> GetByPatientAsync(int patientId);
-    Task<IReadOnlyList<InsuranceClaimDto>> GetAllAsync(ClaimStatus? status = null);
+    Task<IReadOnlyList<InsuranceClaimDto>> GetAllAsync(int branchId, ClaimStatus? status = null);
 }

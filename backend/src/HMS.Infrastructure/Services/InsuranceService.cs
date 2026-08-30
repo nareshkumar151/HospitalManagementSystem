@@ -27,13 +27,15 @@ public class InsuranceService : IInsuranceService
     {
         await _db.ExecuteAsync("sp_InsuranceClaim_UpdateStatus", new { Id = id, Status = request.Status.ToString(), request.ApprovedAmount, request.Remarks });
         await _auditService.LogAsync("InsuranceClaimStatusUpdated", "InsuranceClaim", id.ToString(), request.Status.ToString());
-        var all = await GetAllAsync();
+        // Reading back a row by the id we just updated, not a listing - bypass branch filtering here rather
+        // than needing a branchId just to find the row this call itself already knows about.
+        var all = await _db.QueryAsync<InsuranceClaimDto>("sp_InsuranceClaim_GetAll", new { BranchId = (int?)null, Status = (string?)null });
         return all.First(c => c.Id == id);
     }
 
     public Task<IReadOnlyList<InsuranceClaimDto>> GetByPatientAsync(int patientId)
         => _db.QueryAsync<InsuranceClaimDto>("sp_InsuranceClaim_GetByPatient", new { PatientId = patientId });
 
-    public Task<IReadOnlyList<InsuranceClaimDto>> GetAllAsync(ClaimStatus? status = null)
-        => _db.QueryAsync<InsuranceClaimDto>("sp_InsuranceClaim_GetAll", new { Status = status?.ToString() });
+    public Task<IReadOnlyList<InsuranceClaimDto>> GetAllAsync(int branchId, ClaimStatus? status = null)
+        => _db.QueryAsync<InsuranceClaimDto>("sp_InsuranceClaim_GetAll", new { BranchId = branchId, Status = status?.ToString() });
 }

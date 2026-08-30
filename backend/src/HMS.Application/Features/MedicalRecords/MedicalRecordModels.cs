@@ -9,6 +9,6 @@ public interface IMedicalRecordService
 {
     Task<MedicalRecordDto> AddAsync(CreateMedicalRecordRequest request);
     Task<IReadOnlyList<MedicalRecordDto>> GetByPatientAsync(int patientId, string? recordType = null);
-    Task<IReadOnlyList<IpPatientListRowDto>> GetIpPatientListAsync(); // "IP Patient list" op from SRS Module 15
+    Task<IReadOnlyList<IpPatientListRowDto>> GetIpPatientListAsync(int branchId); // "IP Patient list" op from SRS Module 15
     Task DeleteAsync(int id);
 }

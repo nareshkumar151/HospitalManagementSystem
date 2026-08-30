@@ -62,7 +62,9 @@ BEGIN
 END
 GO
 
+-- @BranchId keeps one hospital's pending radiology queue from mixing with another's.
 CREATE OR ALTER PROCEDURE sp_RadiologyOrder_GetPending
+    @BranchId INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -71,7 +73,7 @@ BEGIN
     FROM RadiologyOrders o
     JOIN Patients p ON p.Id = o.PatientId
     JOIN Doctors doc ON doc.Id = o.DoctorId
-    WHERE o.Status IN ('Ordered','Scheduled') AND o.IsDeleted = 0
+    WHERE o.Status IN ('Ordered','Scheduled') AND o.IsDeleted = 0 AND p.BranchId = @BranchId
     ORDER BY o.OrderedAt;
 END
 GO
