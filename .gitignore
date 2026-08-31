@@ -20,3 +20,11 @@ Thumbs.db
 **/appsettings.*.local.json
 .env
 .env.local
+.env.production
+
+# Publish/deploy artifacts (rebuilt on demand, not source)
+backend/src/HMS.API/publish/
+backend/src/HMS.API/publish.zip
+
+# This assistant's local session state, not part of the project
+.claude/
