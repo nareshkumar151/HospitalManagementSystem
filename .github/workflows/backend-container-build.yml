@@ -12,7 +12,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/hms-api
+  # Hardcoded lowercase, not derived from github.repository - Docker image references must be all-lowercase
+  # and this repo's actual name (HospitalManagementSystem) isn't, which fails the tag immediately.
+  IMAGE_NAME: nareshkumar151/hms-api
 
 jobs:
   build-and-push:
