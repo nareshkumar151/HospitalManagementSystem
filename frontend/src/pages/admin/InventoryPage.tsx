@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import { extractErrorMessage } from '../../api/client'
 
 const types = ['MedicalEquipment', 'SurgicalItem', 'Consumable']
@@ -17,7 +18,8 @@ const types = ['MedicalEquipment', 'SurgicalItem', 'Consumable']
 export function InventoryPage() {
   const dispatch = useAppDispatch()
   const user = useAppSelector((state) => state.auth.user)
-  const { items, status } = useAppSelector((state) => state.inventory)
+  const { list, status } = useAppSelector((state) => state.inventory)
+  const items = list?.items ?? []
 
   const [modalOpen, setModalOpen] = useState(false)
   const [itemName, setItemName] = useState('')
@@ -26,9 +28,15 @@ export function InventoryPage() {
   const [stock, setStock] = useState(0)
   const [reorderLevel, setReorderLevel] = useState(5)
   const [submitting, setSubmitting] = useState(false)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
-  const refresh = () => dispatch(inventoryResource.fetchAll())
-  useEffect(() => { refresh() }, [dispatch])
+  const refresh = () => dispatch(inventoryResource.fetchPage({ pageNumber: page, pageSize: 10, search }))
+  useEffect(() => {
+    const timeout = setTimeout(refresh, 300)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, page, search])
 
   const handleCreate = async () => {
     if (!itemName) return
@@ -60,12 +68,16 @@ export function InventoryPage() {
         actions={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Add Item</Button>}
       />
       <Card padded={false}>
-        <div className="flex items-center gap-2 border-b border-ink-100 p-4 text-sm font-medium text-ink-700">
-          <Boxes size={16} /> Stock
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
+            <Boxes size={16} /> Stock
+          </div>
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Search by item name…" />
         </div>
         <div className="p-4">
           <Table columns={columns} rows={items} keyField={(i) => i.id} loading={status === 'loading'} />
         </div>
+        {list && <PaginationBar pageNumber={list.pageNumber} totalPages={list.totalPages} totalCount={list.totalCount} onPageChange={setPage} />}
       </Card>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add Inventory Item">

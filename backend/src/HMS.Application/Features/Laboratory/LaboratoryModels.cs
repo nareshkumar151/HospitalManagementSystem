@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Domain.Enums;
 
 namespace HMS.Application.Features.Laboratory;
@@ -27,6 +28,6 @@ public interface ILaboratoryService
     Task<LabTestOrderDto> CollectSampleAsync(int orderId, int technicianUserId);
     Task<LabTestOrderDto> UploadReportAsync(int orderId, UploadLabReportRequest request, int technicianUserId);
     Task<LabTestOrderDto> ReviewReportAsync(int orderId, ReviewLabReportRequest request);
-    Task<IReadOnlyList<LabTestOrderDto>> GetPendingAsync(int branchId);
+    Task<PagedResult<LabTestOrderDto>> GetPendingAsync(int branchId, PagedRequest request);
     Task<IReadOnlyList<LabTestOrderDto>> GetByPatientAsync(int patientId);
 }

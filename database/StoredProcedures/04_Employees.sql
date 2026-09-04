@@ -50,9 +50,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO Employees (EmployeeCode, FullName, DepartmentId, Designation, Salary, JoiningDate, Shift,
-                            Contact, EmailId, EmergencyContact, BranchId, CreatedBy)
+                            Contact, EmailId, EmergencyContact, BranchId, HospitalId, CreatedBy)
     VALUES (@EmployeeCode, @FullName, @DepartmentId, @Designation, @Salary, @JoiningDate, @Shift,
-            @Contact, @EmailId, @EmergencyContact, @BranchId, @CreatedBy);
+            @Contact, @EmailId, @EmergencyContact, @BranchId, (SELECT HospitalId FROM Branches WHERE Id = @BranchId), @CreatedBy);
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO

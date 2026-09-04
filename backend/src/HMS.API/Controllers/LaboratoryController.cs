@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Laboratory;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -56,7 +57,7 @@ public class LaboratoryController : ApiControllerBase
 
     [HttpGet("orders/pending")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.LabTechnician + "," + RoleNames.Doctor)]
-    public async Task<ActionResult<IReadOnlyList<LabTestOrderDto>>> GetPending() => Ok(await _laboratoryService.GetPendingAsync(CurrentBranchId));
+    public async Task<ActionResult<PagedResult<LabTestOrderDto>>> GetPending([FromQuery] PagedRequest request) => Ok(await _laboratoryService.GetPendingAsync(CurrentBranchId, request));
 
     [HttpGet("orders/patient/{patientId:int}")]
     public async Task<ActionResult<IReadOnlyList<LabTestOrderDto>>> GetByPatient(int patientId)

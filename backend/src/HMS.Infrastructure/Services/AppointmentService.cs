@@ -27,15 +27,17 @@ public class AppointmentService : IAppointmentService
         _notificationService = notificationService;
     }
 
-    public async Task<PagedResult<AppointmentDto>> SearchAsync(PagedRequest request, int? doctorId = null, int? patientId = null, DateTime? date = null)
+    public async Task<PagedResult<AppointmentDto>> SearchAsync(PagedRequest request, int? branchId = null, int? doctorId = null, int? patientId = null, DateTime? date = null)
     {
         var (items, counts) = await _db.QueryMultipleAsync<AppointmentDto, int>("sp_Appointment_Search", new
         {
             request.PageNumber,
             request.PageSize,
+            BranchId = branchId,
             DoctorId = doctorId,
             PatientId = patientId,
-            Date = date?.Date
+            Date = date?.Date,
+            request.Search
         });
 
         return new PagedResult<AppointmentDto>
@@ -51,7 +53,7 @@ public class AppointmentService : IAppointmentService
         => await _db.QuerySingleOrDefaultAsync<AppointmentDto>("sp_Appointment_GetById", new { Id = id })
            ?? throw new NotFoundException(nameof(Domain.Entities.Appointment), id);
 
-    public async Task<AppointmentDto> BookAsync(BookAppointmentRequest request)
+    public async Task<AppointmentDto> BookAsync(BookAppointmentRequest request, int? bookedByUserId = null)
     {
         var slotTaken = await _db.ExecuteScalarAsync<int>("sp_Appointment_CheckSlotTaken", new
         {
@@ -77,7 +79,8 @@ public class AppointmentService : IAppointmentService
             request.TimeSlot,
             TokenNumber = token,
             Type = request.Type.ToString(),
-            request.BranchId
+            request.BranchId,
+            BookedByUserId = bookedByUserId
         });
 
         await _auditService.LogAsync("AppointmentBooked", "Appointment", newId.ToString());

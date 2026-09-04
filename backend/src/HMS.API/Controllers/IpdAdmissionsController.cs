@@ -1,5 +1,7 @@
 using HMS.Application.Common.Interfaces;
+using HMS.Application.Common.Models;
 using HMS.Application.Features.IpdAdmissions;
+using HMS.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,23 +23,36 @@ public class IpdAdmissionsController : ApiControllerBase
     [Authorize(Roles = RoleNames.FrontDesk + "," + RoleNames.Nurse)]
     public async Task<ActionResult<IpdAdmissionDto>> Admit(AdmitPatientRequest request)
     {
-        var created = await _ipdAdmissionService.AdmitAsync(request);
+        var created = await _ipdAdmissionService.AdmitAsync(request, CurrentBranchIdOrNull ?? request.BranchId);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<IpdAdmissionDto>> GetById(int id) => Ok(await _ipdAdmissionService.GetByIdAsync(id));
+    public async Task<ActionResult<IpdAdmissionDto>> GetById(int id)
+    {
+        var admission = await _ipdAdmissionService.GetByIdAsync(id);
+        if (CurrentBranchIdOrNull is { } branchId && admission.BranchId != branchId) return Forbid();
+        return Ok(admission);
+    }
 
     [HttpGet("active")]
-    public async Task<ActionResult<IReadOnlyList<IpdAdmissionDto>>> GetActive() => Ok(await _ipdAdmissionService.GetActiveAsync());
+    public async Task<ActionResult<IReadOnlyList<IpdAdmissionDto>>> GetActive() => Ok(await _ipdAdmissionService.GetActiveAsync(CurrentBranchId));
+
+    /// <summary> IPD/Admissions list screen: searchable + date-filterable + paginated, across the full
+    /// admission history (not just currently-active). </summary>
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<IpdAdmissionDto>>> Search(
+        [FromQuery] PagedRequest request, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] AdmissionStatus? status)
+        => Ok(await _ipdAdmissionService.SearchAsync(request, CurrentBranchId, fromDate, toDate, status));
 
     [HttpGet("patient/{patientId:int}")]
-    public async Task<ActionResult<IReadOnlyList<IpdAdmissionDto>>> GetByPatient(int patientId) => Ok(await _ipdAdmissionService.GetByPatientAsync(patientId));
+    public async Task<ActionResult<IReadOnlyList<IpdAdmissionDto>>> GetByPatient(int patientId) => Ok(await _ipdAdmissionService.GetByPatientAsync(patientId, CurrentBranchId));
 
     [HttpGet("{id:int}/pdf")]
     public async Task<IActionResult> DownloadPdf(int id)
     {
         var admission = await _ipdAdmissionService.GetByIdAsync(id);
+        if (CurrentBranchIdOrNull is { } branchId && admission.BranchId != branchId) return Forbid();
         var pdfBytes = _pdfService.GenerateAdmissionDocumentPdf(admission);
         return File(pdfBytes, "application/pdf", $"AdmissionDocument-{admission.AdmissionNumber}.pdf");
     }

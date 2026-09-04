@@ -64,6 +64,9 @@ BEGIN
         SUM(CASE WHEN Type = 'Pharmacy' THEN TotalAmount ELSE 0 END) AS Pharmacy,
         SUM(CASE WHEN Type = 'Lab' THEN TotalAmount ELSE 0 END) AS Lab,
         SUM(CASE WHEN Type = 'Admission' THEN TotalAmount ELSE 0 END) AS Admission,
+        -- OPD/IPD track, orthogonal to the Type breakdown above: IPD = linked to an admission.
+        SUM(CASE WHEN IpdAdmissionId IS NULL THEN TotalAmount ELSE 0 END) AS Opd,
+        SUM(CASE WHEN IpdAdmissionId IS NOT NULL THEN TotalAmount ELSE 0 END) AS Ipd,
         SUM(TotalAmount) AS Total
     FROM Bills
     WHERE IsDeleted = 0 AND CAST(BillDate AS DATE) BETWEEN @FromDate AND @ToDate AND BranchId = @BranchId

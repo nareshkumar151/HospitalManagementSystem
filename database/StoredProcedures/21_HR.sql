@@ -127,7 +127,7 @@ GO
 -- @BranchId keeps one hospital's payroll run (salary figures included) from appearing in another
 -- hospital's period view.
 CREATE OR ALTER PROCEDURE sp_Payroll_GetByPeriod
-    @PayPeriod NVARCHAR(7), @BranchId INT
+    @PayPeriod NVARCHAR(7), @BranchId INT, @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -135,7 +135,14 @@ BEGIN
            p.TaxDeduction, p.Bonus, p.NetSalary, p.GeneratedAt, p.PayslipUrl
     FROM Payrolls p JOIN Employees e ON e.Id = p.EmployeeId
     WHERE p.PayPeriod = @PayPeriod AND p.IsDeleted = 0 AND e.BranchId = @BranchId
-    ORDER BY e.FullName;
+      AND (@Search IS NULL OR e.FullName LIKE '%' + @Search + '%')
+    ORDER BY e.FullName
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount
+    FROM Payrolls p JOIN Employees e ON e.Id = p.EmployeeId
+    WHERE p.PayPeriod = @PayPeriod AND p.IsDeleted = 0 AND e.BranchId = @BranchId
+      AND (@Search IS NULL OR e.FullName LIKE '%' + @Search + '%');
 END
 GO
 
@@ -164,7 +171,8 @@ GO
 -- the row I just wrote by its own id" lookups in AttendanceService - every controller-facing call always
 -- passes a real branch id.
 CREATE OR ALTER PROCEDURE sp_LeaveRequest_GetAll
-    @BranchId INT = NULL, @Status NVARCHAR(20) = NULL, @EmployeeId INT = NULL
+    @BranchId INT = NULL, @Status NVARCHAR(20) = NULL, @EmployeeId INT = NULL,
+    @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -172,6 +180,25 @@ BEGIN
     FROM LeaveRequests l JOIN Employees e ON e.Id = l.EmployeeId
     WHERE l.IsDeleted = 0 AND (@BranchId IS NULL OR e.BranchId = @BranchId)
       AND (@Status IS NULL OR l.Status = @Status) AND (@EmployeeId IS NULL OR l.EmployeeId = @EmployeeId)
-    ORDER BY l.CreatedAt DESC;
+      AND (@Search IS NULL OR e.FullName LIKE '%' + @Search + '%' OR l.Reason LIKE '%' + @Search + '%')
+    ORDER BY l.CreatedAt DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount
+    FROM LeaveRequests l JOIN Employees e ON e.Id = l.EmployeeId
+    WHERE l.IsDeleted = 0 AND (@BranchId IS NULL OR e.BranchId = @BranchId)
+      AND (@Status IS NULL OR l.Status = @Status) AND (@EmployeeId IS NULL OR l.EmployeeId = @EmployeeId)
+      AND (@Search IS NULL OR e.FullName LIKE '%' + @Search + '%' OR l.Reason LIKE '%' + @Search + '%');
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_LeaveRequest_GetById
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT l.Id, l.EmployeeId, e.FullName AS EmployeeName, l.FromDate, l.ToDate, l.Reason, l.Status
+    FROM LeaveRequests l JOIN Employees e ON e.Id = l.EmployeeId
+    WHERE l.Id = @Id AND l.IsDeleted = 0;
 END
 GO

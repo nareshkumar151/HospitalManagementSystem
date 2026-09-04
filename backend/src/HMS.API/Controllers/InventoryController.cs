@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Inventory;
 using HMS.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -13,7 +14,8 @@ public class InventoryController : ApiControllerBase
     public InventoryController(IInventoryService inventoryService) => _inventoryService = inventoryService;
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<InventoryItemDto>>> GetAll([FromQuery] InventoryItemType? type) => Ok(await _inventoryService.GetAllAsync(CurrentBranchId, type));
+    public async Task<ActionResult<PagedResult<InventoryItemDto>>> GetAll([FromQuery] PagedRequest request, [FromQuery] InventoryItemType? type)
+        => Ok(await _inventoryService.GetAllAsync(CurrentBranchId, request, type));
 
     [HttpPost]
     public async Task<ActionResult<InventoryItemDto>> Create(UpsertInventoryItemRequest request) => Ok(await _inventoryService.CreateAsync(request));

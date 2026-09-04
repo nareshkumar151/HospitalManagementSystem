@@ -111,7 +111,7 @@ GO
 
 -- @BranchId keeps one hospital's pending lab queue from mixing with another's.
 CREATE OR ALTER PROCEDURE sp_LabTestOrder_GetPending
-    @BranchId INT
+    @BranchId INT, @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -122,7 +122,17 @@ BEGIN
     JOIN Doctors doc ON doc.Id = o.DoctorId
     JOIN LabTestCatalog c ON c.Id = o.LabTestCatalogId
     WHERE o.Status <> 'Reviewed' AND o.IsDeleted = 0 AND p.BranchId = @BranchId
-    ORDER BY o.OrderedAt;
+      AND (@Search IS NULL OR p.FullName LIKE '%' + @Search + '%' OR c.TestName LIKE '%' + @Search + '%' OR doc.FullName LIKE '%' + @Search + '%')
+    ORDER BY o.OrderedAt
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount
+    FROM LabTestOrders o
+    JOIN Patients p ON p.Id = o.PatientId
+    JOIN Doctors doc ON doc.Id = o.DoctorId
+    JOIN LabTestCatalog c ON c.Id = o.LabTestCatalogId
+    WHERE o.Status <> 'Reviewed' AND o.IsDeleted = 0 AND p.BranchId = @BranchId
+      AND (@Search IS NULL OR p.FullName LIKE '%' + @Search + '%' OR c.TestName LIKE '%' + @Search + '%' OR doc.FullName LIKE '%' + @Search + '%');
 END
 GO
 

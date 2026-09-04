@@ -25,13 +25,23 @@ public class DoctorsController : ApiControllerBase
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]
-    public async Task<ActionResult<DoctorDto>> GetById(int id) => Ok(await _doctorService.GetByIdAsync(id));
+    public async Task<ActionResult<DoctorDto>> GetById(int id)
+    {
+        var doctor = await _doctorService.GetByIdAsync(id);
+        // A genuinely anonymous pre-login request has no branch claim and falls through unrestricted
+        // (browsing doctors to book with, by design); an authenticated staff member is confined to their
+        // own branch's doctors.
+        if (CurrentBranchIdOrNull is { } branchId && doctor.BranchId != branchId) return Forbid();
+        return Ok(doctor);
+    }
 
     [HttpPost]
     [Authorize(Roles = RoleNames.AdminOnly)]
     public async Task<ActionResult<DoctorDto>> Create(UpsertDoctorRequest request)
     {
-        var created = await _doctorService.CreateAsync(request);
+        // A branch-bound Administrator is always forced to their own branch; SuperAdmin has no single
+        // branch of their own, so (and only so) their explicit request.BranchId is trusted instead.
+        var created = await _doctorService.CreateAsync(request with { BranchId = CurrentBranchIdOrNull ?? request.BranchId });
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 

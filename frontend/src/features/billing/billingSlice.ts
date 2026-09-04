@@ -36,10 +36,10 @@ export function billingReducer(state = initialState, action: BillingAction): Bil
   }
 }
 
-export const fetchPendingBills = (): AppThunk<Promise<void>> => async (dispatch) => {
+export const fetchPendingBills = (category?: 'OPD' | 'IPD'): AppThunk<Promise<void>> => async (dispatch) => {
   dispatch({ type: START })
   try {
-    const { data } = await apiClient.get<BillDto[]>('/billing/pending')
+    const { data } = await apiClient.get<BillDto[]>('/billing/pending', { params: { category } })
     dispatch({ type: PENDING_SUCCESS, payload: data })
   } catch (error) {
     dispatch({ type: FAILURE, payload: extractErrorMessage(error) })

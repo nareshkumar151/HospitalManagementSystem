@@ -1,3 +1,5 @@
+using HMS.Application.Common.Models;
+
 namespace HMS.Application.Features.Vendors;
 
 public record VendorDto(int Id, string Name, string GstNumber, string Contact, string? Address, bool IsActive);
@@ -9,7 +11,8 @@ public record CreatePurchaseOrderRequest(int VendorId, IReadOnlyList<PurchaseOrd
 
 public interface IVendorService
 {
-    Task<IReadOnlyList<VendorDto>> GetAllAsync();
+    Task<PagedResult<VendorDto>> GetAllAsync(PagedRequest request);
+    Task<VendorDto> GetByIdAsync(int id);
     Task<VendorDto> CreateAsync(UpsertVendorRequest request);
     Task UpdateAsync(int id, UpsertVendorRequest request);
 

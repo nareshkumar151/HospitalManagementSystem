@@ -26,7 +26,7 @@ GO
    Organization
    --------------------------------------------------------------------------- */
 INSERT INTO Hospitals (Name, RegistrationNumber, Address, ContactNumber, Email)
-VALUES ('City Care Hospital', 'REG-HMS-0001', '123 MG Road, Pune, Maharashtra', '+911234567890', 'info@citycarehospital.example');
+VALUES ('Effisys Group', 'REG-HMS-0001', '123 MG Road, Pune, Maharashtra', '+911234567890', 'info@effisysgroup.example');
 
 INSERT INTO Branches (HospitalId, Name, Address, City, ContactNumber)
 VALUES (1, 'Main Branch', '123 MG Road, Pune, Maharashtra', 'Pune', '+911234567890');

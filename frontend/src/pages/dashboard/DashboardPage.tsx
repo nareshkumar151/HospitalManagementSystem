@@ -24,7 +24,26 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Today's Patients" value={summary?.todaysPatients ?? 0} icon={Users} tone="brand" />
-        <StatCard label="Today's Revenue" value={`₹${(summary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`} icon={IndianRupee} tone="success" />
+        <StatCard
+          label={user?.role === 'Receptionist' ? "Today's Collection" : "Today's Revenue"}
+          value={`₹${(summary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`}
+          icon={IndianRupee}
+          tone="success"
+        />
+        <StatCard
+          label="OPD Revenue"
+          value={`₹${(summary?.todaysOpdRevenue ?? 0).toLocaleString('en-IN')}`}
+          icon={IndianRupee}
+          tone="brand"
+          hint="Outpatient bills"
+        />
+        <StatCard
+          label="IPD Revenue"
+          value={`₹${(summary?.todaysIpdRevenue ?? 0).toLocaleString('en-IN')}`}
+          icon={IndianRupee}
+          tone="warning"
+          hint="Admission-linked bills"
+        />
         <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
         <StatCard label="Pending Bills" value={summary?.pendingBillsCount ?? 0} icon={Receipt} tone="danger" />
         <StatCard label="Available Doctors" value={summary?.availableDoctorsCount ?? 0} icon={Stethoscope} tone="brand" />

@@ -10,6 +10,7 @@ import { Card } from '../../components/ui/Card'
 import { Table, type Column } from '../../components/ui/Table'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 
 function currentPeriod() {
   const now = new Date()
@@ -18,17 +19,25 @@ function currentPeriod() {
 
 export function PayrollPage() {
   const dispatch = useAppDispatch()
-  const { items, status } = useAppSelector((state) => state.payroll)
+  const { list, status } = useAppSelector((state) => state.payroll)
   const { list: employees } = useAppSelector((state) => state.employees)
+  const items = list?.items ?? []
 
   const [period, setPeriod] = useState(currentPeriod())
   const [employeeId, setEmployeeId] = useState<number | ''>('')
   const [bonus, setBonus] = useState(0)
   const [tax, setTax] = useState(0)
   const [generating, setGenerating] = useState(false)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
-  const refresh = (p: string) => dispatch(payrollResource.fetchAll(undefined, `/payroll/period/${p}`))
-  useEffect(() => { refresh(period); dispatch(fetchEmployees({ pageSize: 100 })) }, [dispatch, period])
+  const refresh = (p: string) => dispatch(payrollResource.fetchPage({ pageNumber: page, pageSize: 10, search }, `/payroll/period/${p}`))
+  useEffect(() => {
+    const timeout = setTimeout(() => refresh(period), 300)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, period, page, search])
+  useEffect(() => { dispatch(fetchEmployees({ pageSize: 100 })) }, [dispatch])
 
   const generate = async () => {
     if (!employeeId) return
@@ -66,7 +75,7 @@ export function PayrollPage() {
             <option value="">Select employee</option>
             {employees?.items.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}
           </Select>
-          <Input label="Pay period" type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />
+          <Input label="Pay period" type="month" value={period} onChange={(e) => { setPeriod(e.target.value); setPage(1) }} />
           <Input label="Bonus" type="number" value={bonus} onChange={(e) => setBonus(Number(e.target.value))} />
           <Input label="Tax deduction" type="number" value={tax} onChange={(e) => setTax(Number(e.target.value))} />
           <div className="flex items-end"><Button className="w-full" loading={generating} disabled={!employeeId} onClick={generate}>Generate</Button></div>
@@ -74,9 +83,13 @@ export function PayrollPage() {
       </Card>
 
       <Card padded={false}>
+        <div className="flex items-center justify-end border-b border-ink-100 p-4">
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Search by employee…" />
+        </div>
         <div className="p-4">
           <Table columns={columns} rows={items} keyField={(p) => p.id} loading={status === 'loading'} emptyMessage={`No payslips generated for ${period} yet.`} />
         </div>
+        {list && <PaginationBar pageNumber={list.pageNumber} totalPages={list.totalPages} totalCount={list.totalCount} onPageChange={setPage} />}
       </Card>
     </div>
   )

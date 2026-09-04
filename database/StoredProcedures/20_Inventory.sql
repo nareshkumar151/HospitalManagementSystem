@@ -3,10 +3,26 @@ GO
 
 /* ==================== Vendors ==================== */
 CREATE OR ALTER PROCEDURE sp_Vendor_GetAll
+    @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, GstNumber, Contact, Address, IsActive FROM Vendors WHERE IsDeleted = 0 ORDER BY Name;
+    SELECT Id, Name, GstNumber, Contact, Address, IsActive FROM Vendors
+    WHERE IsDeleted = 0 AND (@Search IS NULL OR Name LIKE '%' + @Search + '%' OR GstNumber LIKE '%' + @Search + '%' OR Contact LIKE '%' + @Search + '%')
+    ORDER BY Name
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount FROM Vendors
+    WHERE IsDeleted = 0 AND (@Search IS NULL OR Name LIKE '%' + @Search + '%' OR GstNumber LIKE '%' + @Search + '%' OR Contact LIKE '%' + @Search + '%');
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_Vendor_GetById
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, Name, GstNumber, Contact, Address, IsActive FROM Vendors WHERE Id = @Id AND IsDeleted = 0;
 END
 GO
 
@@ -31,13 +47,30 @@ GO
 
 /* ==================== Inventory Items ==================== */
 CREATE OR ALTER PROCEDURE sp_InventoryItem_GetAll
-    @BranchId INT, @Type NVARCHAR(30) = NULL
+    @BranchId INT, @Type NVARCHAR(30) = NULL, @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT Id, ItemName, Type, Unit, Stock, ReorderLevel, ExpiryDate, VendorId, BranchId
-    FROM InventoryItems WHERE IsDeleted = 0 AND BranchId = @BranchId AND (@Type IS NULL OR Type = @Type)
-    ORDER BY ItemName;
+    FROM InventoryItems
+    WHERE IsDeleted = 0 AND BranchId = @BranchId AND (@Type IS NULL OR Type = @Type)
+      AND (@Search IS NULL OR ItemName LIKE '%' + @Search + '%')
+    ORDER BY ItemName
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount FROM InventoryItems
+    WHERE IsDeleted = 0 AND BranchId = @BranchId AND (@Type IS NULL OR Type = @Type)
+      AND (@Search IS NULL OR ItemName LIKE '%' + @Search + '%');
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_InventoryItem_GetById
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, ItemName, Type, Unit, Stock, ReorderLevel, ExpiryDate, VendorId, BranchId
+    FROM InventoryItems WHERE Id = @Id AND IsDeleted = 0;
 END
 GO
 

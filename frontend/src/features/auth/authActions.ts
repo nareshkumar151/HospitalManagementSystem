@@ -10,6 +10,7 @@ function toAuthUser(response: LoginResponse): AuthUser {
     username: response.username,
     email: response.email,
     role: response.role,
+    hospitalId: response.hospitalId,
     branchId: response.branchId,
     linkedProfileId: response.linkedProfileId,
   }
@@ -29,7 +30,7 @@ export const login = (usernameOrEmail: string, password: string): AppThunk<Promi
   }
 
 export const registerPatient = (payload: {
-  fullName: string; mobile: string; email: string; password: string; gender: string; dateOfBirth?: string
+  fullName: string; mobile: string; email: string; password: string; gender: string; dateOfBirth?: string; branchId?: number
 }): AppThunk<Promise<void>> =>
   async (dispatch) => {
     dispatch({ type: AUTH_LOGIN_START })

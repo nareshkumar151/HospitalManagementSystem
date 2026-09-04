@@ -64,16 +64,26 @@ GO
 
 -- @BranchId keeps one hospital's pending radiology queue from mixing with another's.
 CREATE OR ALTER PROCEDURE sp_RadiologyOrder_GetPending
-    @BranchId INT
+    @BranchId INT, @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT o.Id, o.PatientId, p.FullName AS PatientName, o.DoctorId, doc.FullName AS DoctorName,
-           o.ScanType, o.Status, o.OrderedAt, o.Price, NULL AS ImageUrl, NULL AS ReportFileUrl, NULL AS DoctorNotes
+           o.ScanType, o.Status, o.OrderedAt, o.Price,
+           CAST(NULL AS NVARCHAR(500)) AS ImageUrl, CAST(NULL AS NVARCHAR(500)) AS ReportFileUrl, CAST(NULL AS NVARCHAR(1000)) AS DoctorNotes
     FROM RadiologyOrders o
     JOIN Patients p ON p.Id = o.PatientId
     JOIN Doctors doc ON doc.Id = o.DoctorId
     WHERE o.Status IN ('Ordered','Scheduled') AND o.IsDeleted = 0 AND p.BranchId = @BranchId
-    ORDER BY o.OrderedAt;
+      AND (@Search IS NULL OR p.FullName LIKE '%' + @Search + '%' OR o.ScanType LIKE '%' + @Search + '%' OR doc.FullName LIKE '%' + @Search + '%')
+    ORDER BY o.OrderedAt
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount
+    FROM RadiologyOrders o
+    JOIN Patients p ON p.Id = o.PatientId
+    JOIN Doctors doc ON doc.Id = o.DoctorId
+    WHERE o.Status IN ('Ordered','Scheduled') AND o.IsDeleted = 0 AND p.BranchId = @BranchId
+      AND (@Search IS NULL OR p.FullName LIKE '%' + @Search + '%' OR o.ScanType LIKE '%' + @Search + '%' OR doc.FullName LIKE '%' + @Search + '%');
 END
 GO

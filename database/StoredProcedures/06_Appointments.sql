@@ -26,12 +26,16 @@ GO
 
 CREATE OR ALTER PROCEDURE sp_Appointment_Insert
     @PatientId INT, @DoctorId INT, @DepartmentId INT, @AppointmentDate DATE, @TimeSlot NVARCHAR(20),
-    @TokenNumber INT, @Type NVARCHAR(20), @BranchId INT, @CreatedBy NVARCHAR(100) = NULL
+    @TokenNumber INT, @Type NVARCHAR(20), @BranchId INT, @BookedByUserId INT = NULL, @CreatedBy NVARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO Appointments (PatientId, DoctorId, DepartmentId, AppointmentDate, TimeSlot, TokenNumber, Type, BranchId, CreatedBy)
-    VALUES (@PatientId, @DoctorId, @DepartmentId, @AppointmentDate, @TimeSlot, @TokenNumber, @Type, @BranchId, @CreatedBy);
+    -- Branch/Hospital always come from the doctor actually being booked, never the caller-supplied
+    -- @BranchId - a doctor only ever works out of one branch, so this is the one true source, whether the
+    -- caller is front desk (their own branch) or a patient self-booking a doctor at any branch/hospital.
+    INSERT INTO Appointments (PatientId, DoctorId, DepartmentId, AppointmentDate, TimeSlot, TokenNumber, Type, BranchId, HospitalId, BookedByUserId, CreatedBy)
+    SELECT @PatientId, @DoctorId, @DepartmentId, @AppointmentDate, @TimeSlot, @TokenNumber, @Type, doc.BranchId, doc.HospitalId, @BookedByUserId, @CreatedBy
+    FROM Doctors doc WHERE doc.Id = @DoctorId;
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO
@@ -41,7 +45,8 @@ CREATE OR ALTER PROCEDURE sp_Appointment_GetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT a.Id, a.PatientId, p.FullName AS PatientName, a.DoctorId, doc.FullName AS DoctorName,
+    SELECT a.Id, a.PatientId, p.FullName AS PatientName, p.UHID, p.Mobile AS PatientMobile,
+           a.DoctorId, doc.FullName AS DoctorName,
            a.DepartmentId, dept.Name AS DepartmentName, a.AppointmentDate, a.TimeSlot, a.TokenNumber,
            a.Type, a.Status, a.CancellationReason, a.BranchId
     FROM Appointments a
@@ -53,11 +58,17 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE sp_Appointment_Search
-    @PageNumber INT = 1, @PageSize INT = 20, @DoctorId INT = NULL, @PatientId INT = NULL, @Date DATE = NULL
+    @PageNumber INT = 1, @PageSize INT = 20, @DoctorId INT = NULL, @PatientId INT = NULL, @Date DATE = NULL,
+    @BranchId INT = NULL, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT a.Id, a.PatientId, p.FullName AS PatientName, a.DoctorId, doc.FullName AS DoctorName,
+    -- @BranchId always scopes to one hospital when supplied (Admin/Receptionist/Doctor's own-branch view);
+    -- left NULL only for the patient's own "my appointments" lookup which is already scoped by @PatientId.
+    -- @Search matches patient UHID, mobile number, or name - so front desk can find an appointment by
+    -- whichever detail the patient gives them.
+    SELECT a.Id, a.PatientId, p.FullName AS PatientName, p.UHID, p.Mobile AS PatientMobile,
+           a.DoctorId, doc.FullName AS DoctorName,
            a.DepartmentId, dept.Name AS DepartmentName, a.AppointmentDate, a.TimeSlot, a.TokenNumber,
            a.Type, a.Status, a.CancellationReason, a.BranchId
     FROM Appointments a
@@ -65,17 +76,22 @@ BEGIN
     JOIN Doctors doc ON doc.Id = a.DoctorId
     JOIN Departments dept ON dept.Id = a.DepartmentId
     WHERE a.IsDeleted = 0
+      AND (@BranchId IS NULL OR a.BranchId = @BranchId)
       AND (@DoctorId IS NULL OR a.DoctorId = @DoctorId)
       AND (@PatientId IS NULL OR a.PatientId = @PatientId)
       AND (@Date IS NULL OR a.AppointmentDate = @Date)
+      AND (@Search IS NULL OR p.UHID LIKE '%' + @Search + '%' OR p.Mobile LIKE '%' + @Search + '%' OR p.FullName LIKE '%' + @Search + '%')
     ORDER BY a.AppointmentDate DESC, a.TokenNumber
     OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
 
     SELECT COUNT(*) AS TotalCount FROM Appointments a
+    JOIN Patients p ON p.Id = a.PatientId
     WHERE a.IsDeleted = 0
+      AND (@BranchId IS NULL OR a.BranchId = @BranchId)
       AND (@DoctorId IS NULL OR a.DoctorId = @DoctorId)
       AND (@PatientId IS NULL OR a.PatientId = @PatientId)
-      AND (@Date IS NULL OR a.AppointmentDate = @Date);
+      AND (@Date IS NULL OR a.AppointmentDate = @Date)
+      AND (@Search IS NULL OR p.UHID LIKE '%' + @Search + '%' OR p.Mobile LIKE '%' + @Search + '%' OR p.FullName LIKE '%' + @Search + '%');
 END
 GO
 

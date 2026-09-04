@@ -1,3 +1,5 @@
+using HMS.Application.Common.Models;
+
 namespace HMS.Application.Features.MedicalRecords;
 
 public record MedicalRecordDto(int Id, int PatientId, string RecordType, string Title, string? FileUrl, string? Notes, DateTime RecordDate);
@@ -9,6 +11,6 @@ public interface IMedicalRecordService
 {
     Task<MedicalRecordDto> AddAsync(CreateMedicalRecordRequest request);
     Task<IReadOnlyList<MedicalRecordDto>> GetByPatientAsync(int patientId, string? recordType = null);
-    Task<IReadOnlyList<IpPatientListRowDto>> GetIpPatientListAsync(int branchId); // "IP Patient list" op from SRS Module 15
+    Task<PagedResult<IpPatientListRowDto>> GetIpPatientListAsync(int branchId, PagedRequest request); // "IP Patient list" op from SRS Module 15
     Task DeleteAsync(int id);
 }

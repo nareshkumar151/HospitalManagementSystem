@@ -42,7 +42,8 @@ public class OrganizationService : IOrganizationService
 
     public OrganizationService(ISqlDataAccess db) => _db = db;
 
-    public Task<IReadOnlyList<HospitalDto>> GetHospitalsAsync() => _db.QueryAsync<HospitalDto>("sp_Hospital_GetAll");
+    public Task<IReadOnlyList<HospitalDto>> GetHospitalsAsync(int? hospitalId = null)
+        => _db.QueryAsync<HospitalDto>("sp_Hospital_GetAll", new { HospitalId = hospitalId });
 
     public async Task<HospitalDto> CreateHospitalAsync(UpsertHospitalRequest request)
     {

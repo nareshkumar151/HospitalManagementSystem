@@ -1,4 +1,6 @@
+using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Vendors;
 
 namespace HMS.Infrastructure.Services;
@@ -9,13 +11,32 @@ public class VendorService : IVendorService
 
     public VendorService(ISqlDataAccess db) => _db = db;
 
-    public Task<IReadOnlyList<VendorDto>> GetAllAsync() => _db.QueryAsync<VendorDto>("sp_Vendor_GetAll");
+    public async Task<PagedResult<VendorDto>> GetAllAsync(PagedRequest request)
+    {
+        var (items, counts) = await _db.QueryMultipleAsync<VendorDto, int>("sp_Vendor_GetAll", new
+        {
+            request.PageNumber,
+            request.PageSize,
+            request.Search
+        });
+
+        return new PagedResult<VendorDto>
+        {
+            Items = items,
+            TotalCount = counts.FirstOrDefault(),
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
+
+    public async Task<VendorDto> GetByIdAsync(int id)
+        => await _db.QuerySingleOrDefaultAsync<VendorDto>("sp_Vendor_GetById", new { Id = id })
+           ?? throw new NotFoundException(nameof(Domain.Entities.Vendor), id);
 
     public async Task<VendorDto> CreateAsync(UpsertVendorRequest request)
     {
         var newId = await _db.QuerySingleAsync<int>("sp_Vendor_Insert", request);
-        var vendors = await GetAllAsync();
-        return vendors.First(v => v.Id == newId);
+        return await GetByIdAsync(newId);
     }
 
     public Task UpdateAsync(int id, UpsertVendorRequest request)

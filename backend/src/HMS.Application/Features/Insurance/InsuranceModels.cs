@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Domain.Enums;
 
 namespace HMS.Application.Features.Insurance;
@@ -14,5 +15,5 @@ public interface IInsuranceService
     Task<InsuranceClaimDto> SubmitAsync(SubmitClaimRequest request);
     Task<InsuranceClaimDto> UpdateStatusAsync(int id, UpdateClaimStatusRequest request);
     Task<IReadOnlyList<InsuranceClaimDto>> GetByPatientAsync(int patientId);
-    Task<IReadOnlyList<InsuranceClaimDto>> GetAllAsync(int branchId, ClaimStatus? status = null);
+    Task<PagedResult<InsuranceClaimDto>> GetAllAsync(int branchId, PagedRequest request, ClaimStatus? status = null);
 }

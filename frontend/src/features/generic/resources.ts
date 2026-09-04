@@ -1,4 +1,4 @@
-import { createResourceSlice } from './createResourceSlice'
+import { createResourceSlice, createPagedResourceSlice } from './createResourceSlice'
 
 // Minimal row shapes for the scaffold modules - widen these as each screen grows real business logic.
 export interface InsuranceClaimRow { id: number; patientId: number; patientName: string; insuranceCompany: string; policyNumber: string; coverageAmount: number; approvedAmount: number | null; status: string; submittedAt: string }
@@ -12,15 +12,17 @@ export interface IpPatientListRow { patientId: number; uhid: string; fullName: s
 export interface NotificationRow { id: number; channel: string; category: string; message: string; isSent: boolean; isRead: boolean; createdAt: string }
 export interface LabTestOrderRow { id: number; patientId: number; patientName: string; doctorId: number; doctorName: string; testName: string; status: string; orderedAt: string }
 
-export const insuranceResource = createResourceSlice<InsuranceClaimRow>('insurance', '/insurance')
-export const radiologyResource = createResourceSlice<RadiologyOrderRow>('radiology', '/radiology/orders/pending')
+// These lists can realistically grow into the hundreds/thousands over the life of a hospital, so they
+// use the paged slice (server-side pagination + search) instead of the plain "fetch everything" one.
+export const insuranceResource = createPagedResourceSlice<InsuranceClaimRow>('insurance', '/insurance')
+export const radiologyResource = createPagedResourceSlice<RadiologyOrderRow>('radiology', '/radiology/orders/pending')
 export const surgeryResource = createResourceSlice<SurgeryRow>('surgery', '/operationtheatre/today')
-export const inventoryResource = createResourceSlice<InventoryItemRow>('inventory', '/inventory')
-export const vendorResource = createResourceSlice<VendorRow>('vendors', '/vendors')
+export const inventoryResource = createPagedResourceSlice<InventoryItemRow>('inventory', '/inventory')
+export const vendorResource = createPagedResourceSlice<VendorRow>('vendors', '/vendors')
 // Payroll has no "get all" endpoint by design (payslips are always scoped to an employee or a pay period);
-// the Payroll page passes a concrete `/payroll/period/{yyyy-MM}` path via fetchAll's pathOverride argument.
-export const payrollResource = createResourceSlice<PayrollRow>('payroll', '/payroll/period')
-export const leaveRequestResource = createResourceSlice<LeaveRequestRow>('leaveRequests', '/attendance/leave-requests')
-export const ipPatientListResource = createResourceSlice<IpPatientListRow>('ipPatientList', '/medicalrecords/ip-patient-list')
-export const notificationResource = createResourceSlice<NotificationRow>('notifications', '/notifications/my')
-export const labOrderResource = createResourceSlice<LabTestOrderRow>('laborders', '/laboratory/orders/pending')
+// the Payroll page passes a concrete `/payroll/period/{yyyy-MM}` path via fetchPage's pathOverride argument.
+export const payrollResource = createPagedResourceSlice<PayrollRow>('payroll', '/payroll/period')
+export const leaveRequestResource = createPagedResourceSlice<LeaveRequestRow>('leaveRequests', '/attendance/leave-requests')
+export const ipPatientListResource = createPagedResourceSlice<IpPatientListRow>('ipPatientList', '/medicalrecords/ip-patient-list')
+export const notificationResource = createPagedResourceSlice<NotificationRow>('notifications', '/notifications/my')
+export const labOrderResource = createPagedResourceSlice<LabTestOrderRow>('laborders', '/laboratory/orders/pending')

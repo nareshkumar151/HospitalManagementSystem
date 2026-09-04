@@ -59,7 +59,9 @@ public class OrganizationController : ApiControllerBase
 
     [HttpGet("hospitals")]
     [Authorize(Roles = RoleNames.AdminOnly)]
-    public async Task<ActionResult<IReadOnlyList<HospitalDto>>> GetHospitals() => Ok(await _organizationService.GetHospitalsAsync());
+    // A branch-bound Administrator only ever sees their own hospital; SuperAdmin (no branchId/hospitalId
+    // claim) sees every hospital, which is the whole point of the role.
+    public async Task<ActionResult<IReadOnlyList<HospitalDto>>> GetHospitals() => Ok(await _organizationService.GetHospitalsAsync(CurrentHospitalIdOrNull));
 
     [HttpPost("hospitals")]
     [Authorize(Roles = RoleNames.SuperAdminOnly)]

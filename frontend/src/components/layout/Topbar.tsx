@@ -47,7 +47,8 @@ function timeAgo(iso: string): string {
 function NotificationBell() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const { items } = useAppSelector((state) => state.notifications)
+  const { list } = useAppSelector((state) => state.notifications)
+  const items = list?.items ?? []
   const [open, setOpen] = useState(false)
   const [marking, setMarking] = useState<number | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -55,7 +56,10 @@ function NotificationBell() {
 
   const unread = items.filter((n) => !n.isRead)
 
-  const refresh = () => dispatch(notificationResource.fetchAll())
+  // The bell only ever needs the most recent handful for its dropdown, plus enough of the unread backlog
+  // to size the badge (display caps at "9+" anyway) - a small fixed page is enough, no need to ever pull
+  // a user's entire notification history just to poll for new arrivals.
+  const refresh = () => dispatch(notificationResource.fetchPage({ pageNumber: 1, pageSize: 20 }))
 
   useEffect(() => {
     refresh()

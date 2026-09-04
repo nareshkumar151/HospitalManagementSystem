@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Domain.Enums;
 
 namespace HMS.Application.Features.Inventory;
@@ -14,7 +15,8 @@ public record RecordMovementRequest(StockMovementType MovementType, int Quantity
 
 public interface IInventoryService
 {
-    Task<IReadOnlyList<InventoryItemDto>> GetAllAsync(int branchId, InventoryItemType? type = null);
+    Task<PagedResult<InventoryItemDto>> GetAllAsync(int branchId, PagedRequest request, InventoryItemType? type = null);
+    Task<InventoryItemDto> GetByIdAsync(int id);
     Task<InventoryItemDto> CreateAsync(UpsertInventoryItemRequest request);
     Task RecordMovementAsync(int itemId, RecordMovementRequest request, int userId);
     Task<IReadOnlyList<InventoryItemDto>> GetLowStockAsync(int branchId);

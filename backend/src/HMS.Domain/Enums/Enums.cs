@@ -54,10 +54,21 @@ public enum AppointmentStatus
 
 public enum AdmissionType
 {
+    // GeneralMedical/GeneralSurgical/Emergency are kept (not removed) purely so existing IpdAdmissions
+    // rows written with these values keep deserializing correctly - the Admit form now only offers the
+    // list below.
     GeneralMedical,
     GeneralSurgical,
+    Emergency,
+    MedicalManagement,
+    SurgicalManagement,
+    PostOpCare,
+    Observation,
+    Daycare,
     ICU,
-    Emergency
+    NICU,
+    Delivery,
+    PICU
 }
 
 public enum RoomType
@@ -134,6 +145,16 @@ public enum BillType
     Operation,
     Room,
     Nursing
+}
+
+/// <summary> Which billing track a bill belongs to - derived, not stored: IPD when the bill is linked to an
+/// IpdAdmission, OPD otherwise (including bills linked to an OpdVisit or to neither). Kept separate from
+/// <see cref="BillType"/>, which is the finer-grained charge category (Consultation, Pharmacy, ...) that
+/// exists on both tracks. </summary>
+public enum BillCategory
+{
+    OPD,
+    IPD
 }
 
 public enum ClaimStatus

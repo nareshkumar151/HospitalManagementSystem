@@ -10,11 +10,13 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import { extractErrorMessage } from '../../api/client'
 
 export function VendorsPage() {
   const dispatch = useAppDispatch()
-  const { items, status } = useAppSelector((state) => state.vendors)
+  const { list, status } = useAppSelector((state) => state.vendors)
+  const items = list?.items ?? []
 
   const [modalOpen, setModalOpen] = useState(false)
   const [name, setName] = useState('')
@@ -22,8 +24,13 @@ export function VendorsPage() {
   const [contact, setContact] = useState('')
   const [address, setAddress] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
-  useEffect(() => { dispatch(vendorResource.fetchAll()) }, [dispatch])
+  useEffect(() => {
+    const timeout = setTimeout(() => dispatch(vendorResource.fetchPage({ pageNumber: page, pageSize: 10, search })), 300)
+    return () => clearTimeout(timeout)
+  }, [dispatch, page, search])
 
   const handleCreate = async () => {
     if (!name || !gstNumber || !contact) return
@@ -55,12 +62,16 @@ export function VendorsPage() {
         actions={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Add Vendor</Button>}
       />
       <Card padded={false}>
-        <div className="flex items-center gap-2 border-b border-ink-100 p-4 text-sm font-medium text-ink-700">
-          <Truck size={16} /> Vendor Directory
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
+            <Truck size={16} /> Vendor Directory
+          </div>
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Search by name, GST, or contact…" />
         </div>
         <div className="p-4">
           <Table columns={columns} rows={items} keyField={(v) => v.id} loading={status === 'loading'} />
         </div>
+        {list && <PaginationBar pageNumber={list.pageNumber} totalPages={list.totalPages} totalCount={list.totalCount} onPageChange={setPage} />}
       </Card>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add Vendor">

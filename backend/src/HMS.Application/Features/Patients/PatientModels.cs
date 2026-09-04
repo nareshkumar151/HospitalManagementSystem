@@ -24,6 +24,7 @@ public record PatientDto(
     string? InsurancePolicyNumber,
     string? Allergies,
     int BranchId,
+    int HospitalId,
     DateTime CreatedAt);
 
 public record UpsertPatientRequest(
@@ -56,12 +57,19 @@ public record PatientHistoryDto(
 
 public interface IPatientService
 {
-    /// <summary> Always scoped to `branchId` (one hospital). `doctorId` narrows it further to patients that doctor has an appointment history with - pass null for the branch-wide roster (Admin/Receptionist/Nurse). </summary>
-    Task<PagedResult<PatientDto>> SearchAsync(PagedRequest request, int branchId, int? doctorId = null);
+    /// <summary> Always scoped to `hospitalId` - Patients are shared across every branch of one hospital
+    /// (so a patient already registered at Branch A shows up when Branch B searches for them, instead of
+    /// forcing a duplicate registration), and never visible across two different hospitals. `doctorId`
+    /// narrows it further to patients that doctor has an appointment history with - pass null for the
+    /// hospital-wide roster (Admin/Receptionist/Nurse). </summary>
+    Task<PagedResult<PatientDto>> SearchAsync(PagedRequest request, int hospitalId, int? doctorId = null);
     Task<PatientDto> GetByIdAsync(int id);
     Task<PatientDto?> GetByUhidAsync(string uhid);
-    Task<PatientDto> CreateAsync(UpsertPatientRequest request);
+    /// <summary> `registeredByUserId` attributes the patient to whichever front-desk user registered them, for the receptionist's own-revenue dashboard tile. </summary>
+    Task<PatientDto> CreateAsync(UpsertPatientRequest request, int? registeredByUserId = null);
     Task UpdateAsync(int id, UpsertPatientRequest request);
     Task DeleteAsync(int id);
-    Task<PatientHistoryDto> GetHistoryAsync(int id);
+    /// <summary> The full patient-360 view spans every branch of `hospitalId` - a patient treated at more
+    /// than one branch of the same hospital should show their complete history, not just one branch's. </summary>
+    Task<PatientHistoryDto> GetHistoryAsync(int id, int hospitalId);
 }

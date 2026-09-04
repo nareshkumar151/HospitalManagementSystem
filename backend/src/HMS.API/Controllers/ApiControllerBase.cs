@@ -42,4 +42,29 @@ public abstract class ApiControllerBase : ControllerBase
             return int.TryParse(value, out var id) ? id : null;
         }
     }
+
+    /// <summary> The caller's hospital, derived from their own JWT claim - defaults to 1 the same way
+    /// <see cref="CurrentBranchId"/> does, for the same reason (every authenticated staff member below
+    /// SuperAdmin always has a real claim; this only matters for code paths that shouldn't be reached
+    /// without one). Patients are shared across every branch of one hospital (so the same patient can be
+    /// treated at any branch without a duplicate record), so hospital-scoped list/lookup endpoints use
+    /// this instead of <see cref="CurrentBranchId"/>. </summary>
+    protected int CurrentHospitalId
+    {
+        get
+        {
+            var value = User.FindFirstValue("hospitalId");
+            return int.TryParse(value, out var id) ? id : 1;
+        }
+    }
+
+    /// <summary> Null for a genuinely anonymous request or SuperAdmin - see <see cref="CurrentBranchIdOrNull"/>. </summary>
+    protected int? CurrentHospitalIdOrNull
+    {
+        get
+        {
+            var value = User.FindFirstValue("hospitalId");
+            return int.TryParse(value, out var id) ? id : null;
+        }
+    }
 }

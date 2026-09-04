@@ -32,7 +32,7 @@ export const navItems: NavItem[] = [
   { label: 'Pharmacy', path: '/app/pharmacy', icon: Pill, roles: ['Pharmacist', 'SuperAdmin', 'Administrator'] },
   { label: 'Billing', path: '/app/billing', icon: Receipt, roles: ['SuperAdmin', 'Administrator', 'Receptionist'] },
   { label: 'Insurance', path: '/app/insurance', icon: ShieldCheck, roles: ['SuperAdmin', 'Administrator', 'Receptionist'] },
-  { label: 'Operation Theatre', path: '/app/operation-theatre', icon: Scissors, roles: ['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
+  { label: 'Operation Theatre', path: '/app/operation-theatre', icon: Scissors, roles: ['SuperAdmin', 'Administrator', 'Doctor', 'Nurse'] },
   { label: 'Medical Records', path: '/app/medical-records', icon: FileText, roles: ['SuperAdmin', 'Administrator', 'Doctor', 'Nurse'] },
   { label: 'Doctors', path: '/app/manage/doctors', icon: Stethoscope, roles: ['SuperAdmin', 'Administrator'] },
   { label: 'Departments', path: '/app/manage/departments', icon: Building2, roles: ['SuperAdmin', 'Administrator'] },

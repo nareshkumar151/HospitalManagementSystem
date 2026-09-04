@@ -1,4 +1,5 @@
 using HMS.Application.Common.Interfaces;
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Notifications;
 
 namespace HMS.Infrastructure.Services;
@@ -21,13 +22,30 @@ public class NotificationService : INotificationService
         });
 
         // Actual SMS/Email/Push dispatch is picked up by a Hangfire background job (see NFR: Background Jobs)
-        // which calls sp_Notification_MarkSent once delivered - kept out of the request/response cycle.
-        var list = request.UserId.HasValue ? await GetForUserAsync(request.UserId.Value) : Array.Empty<NotificationDto>();
-        return list.FirstOrDefault(n => n.Id == newId) ?? new NotificationDto(newId, request.UserId, request.PatientId, request.Channel, request.Category, request.Message, false, null, false, DateTime.UtcNow);
+        // which calls sp_Notification_MarkSent once delivered - not sent yet, so IsSent/SentAt are always
+        // false/null at the moment of this response regardless.
+        return new NotificationDto(newId, request.UserId, request.PatientId, request.Channel, request.Category, request.Message, false, null, false, DateTime.UtcNow);
     }
 
-    public Task<IReadOnlyList<NotificationDto>> GetForUserAsync(int userId, bool unreadOnly = false)
-        => _db.QueryAsync<NotificationDto>("sp_Notification_GetForUser", new { UserId = userId, UnreadOnly = unreadOnly });
+    public async Task<PagedResult<NotificationDto>> GetForUserAsync(int userId, PagedRequest request, bool unreadOnly = false)
+    {
+        var (items, counts) = await _db.QueryMultipleAsync<NotificationDto, int>("sp_Notification_GetForUser", new
+        {
+            UserId = userId,
+            UnreadOnly = unreadOnly,
+            request.PageNumber,
+            request.PageSize,
+            request.Search
+        });
+
+        return new PagedResult<NotificationDto>
+        {
+            Items = items,
+            TotalCount = counts.FirstOrDefault(),
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
 
     public Task MarkReadAsync(int id) => _db.ExecuteAsync("sp_Notification_MarkRead", new { Id = id });
 }

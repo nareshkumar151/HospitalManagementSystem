@@ -22,9 +22,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO Bills (BillNumber, PatientId, OpdVisitId, IpdAdmissionId, Type, SubTotal, GstAmount, DiscountAmount,
-        TotalAmount, GeneratedByUserId, BranchId)
+        TotalAmount, GeneratedByUserId, BranchId, HospitalId)
     VALUES (@BillNumber, @PatientId, @OpdVisitId, @IpdAdmissionId, @Type, @SubTotal, @GstAmount, @DiscountAmount,
-        @TotalAmount, @GeneratedByUserId, @BranchId);
+        @TotalAmount, @GeneratedByUserId, @BranchId, (SELECT HospitalId FROM Branches WHERE Id = @BranchId));
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO
@@ -44,8 +44,9 @@ CREATE OR ALTER PROCEDURE sp_Bill_GetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT b.Id, b.BillNumber, b.PatientId, p.FullName AS PatientName, b.Type, b.SubTotal, b.GstAmount,
-           b.DiscountAmount, b.TotalAmount, b.PaidAmount, b.Status, b.BillDate
+    SELECT b.Id, b.BillNumber, b.PatientId, p.FullName AS PatientName, b.Type,
+           b.OpdVisitId, b.IpdAdmissionId,
+           b.SubTotal, b.GstAmount, b.DiscountAmount, b.TotalAmount, b.PaidAmount, b.Status, b.BillDate, b.BranchId
     FROM Bills b JOIN Patients p ON p.Id = b.PatientId
     WHERE b.Id = @Id AND b.IsDeleted = 0;
 
@@ -54,42 +55,59 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE sp_Bill_Search
-    @PageNumber INT = 1, @PageSize INT = 20, @Status NVARCHAR(20) = NULL
+    @BranchId INT, @PageNumber INT = 1, @PageSize INT = 20, @Status NVARCHAR(20) = NULL, @Category NVARCHAR(10) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT b.Id, b.BillNumber, b.PatientId, p.FullName AS PatientName, b.Type, b.SubTotal, b.GstAmount,
-           b.DiscountAmount, b.TotalAmount, b.PaidAmount, b.Status, b.BillDate
+    -- @Category: 'IPD' = linked to an admission, 'OPD' = everything else (walk-in or linked to an OPD visit).
+    SELECT b.Id, b.BillNumber, b.PatientId, p.FullName AS PatientName, b.Type,
+           b.OpdVisitId, b.IpdAdmissionId,
+           b.SubTotal, b.GstAmount, b.DiscountAmount, b.TotalAmount, b.PaidAmount, b.Status, b.BillDate, b.BranchId
     FROM Bills b JOIN Patients p ON p.Id = b.PatientId
-    WHERE b.IsDeleted = 0 AND (@Status IS NULL OR b.Status = @Status)
+    WHERE b.IsDeleted = 0 AND b.BranchId = @BranchId AND (@Status IS NULL OR b.Status = @Status)
+      AND (@Category IS NULL
+           OR (@Category = 'IPD' AND b.IpdAdmissionId IS NOT NULL)
+           OR (@Category = 'OPD' AND b.IpdAdmissionId IS NULL))
     ORDER BY b.BillDate DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
 
-    SELECT COUNT(*) AS TotalCount FROM Bills b WHERE b.IsDeleted = 0 AND (@Status IS NULL OR b.Status = @Status);
+    SELECT COUNT(*) AS TotalCount FROM Bills b
+    WHERE b.IsDeleted = 0 AND b.BranchId = @BranchId AND (@Status IS NULL OR b.Status = @Status)
+      AND (@Category IS NULL
+           OR (@Category = 'IPD' AND b.IpdAdmissionId IS NOT NULL)
+           OR (@Category = 'OPD' AND b.IpdAdmissionId IS NULL));
 END
 GO
 
 CREATE OR ALTER PROCEDURE sp_Bill_GetByPatient
-    @PatientId INT
+    @PatientId INT, @BranchId INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT b.Id, b.BillNumber, b.PatientId, p.FullName AS PatientName, b.Type, b.SubTotal, b.GstAmount,
-           b.DiscountAmount, b.TotalAmount, b.PaidAmount, b.Status, b.BillDate
+    -- @BranchId scopes to one branch's bills for this patient (front-desk/staff lookup); NULL returns
+    -- every bill this patient has ever been issued across every branch (their own "my bills" view).
+    SELECT b.Id, b.BillNumber, b.PatientId, p.FullName AS PatientName, b.Type,
+           b.OpdVisitId, b.IpdAdmissionId,
+           b.SubTotal, b.GstAmount, b.DiscountAmount, b.TotalAmount, b.PaidAmount, b.Status, b.BillDate, b.BranchId
     FROM Bills b JOIN Patients p ON p.Id = b.PatientId
-    WHERE b.PatientId = @PatientId AND b.IsDeleted = 0
+    WHERE b.PatientId = @PatientId AND b.IsDeleted = 0 AND (@BranchId IS NULL OR b.BranchId = @BranchId)
     ORDER BY b.BillDate DESC;
 END
 GO
 
 CREATE OR ALTER PROCEDURE sp_Bill_GetPending
+    @BranchId INT, @Category NVARCHAR(10) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT b.Id, b.BillNumber, b.PatientId, p.FullName AS PatientName, b.Type, b.SubTotal, b.GstAmount,
-           b.DiscountAmount, b.TotalAmount, b.PaidAmount, b.Status, b.BillDate
+    SELECT b.Id, b.BillNumber, b.PatientId, p.FullName AS PatientName, b.Type,
+           b.OpdVisitId, b.IpdAdmissionId,
+           b.SubTotal, b.GstAmount, b.DiscountAmount, b.TotalAmount, b.PaidAmount, b.Status, b.BillDate, b.BranchId
     FROM Bills b JOIN Patients p ON p.Id = b.PatientId
-    WHERE b.IsDeleted = 0 AND b.Status IN ('Pending','PartiallyPaid')
+    WHERE b.IsDeleted = 0 AND b.BranchId = @BranchId AND b.Status IN ('Pending','PartiallyPaid')
+      AND (@Category IS NULL
+           OR (@Category = 'IPD' AND b.IpdAdmissionId IS NOT NULL)
+           OR (@Category = 'OPD' AND b.IpdAdmissionId IS NULL))
     ORDER BY b.BillDate;
 END
 GO
@@ -104,8 +122,9 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRANSACTION;
 
-    INSERT INTO Payments (BillId, Amount, Mode, TransactionReference, IsRefund, ReceivedByUserId)
-    VALUES (@BillId, @Amount, @Mode, @TransactionReference, @IsRefund, @ReceivedByUserId);
+    INSERT INTO Payments (BillId, Amount, Mode, TransactionReference, IsRefund, ReceivedByUserId, BranchId, HospitalId)
+    SELECT @BillId, @Amount, @Mode, @TransactionReference, @IsRefund, @ReceivedByUserId, b.BranchId, b.HospitalId
+    FROM Bills b WHERE b.Id = @BillId;
     DECLARE @NewPaymentId INT = CAST(SCOPE_IDENTITY() AS INT);
 
     UPDATE Bills SET PaidAmount = PaidAmount + (CASE WHEN @IsRefund = 1 THEN -@Amount ELSE @Amount END)

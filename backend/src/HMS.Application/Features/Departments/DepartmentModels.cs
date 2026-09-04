@@ -20,7 +20,9 @@ public record UpsertBranchRequest(int HospitalId, string Name, string Address, s
 
 public interface IOrganizationService
 {
-    Task<IReadOnlyList<HospitalDto>> GetHospitalsAsync();
+    /// <summary> Pass `hospitalId` to scope to just that hospital (a branch-bound Administrator's own);
+    /// null returns every hospital (SuperAdmin only). </summary>
+    Task<IReadOnlyList<HospitalDto>> GetHospitalsAsync(int? hospitalId = null);
     Task<HospitalDto> CreateHospitalAsync(UpsertHospitalRequest request);
     Task UpdateHospitalAsync(int id, UpsertHospitalRequest request);
     /// <summary> Refuses (ConflictException) if the hospital still has active branches - delete/deactivate those first. </summary>

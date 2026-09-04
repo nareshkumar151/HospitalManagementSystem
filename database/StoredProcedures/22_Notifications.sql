@@ -30,13 +30,19 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE sp_Notification_GetForUser
-    @UserId INT, @UnreadOnly BIT = 0
+    @UserId INT, @UnreadOnly BIT = 0, @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT Id, UserId, PatientId, Channel, Category, Message, IsSent, SentAt, IsRead, CreatedAt
     FROM Notifications
     WHERE UserId = @UserId AND IsDeleted = 0 AND (@UnreadOnly = 0 OR IsRead = 0)
-    ORDER BY CreatedAt DESC;
+      AND (@Search IS NULL OR Message LIKE '%' + @Search + '%' OR Category LIKE '%' + @Search + '%')
+    ORDER BY CreatedAt DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount FROM Notifications
+    WHERE UserId = @UserId AND IsDeleted = 0 AND (@UnreadOnly = 0 OR IsRead = 0)
+      AND (@Search IS NULL OR Message LIKE '%' + @Search + '%' OR Category LIKE '%' + @Search + '%');
 END
 GO

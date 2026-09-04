@@ -8,7 +8,7 @@ namespace HMS.Infrastructure.Services;
 /// <summary> Row shape matching sp_User_GetByUsernameOrEmail / sp_User_GetById. </summary>
 internal record UserRow(
     int Id, string Username, string Email, string PasswordHash, int RoleId, string RoleName,
-    int? LinkedProfileId, int? BranchId, bool IsActive, DateTime? LastLoginAt, int FailedLoginAttempts, DateTime? LockedUntil);
+    int? LinkedProfileId, int? BranchId, int? HospitalId, bool IsActive, DateTime? LastLoginAt, int FailedLoginAttempts, DateTime? LockedUntil);
 
 internal record RoleRow(int Id, string Name, string Description);
 
@@ -97,6 +97,10 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponse> RegisterPatientAsync(RegisterPatientRequest request)
     {
+        // Falls back to branch 1 only when the caller doesn't specify one, so single-branch deployments
+        // (and any older client that predates the branch picker) keep working exactly as before.
+        var branchId = request.BranchId ?? 1;
+
         var uhid = await _db.ExecuteScalarAsync<string>("sp_Patient_NextUhid");
         var patientId = await _db.QuerySingleAsync<int>("sp_Patient_Insert", new
         {
@@ -118,12 +122,13 @@ public class AuthService : IAuthService
             InsuranceCompany = (string?)null,
             InsurancePolicyNumber = (string?)null,
             Allergies = (string?)null,
-            BranchId = 1,
+            BranchId = branchId,
+            RegisteredByUserId = (int?)null,
             CreatedBy = "self-registration"
         });
 
         var username = request.Email.Split('@')[0] + patientId;
-        await CreateUserAsync(new CreateUserRequest(username, request.Email, request.Password, RoleName.Patient, patientId, 1));
+        await CreateUserAsync(new CreateUserRequest(username, request.Email, request.Password, RoleName.Patient, patientId, branchId));
 
         return await LoginAsync(new LoginRequest(request.Email, request.Password));
     }
@@ -144,7 +149,7 @@ public class AuthService : IAuthService
     private async Task<LoginResponse> IssueTokensAsync(UserRow user)
     {
         var role = Enum.Parse<RoleName>(user.RoleName);
-        var tokens = _jwtTokenService.GenerateTokens(user.Id, user.Username, user.Email, role, user.BranchId, user.LinkedProfileId);
+        var tokens = _jwtTokenService.GenerateTokens(user.Id, user.Username, user.Email, role, user.HospitalId, user.BranchId, user.LinkedProfileId);
 
         await _db.ExecuteAsync("sp_RefreshToken_Insert", new
         {
@@ -154,7 +159,7 @@ public class AuthService : IAuthService
         });
 
         return new LoginResponse(tokens.AccessToken, tokens.AccessTokenExpiresAt, tokens.RefreshToken,
-            user.Id, user.Username, user.Email, role, user.BranchId, user.LinkedProfileId);
+            user.Id, user.Username, user.Email, role, user.HospitalId, user.BranchId, user.LinkedProfileId);
     }
 
     private async Task<int> GetRoleIdAsync(RoleName role)

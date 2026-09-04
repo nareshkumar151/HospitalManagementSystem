@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Insurance;
 using HMS.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -24,5 +25,6 @@ public class InsuranceController : ApiControllerBase
     public async Task<ActionResult<IReadOnlyList<InsuranceClaimDto>>> GetByPatient(int patientId) => Ok(await _insuranceService.GetByPatientAsync(patientId));
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<InsuranceClaimDto>>> GetAll([FromQuery] ClaimStatus? status) => Ok(await _insuranceService.GetAllAsync(CurrentBranchId, status));
+    public async Task<ActionResult<PagedResult<InsuranceClaimDto>>> GetAll([FromQuery] PagedRequest request, [FromQuery] ClaimStatus? status)
+        => Ok(await _insuranceService.GetAllAsync(CurrentBranchId, request, status));
 }

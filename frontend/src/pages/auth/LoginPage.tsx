@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { HeartPulse, LogIn } from 'lucide-react'
+import { LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAppDispatch } from '../../app/hooks'
@@ -51,10 +51,10 @@ export function LoginPage() {
           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
         />
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
-            <HeartPulse size={24} />
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-1.5">
+            <img src="/logo-icon.png" alt="Effisys Group" className="h-full w-full object-contain" />
           </div>
-          <span className="text-lg font-semibold">City Care HMS</span>
+          <span className="text-lg font-semibold">Effisys Group</span>
         </div>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -68,7 +68,7 @@ export function LoginPage() {
             around the way your hospital actually works.
           </p>
         </motion.div>
-        <p className="relative z-10 text-xs text-white/60">© {new Date().getFullYear()} City Care Hospital</p>
+        <p className="relative z-10 text-xs text-white/60">© {new Date().getFullYear()} Effisys Group</p>
       </div>
 
       <div className="flex items-center justify-center p-6 md:p-10">
@@ -79,10 +79,8 @@ export function LoginPage() {
           className="w-full max-w-sm"
         >
           <div className="mb-8 md:hidden flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white">
-              <HeartPulse size={20} />
-            </div>
-            <span className="text-lg font-semibold text-ink-900">City Care HMS</span>
+            <img src="/logo-icon.png" alt="Effisys Group" className="h-9 w-9 shrink-0 object-contain" />
+            <span className="text-lg font-semibold text-ink-900">Effisys Group</span>
           </div>
 
           <h2 className="text-2xl font-semibold text-ink-900">Sign in</h2>

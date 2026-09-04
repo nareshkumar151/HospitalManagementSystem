@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { HeartPulse } from 'lucide-react'
 import { useAppSelector } from '../../app/hooks'
 import { navItems } from './navConfig'
 
@@ -11,11 +10,9 @@ export function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-ink-100 bg-surface md:flex">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white">
-          <HeartPulse size={20} />
-        </div>
+        <img src="/logo-icon.png" alt="Effisys Group" className="h-9 w-9 shrink-0 object-contain" />
         <div>
-          <p className="text-sm font-semibold text-ink-900 leading-tight">City Care HMS</p>
+          <p className="text-sm font-semibold text-ink-900 leading-tight">Effisys Group</p>
           <p className="text-xs text-ink-500 leading-tight">Hospital Management</p>
         </div>
       </div>

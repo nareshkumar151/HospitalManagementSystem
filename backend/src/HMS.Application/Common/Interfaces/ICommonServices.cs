@@ -31,7 +31,7 @@ public record TokenResult(string AccessToken, DateTime AccessTokenExpiresAt, str
 
 public interface IJwtTokenService
 {
-    TokenResult GenerateTokens(int userId, string username, string email, RoleName role, int? branchId, int? linkedProfileId);
+    TokenResult GenerateTokens(int userId, string username, string email, RoleName role, int? hospitalId, int? branchId, int? linkedProfileId);
 }
 
 public interface IDateTimeProvider

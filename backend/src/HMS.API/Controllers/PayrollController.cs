@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Payroll;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,5 +19,6 @@ public class PayrollController : ApiControllerBase
     public async Task<ActionResult<IReadOnlyList<PayrollDto>>> GetByEmployee(int employeeId) => Ok(await _payrollService.GetByEmployeeAsync(employeeId));
 
     [HttpGet("period/{payPeriod}")]
-    public async Task<ActionResult<IReadOnlyList<PayrollDto>>> GetByPeriod(string payPeriod) => Ok(await _payrollService.GetByPeriodAsync(payPeriod, CurrentBranchId));
+    public async Task<ActionResult<PagedResult<PayrollDto>>> GetByPeriod(string payPeriod, [FromQuery] PagedRequest request)
+        => Ok(await _payrollService.GetByPeriodAsync(payPeriod, CurrentBranchId, request));
 }

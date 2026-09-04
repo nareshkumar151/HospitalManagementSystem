@@ -62,11 +62,11 @@ public class OpdVisitService : IOpdVisitService
         => await _db.QuerySingleOrDefaultAsync<OpdVisitDto>("sp_OpdVisit_GetById", new { Id = id })
            ?? throw new NotFoundException(nameof(Domain.Entities.OpdVisit), id);
 
-    public Task<IReadOnlyList<OpdVisitDto>> GetByPatientAsync(int patientId)
-        => _db.QueryAsync<OpdVisitDto>("sp_OpdVisit_GetByPatient", new { PatientId = patientId });
+    public Task<IReadOnlyList<OpdVisitDto>> GetByPatientAsync(int patientId, int branchId)
+        => _db.QueryAsync<OpdVisitDto>("sp_OpdVisit_GetByPatient", new { PatientId = patientId, BranchId = branchId });
 
-    public Task<IReadOnlyList<OpdVisitDto>> GetByDoctorAsync(int doctorId, DateTime? date = null)
-        => _db.QueryAsync<OpdVisitDto>("sp_OpdVisit_GetByDoctor", new { DoctorId = doctorId, Date = date?.Date });
+    public Task<IReadOnlyList<OpdVisitDto>> GetByDoctorAsync(int doctorId, int branchId, DateTime? date = null)
+        => _db.QueryAsync<OpdVisitDto>("sp_OpdVisit_GetByDoctor", new { DoctorId = doctorId, BranchId = branchId, Date = date?.Date });
 
     public Task AddNursingNoteAsync(int opdVisitId, OpdNursingNoteRequest request, int nurseUserId)
         => _db.ExecuteAsync("sp_OpdNursingNote_Insert", new

@@ -1,6 +1,7 @@
 import type { Action as ReduxAction } from 'redux'
 import type { ThunkAction } from 'redux-thunk'
 import { apiClient, extractErrorMessage } from '../../api/client'
+import type { PagedResult } from '../../types'
 
 // Deliberately NOT importing AppThunk/RootState here: this factory is used to build some of the very
 // reducers RootState is composed from, so depending on RootState would create a circular type
@@ -93,4 +94,90 @@ export function createResourceSlice<T>(actionPrefix: string, endpoint: string): 
     }
 
   return { reducer, fetchAll, create, update }
+}
+
+/**
+ * Paged sibling of `createResourceSlice` for the modules whose list can realistically grow into the
+ * hundreds/thousands (Notifications, Insurance claims, Radiology/Lab order queues, Inventory, Vendors,
+ * Payroll, Leave requests, the IP patient list) - the server does the paging and searching instead of
+ * shipping the whole table to the browser every time.
+ */
+export interface PagedResourceState<T> {
+  list: PagedResult<T> | null
+  status: 'idle' | 'loading' | 'succeeded' | 'failed'
+  error: string | null
+}
+
+type PagedResourceAction<T> =
+  | { type: string & { __brand?: 'start' } }
+  | { type: string; payload: PagedResult<T> }
+  | { type: string; payload: string }
+
+export interface PagedResourceSlice<T> {
+  reducer: (state: PagedResourceState<T> | undefined, action: PagedResourceAction<T>) => PagedResourceState<T>
+  fetchPage: (params?: { pageNumber?: number; pageSize?: number; search?: string } & Record<string, unknown>, pathOverride?: string) => GenericThunk<Promise<void>>
+  create: (payload: Record<string, unknown>, refetchParams?: Record<string, unknown>, createPathOverride?: string) => GenericThunk<Promise<T>>
+  update: (id: number, payload: Record<string, unknown>, refetchParams?: Record<string, unknown>) => GenericThunk<Promise<void>>
+}
+
+export function createPagedResourceSlice<T>(actionPrefix: string, endpoint: string): PagedResourceSlice<T> {
+  const initialState: PagedResourceState<T> = { list: null, status: 'idle', error: null }
+
+  const START = `${actionPrefix}/start`
+  const SUCCESS = `${actionPrefix}/success`
+  const FAILURE = `${actionPrefix}/failure`
+
+  function reducer(state: PagedResourceState<T> = initialState, action: PagedResourceAction<T>): PagedResourceState<T> {
+    switch (action.type) {
+      case START:
+        return { ...state, status: 'loading', error: null }
+      case SUCCESS:
+        return { ...state, status: 'succeeded', list: (action as { payload: PagedResult<T> }).payload }
+      case FAILURE:
+        return { ...state, status: 'failed', error: (action as { payload: string }).payload }
+      default:
+        return state
+    }
+  }
+
+  const fetchPage = (
+    params: { pageNumber?: number; pageSize?: number; search?: string } & Record<string, unknown> = {},
+    pathOverride?: string
+  ): GenericThunk<Promise<void>> => async (dispatch) => {
+    dispatch({ type: START })
+    try {
+      const { pageNumber = 1, pageSize = 10, search, ...rest } = params
+      const { data } = await apiClient.get<PagedResult<T>>(pathOverride ?? endpoint, {
+        params: { pageNumber, pageSize, search: search || undefined, ...rest },
+      })
+      dispatch({ type: SUCCESS, payload: data })
+    } catch (error) {
+      dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+    }
+  }
+
+  const create = (payload: Record<string, unknown>, refetchParams?: Record<string, unknown>, createPathOverride?: string): GenericThunk<Promise<T>> =>
+    async (dispatch) => {
+      try {
+        const { data } = await apiClient.post<T>(createPathOverride ?? endpoint, payload)
+        await dispatch(fetchPage(refetchParams))
+        return data
+      } catch (error) {
+        dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+        throw error
+      }
+    }
+
+  const update = (id: number, payload: Record<string, unknown>, refetchParams?: Record<string, unknown>): GenericThunk<Promise<void>> =>
+    async (dispatch) => {
+      try {
+        await apiClient.put(`${endpoint}/${id}`, payload)
+        await dispatch(fetchPage(refetchParams))
+      } catch (error) {
+        dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+        throw error
+      }
+    }
+
+  return { reducer, fetchPage, create, update }
 }

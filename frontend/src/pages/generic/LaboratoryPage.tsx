@@ -10,18 +10,26 @@ import { Table, type Column } from '../../components/ui/Table'
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import type { LabTestOrderRow } from '../../features/generic/resources'
 
 export function LaboratoryPage() {
   const dispatch = useAppDispatch()
   const role = useAppSelector((state) => state.auth.user?.role)
-  const { items, status } = useAppSelector((state) => state.labOrders)
+  const { list, status } = useAppSelector((state) => state.labOrders)
+  const items = list?.items ?? []
   const [reportTarget, setReportTarget] = useState<LabTestOrderRow | null>(null)
   const [resultSummary, setResultSummary] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
-  const refresh = () => dispatch(labOrderResource.fetchAll())
-  useEffect(() => { refresh() }, [dispatch])
+  const refresh = () => dispatch(labOrderResource.fetchPage({ pageNumber: page, pageSize: 10, search }))
+  useEffect(() => {
+    const timeout = setTimeout(refresh, 300)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, page, search])
 
   const collectSample = async (id: number) => {
     try {
@@ -74,12 +82,16 @@ export function LaboratoryPage() {
     <div>
       <PageHeader title="Laboratory" subtitle="Pending orders across Blood, Urine, ECG and health-check packages." />
       <Card padded={false}>
-        <div className="flex items-center gap-2 border-b border-ink-100 p-4 text-sm font-medium text-ink-700">
-          <FlaskConical size={16} /> Pending Orders
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
+            <FlaskConical size={16} /> Pending Orders
+          </div>
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Search by patient, test, or doctor…" />
         </div>
         <div className="p-4">
           <Table columns={columns} rows={items} keyField={(o) => o.id} loading={status === 'loading'} emptyMessage="No pending lab orders." />
         </div>
+        {list && <PaginationBar pageNumber={list.pageNumber} totalPages={list.totalPages} totalCount={list.totalCount} onPageChange={setPage} />}
       </Card>
 
       <Modal open={!!reportTarget} onClose={() => setReportTarget(null)} title="Upload Lab Report">

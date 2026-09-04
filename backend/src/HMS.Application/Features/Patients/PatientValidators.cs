@@ -13,7 +13,7 @@ public class UpsertPatientRequestValidator : AbstractValidator<UpsertPatientRequ
         RuleFor(x => x.Gender).IsInEnum();
         RuleFor(x => x.BloodGroup).IsInEnum();
         RuleFor(x => x.BranchId).GreaterThan(0);
-        RuleFor(x => x).Must(x => x.DateOfBirth != null || x.Age != null)
-            .WithMessage("Either Date of Birth or Age must be provided.");
+        RuleFor(x => x.Age).NotNull().GreaterThan(0).LessThan(150)
+            .WithMessage("Age is required.");
     }
 }

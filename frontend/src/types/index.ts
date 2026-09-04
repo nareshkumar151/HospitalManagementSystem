@@ -8,7 +8,10 @@ export type Gender = 'Male' | 'Female' | 'Other'
 export type BloodGroup = 'Unknown' | 'APositive' | 'ANegative' | 'BPositive' | 'BNegative' | 'ABPositive' | 'ABNegative' | 'OPositive' | 'ONegative'
 export type AppointmentType = 'Online' | 'WalkIn'
 export type AppointmentStatus = 'Scheduled' | 'Completed' | 'Cancelled' | 'Rescheduled'
-export type AdmissionType = 'GeneralMedical' | 'GeneralSurgical' | 'ICU' | 'Emergency'
+export type AdmissionType =
+  | 'GeneralMedical' | 'GeneralSurgical' | 'Emergency' // legacy values, kept for existing records
+  | 'MedicalManagement' | 'SurgicalManagement' | 'PostOpCare' | 'Observation' | 'Daycare'
+  | 'ICU' | 'NICU' | 'Delivery' | 'PICU'
 export type RoomType = 'General' | 'SemiPrivate' | 'Private' | 'Deluxe' | 'ICU'
 export type BedStatus = 'Available' | 'Occupied' | 'Reserved' | 'Maintenance'
 export type AdmissionStatus = 'Admitted' | 'Discharged' | 'Transferred'
@@ -70,6 +73,7 @@ export interface LoginResponse {
   username: string
   email: string
   role: RoleName
+  hospitalId: number | null
   branchId: number | null
   linkedProfileId: number | null
 }
@@ -128,6 +132,8 @@ export interface AppointmentDto {
   id: number
   patientId: number
   patientName: string
+  uhid: string
+  patientMobile: string
   doctorId: number
   doctorName: string
   departmentId: number
@@ -228,12 +234,17 @@ export interface BillItemDto {
   lineTotal: number
 }
 
+export type BillCategory = 'OPD' | 'IPD'
+
 export interface BillDto {
   id: number
   billNumber: string
   patientId: number
   patientName: string
   type: BillType
+  category: BillCategory
+  opdVisitId: number | null
+  ipdAdmissionId: number | null
   subTotal: number
   gstAmount: number
   discountAmount: number
@@ -254,8 +265,11 @@ export interface IpdAdmissionDto {
   admissionNumber: string
   patientId: number
   patientName: string
+  uhid: string
   doctorId: number
   doctorName: string
+  departmentName: string
+  insuranceCompany: string | null
   nurseUserId: number | null
   nurseName: string | null
   bedId: number
@@ -318,6 +332,8 @@ export interface RazorpayOrderResponseDto {
 export interface DashboardSummaryDto {
   todaysPatients: number
   todaysRevenue: number
+  todaysOpdRevenue: number
+  todaysIpdRevenue: number
   bedOccupancyPercent: number
   pendingBillsCount: number
   availableDoctorsCount: number

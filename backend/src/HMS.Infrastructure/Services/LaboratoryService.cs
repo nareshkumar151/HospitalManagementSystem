@@ -1,5 +1,6 @@
 using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Laboratory;
 
 namespace HMS.Infrastructure.Services;
@@ -68,7 +69,24 @@ public class LaboratoryService : ILaboratoryService
         return await GetOrderByIdAsync(orderId);
     }
 
-    public Task<IReadOnlyList<LabTestOrderDto>> GetPendingAsync(int branchId) => QueryOrdersAsync("sp_LabTestOrder_GetPending", new { BranchId = branchId });
+    public async Task<PagedResult<LabTestOrderDto>> GetPendingAsync(int branchId, PagedRequest request)
+    {
+        var (headers, counts) = await _db.QueryMultipleAsync<OrderHeaderRow, int>("sp_LabTestOrder_GetPending", new
+        {
+            BranchId = branchId,
+            request.PageNumber,
+            request.PageSize,
+            request.Search
+        });
+
+        return new PagedResult<LabTestOrderDto>
+        {
+            Items = headers.Select(r => Map(r, null)).ToList(),
+            TotalCount = counts.FirstOrDefault(),
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
 
     public Task<IReadOnlyList<LabTestOrderDto>> GetByPatientAsync(int patientId)
         => QueryOrdersAsync("sp_LabTestOrder_GetByPatient", new { PatientId = patientId });

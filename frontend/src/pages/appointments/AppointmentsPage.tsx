@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Plus, X } from 'lucide-react'
+import { Plus, Search, X } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { bookAppointment, cancelAppointment, fetchAppointments, fetchDoctorSlots } from '../../features/appointments/appointmentsSlice'
 import { fetchDoctors, fetchDepartments } from '../../features/doctors/doctorsSlice'
@@ -17,14 +18,18 @@ import type { AppointmentDto } from '../../types'
 
 export function AppointmentsPage() {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const guidedPatientId = (location.state as { guidedPatientId?: number } | null)?.guidedPatientId
   const user = useAppSelector((state) => state.auth.user)
   const { list, slots } = useAppSelector((state) => state.appointments)
   const { list: patients } = useAppSelector((state) => state.patients)
   const { list: doctors, departments } = useAppSelector((state) => state.doctors)
 
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [modalOpen, setModalOpen] = useState(false)
-  const [patientId, setPatientId] = useState<number | null>(null)
+  const [search, setSearch] = useState('')
+  const [modalOpen, setModalOpen] = useState(!!guidedPatientId)
+  const [patientId, setPatientId] = useState<number | null>(guidedPatientId ?? null)
   const [departmentId, setDepartmentId] = useState<number | null>(null)
   const [doctorId, setDoctorId] = useState<number | null>(null)
   const [bookDate, setBookDate] = useState(new Date().toISOString().slice(0, 10))
@@ -32,8 +37,9 @@ export function AppointmentsPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    dispatch(fetchAppointments({ date }))
-  }, [dispatch, date])
+    const timeout = setTimeout(() => dispatch(fetchAppointments({ date, search })), 300)
+    return () => clearTimeout(timeout)
+  }, [dispatch, date, search])
 
   useEffect(() => {
     dispatch(fetchDoctors())
@@ -54,7 +60,10 @@ export function AppointmentsPage() {
       await dispatch(bookAppointment({ patientId, doctorId, departmentId, appointmentDate: bookDate, timeSlot: slot, type: 'WalkIn', branchId: user?.branchId ?? 1 }))
       toast.success('Appointment booked.')
       setModalOpen(false)
-      dispatch(fetchAppointments({ date }))
+      dispatch(fetchAppointments({ date, search }))
+      // Booking naturally continues into billing the patient for the visit - carry them along so the
+      // receptionist doesn't have to search for them again on the Billing page.
+      navigate('/app/billing', { state: { guidedPatientId: patientId } })
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -68,7 +77,7 @@ export function AppointmentsPage() {
     try {
       await dispatch(cancelAppointment(id, reason))
       toast.success('Appointment cancelled.')
-      dispatch(fetchAppointments({ date }))
+      dispatch(fetchAppointments({ date, search }))
     } catch (error) {
       toast.error(extractErrorMessage(error))
     }
@@ -77,6 +86,8 @@ export function AppointmentsPage() {
   const columns: Column<AppointmentDto>[] = [
     { key: 'token', header: 'Token', render: (a) => <span className="font-mono text-xs">#{a.tokenNumber}</span> },
     { key: 'patient', header: 'Patient', render: (a) => a.patientName },
+    { key: 'uhid', header: 'UHID', render: (a) => <span className="font-mono text-xs text-ink-500">{a.uhid}</span> },
+    { key: 'mobile', header: 'Mobile', render: (a) => a.patientMobile },
     { key: 'doctor', header: 'Doctor', render: (a) => a.doctorName },
     { key: 'dept', header: 'Department', render: (a) => a.departmentName },
     { key: 'slot', header: 'Slot', render: (a) => a.timeSlot },
@@ -100,10 +111,19 @@ export function AppointmentsPage() {
       />
 
       <Card padded={false}>
-        <div className="flex items-center gap-3 border-b border-ink-100 p-4">
+        <div className="flex flex-wrap items-center gap-3 border-b border-ink-100 p-4">
           <label className="text-sm font-medium text-ink-700">Date</label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
             className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+          <div className="relative ml-auto w-full max-w-sm">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by UHID, mobile, or patient name…"
+              className="w-full rounded-lg border border-ink-100 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+            />
+          </div>
         </div>
         <div className="p-4">
           <Table columns={columns} rows={list?.items ?? []} keyField={(a) => a.id} emptyMessage="No appointments for this date." />

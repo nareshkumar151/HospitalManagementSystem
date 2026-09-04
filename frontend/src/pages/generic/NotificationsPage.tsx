@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Bell, Check } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { notificationResource } from '../../features/generic/resources'
@@ -6,23 +6,32 @@ import { apiClient } from '../../api/client'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 
 export function NotificationsPage() {
   const dispatch = useAppDispatch()
-  const { items, status } = useAppSelector((state) => state.notifications)
+  const { list, status } = useAppSelector((state) => state.notifications)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const items = list?.items ?? []
 
-  const refresh = () => dispatch(notificationResource.fetchAll())
-  useEffect(() => { refresh() }, [dispatch])
+  useEffect(() => {
+    const timeout = setTimeout(() => dispatch(notificationResource.fetchPage({ pageNumber: page, pageSize: 10, search })), 300)
+    return () => clearTimeout(timeout)
+  }, [dispatch, page, search])
 
   const markRead = async (id: number) => {
     await apiClient.put(`/notifications/${id}/read`)
-    refresh()
+    dispatch(notificationResource.fetchPage({ pageNumber: page, pageSize: 10, search }))
   }
 
   return (
     <div>
       <PageHeader title="Notifications" subtitle="Appointment reminders, lab-ready alerts, billing and follow-up notices." />
       <Card>
+        <div className="mb-4">
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Search notifications…" />
+        </div>
         {status === 'loading' && <p className="text-sm text-ink-500">Loading…</p>}
         <div className="space-y-2">
           {items.map((n) => (
@@ -46,6 +55,11 @@ export function NotificationsPage() {
           ))}
           {items.length === 0 && status !== 'loading' && <p className="text-sm text-ink-500">You're all caught up.</p>}
         </div>
+        {list && (
+          <div className="-mx-4 -mb-4 mt-2">
+            <PaginationBar pageNumber={list.pageNumber} totalPages={list.totalPages} totalCount={list.totalCount} onPageChange={setPage} />
+          </div>
+        )}
       </Card>
     </div>
   )

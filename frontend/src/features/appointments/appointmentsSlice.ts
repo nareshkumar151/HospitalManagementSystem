@@ -33,13 +33,13 @@ export function appointmentsReducer(state = initialState, action: AppointmentsAc
 }
 
 export const fetchAppointments = (params: {
-  pageNumber?: number; pageSize?: number; doctorId?: number; patientId?: number; date?: string; mine?: boolean
+  pageNumber?: number; pageSize?: number; doctorId?: number; patientId?: number; date?: string; mine?: boolean; search?: string
 } = {}): AppThunk<Promise<void>> => async (dispatch) => {
   dispatch({ type: START })
   try {
     const url = params.mine ? '/appointments/my' : '/appointments'
     const { data } = await apiClient.get<PagedResult<AppointmentDto>>(url, {
-      params: { pageNumber: params.pageNumber ?? 1, pageSize: params.pageSize ?? 10, doctorId: params.doctorId, patientId: params.patientId, date: params.date },
+      params: { pageNumber: params.pageNumber ?? 1, pageSize: params.pageSize ?? 10, doctorId: params.doctorId, patientId: params.patientId, date: params.date, search: params.search || undefined },
     })
     dispatch({ type: LIST_SUCCESS, payload: data })
   } catch (error) {

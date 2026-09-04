@@ -1,4 +1,5 @@
 using HMS.Application.Common.Interfaces;
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Insurance;
 using HMS.Domain.Enums;
 
@@ -36,6 +37,23 @@ public class InsuranceService : IInsuranceService
     public Task<IReadOnlyList<InsuranceClaimDto>> GetByPatientAsync(int patientId)
         => _db.QueryAsync<InsuranceClaimDto>("sp_InsuranceClaim_GetByPatient", new { PatientId = patientId });
 
-    public Task<IReadOnlyList<InsuranceClaimDto>> GetAllAsync(int branchId, ClaimStatus? status = null)
-        => _db.QueryAsync<InsuranceClaimDto>("sp_InsuranceClaim_GetAll", new { BranchId = branchId, Status = status?.ToString() });
+    public async Task<PagedResult<InsuranceClaimDto>> GetAllAsync(int branchId, PagedRequest request, ClaimStatus? status = null)
+    {
+        var (items, counts) = await _db.QueryMultipleAsync<InsuranceClaimDto, int>("sp_InsuranceClaim_GetAll", new
+        {
+            BranchId = branchId,
+            Status = status?.ToString(),
+            request.PageNumber,
+            request.PageSize,
+            request.Search
+        });
+
+        return new PagedResult<InsuranceClaimDto>
+        {
+            Items = items,
+            TotalCount = counts.FirstOrDefault(),
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
 }

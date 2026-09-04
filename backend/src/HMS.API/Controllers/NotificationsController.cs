@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,8 +16,8 @@ public class NotificationsController : ApiControllerBase
     public async Task<ActionResult<NotificationDto>> Queue(SendNotificationRequest request) => Ok(await _notificationService.QueueAsync(request));
 
     [HttpGet("my")]
-    public async Task<ActionResult<IReadOnlyList<NotificationDto>>> GetMine([FromQuery] bool unreadOnly = false)
-        => Ok(await _notificationService.GetForUserAsync(CurrentUserId, unreadOnly));
+    public async Task<ActionResult<PagedResult<NotificationDto>>> GetMine([FromQuery] PagedRequest request, [FromQuery] bool unreadOnly = false)
+        => Ok(await _notificationService.GetForUserAsync(CurrentUserId, request, unreadOnly));
 
     [HttpPut("{id:int}/read")]
     public async Task<IActionResult> MarkRead(int id)

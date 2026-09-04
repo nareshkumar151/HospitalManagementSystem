@@ -17,11 +17,11 @@ public class PatientService : IPatientService
         _auditService = auditService;
     }
 
-    public async Task<PagedResult<PatientDto>> SearchAsync(PagedRequest request, int branchId, int? doctorId = null)
+    public async Task<PagedResult<PatientDto>> SearchAsync(PagedRequest request, int hospitalId, int? doctorId = null)
     {
         var (items, counts) = await _db.QueryMultipleAsync<PatientDto, int>("sp_Patient_Search", new
         {
-            BranchId = branchId,
+            HospitalId = hospitalId,
             request.PageNumber,
             request.PageSize,
             request.Search,
@@ -48,7 +48,7 @@ public class PatientService : IPatientService
         return _db.QuerySingleOrDefaultAsync<PatientDto>("sp_Patient_GetByUhid", new { UHID = uhid });
     }
 
-    public async Task<PatientDto> CreateAsync(UpsertPatientRequest request)
+    public async Task<PatientDto> CreateAsync(UpsertPatientRequest request, int? registeredByUserId = null)
     {
         var uhid = await _db.ExecuteScalarAsync<string>("sp_Patient_NextUhid");
 
@@ -72,7 +72,8 @@ public class PatientService : IPatientService
             request.InsuranceCompany,
             request.InsurancePolicyNumber,
             request.Allergies,
-            request.BranchId
+            request.BranchId,
+            RegisteredByUserId = registeredByUserId
         });
 
         await _auditService.LogAsync("PatientRegistered", "Patient", newId.ToString(), uhid);
@@ -115,12 +116,14 @@ public class PatientService : IPatientService
         await _auditService.LogAsync("PatientDeleted", "Patient", id.ToString());
     }
 
-    public async Task<PatientHistoryDto> GetHistoryAsync(int id)
+    public async Task<PatientHistoryDto> GetHistoryAsync(int id, int hospitalId)
     {
         var patient = await GetByIdAsync(id);
-        var opdVisits = await _db.QueryAsync<dynamic>("sp_OpdVisit_GetByPatient", new { PatientId = id });
+        // Hospital-wide, not branch-scoped: the patient-360 view should show everything across every
+        // branch of this hospital the patient has ever been seen at.
+        var opdVisits = await _db.QueryAsync<dynamic>("sp_OpdVisit_GetByPatient", new { PatientId = id, BranchId = (int?)null, HospitalId = hospitalId });
         var (prescriptions, _) = await _db.QueryMultipleAsync<dynamic, dynamic>("sp_Prescription_GetByPatient", new { PatientId = id });
-        var admissions = await _db.QueryAsync<dynamic>("sp_IpdAdmission_GetByPatient", new { PatientId = id });
+        var admissions = await _db.QueryAsync<dynamic>("sp_IpdAdmission_GetByPatient", new { PatientId = id, BranchId = (int?)null, HospitalId = hospitalId });
         var labReports = await _db.QueryAsync<dynamic>("sp_LabTestOrder_GetByPatient", new { PatientId = id });
 
         return new PatientHistoryDto(

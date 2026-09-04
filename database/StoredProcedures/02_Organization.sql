@@ -3,10 +3,15 @@ GO
 
 /* ==================== Hospitals ==================== */
 CREATE OR ALTER PROCEDURE sp_Hospital_GetAll
+    @HospitalId INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Name, RegistrationNumber, Address, ContactNumber, Email, LogoUrl FROM Hospitals WHERE IsDeleted = 0 ORDER BY Name;
+    -- @HospitalId NULL is SuperAdmin's "every hospital" view; a branch-bound Administrator always passes
+    -- their own hospital id here, so they can never enumerate another hospital's details.
+    SELECT Id, Name, RegistrationNumber, Address, ContactNumber, Email, LogoUrl FROM Hospitals
+    WHERE IsDeleted = 0 AND (@HospitalId IS NULL OR Id = @HospitalId)
+    ORDER BY Name;
 END
 GO
 

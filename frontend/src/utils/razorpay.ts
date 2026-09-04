@@ -10,6 +10,7 @@ interface RazorpayCheckoutOptions {
   amount: number
   currency: string
   name: string
+  image?: string
   description?: string
   order_id: string
   prefill?: { name?: string; email?: string; contact?: string }
@@ -70,7 +71,8 @@ export async function openRazorpayCheckout(options: {
       key: options.keyId,
       amount: options.amountInPaise,
       currency: options.currency,
-      name: 'City Care Hospital',
+      name: 'Effisys Group',
+      image: `${window.location.origin}/logo-icon.png`,
       description: 'Hospital bill payment',
       order_id: options.orderId,
       prefill: { name: options.patientName, email: options.patientEmail, contact: options.patientPhone },

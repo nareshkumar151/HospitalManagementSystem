@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 import { BedDouble, Download, LogOut, Plus } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { admitPatient, dischargePatient, fetchActiveAdmissions } from '../../features/ipd/ipdSlice'
+import { admitPatient, dischargePatient, fetchActiveAdmissions, searchAdmissions } from '../../features/ipd/ipdSlice'
 import { fetchBeds } from '../../features/beds/bedsSlice'
 import { fetchPatients } from '../../features/patients/patientsSlice'
 import { fetchDoctors } from '../../features/doctors/doctorsSlice'
@@ -13,48 +14,68 @@ import { Button } from '../../components/ui/Button'
 import { Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import { downloadFile, extractErrorMessage } from '../../api/client'
 import type { IpdAdmissionDto } from '../../types'
-
-const admissionTypes = ['GeneralMedical', 'GeneralSurgical', 'ICU', 'Emergency']
+import { ADMISSION_TYPES, admissionTypeLabel } from '../../utils/admissionTypes'
 
 export function IpdPage() {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const user = useAppSelector((state) => state.auth.user)
-  const { active, status } = useAppSelector((state) => state.ipd)
+  const { list, status } = useAppSelector((state) => state.ipd)
   const { beds } = useAppSelector((state) => state.beds)
   const { list: patients } = useAppSelector((state) => state.patients)
   const { list: doctors } = useAppSelector((state) => state.doctors)
+  const admissions = list?.items ?? []
 
   const [admitOpen, setAdmitOpen] = useState(false)
   const [dischargeTarget, setDischargeTarget] = useState<IpdAdmissionDto | null>(null)
   const [patientId, setPatientId] = useState<number | ''>('')
   const [doctorId, setDoctorId] = useState<number | ''>('')
   const [bedId, setBedId] = useState<number | ''>('')
-  const [admissionType, setAdmissionType] = useState('GeneralMedical')
+  const [admissionType, setAdmissionType] = useState(ADMISSION_TYPES[0].value)
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const [dischargeDiagnosis, setDischargeDiagnosis] = useState('')
   const [dischargeCondition, setDischargeCondition] = useState('')
 
+  // List-screen filters: defaults to "Admitted" so the page still opens on today's active roster, same as
+  // before - search and the date range broaden that to the full admission history when used.
+  const [search, setSearch] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'Admitted' | 'Discharged' | ''>('Admitted')
+  const [page, setPage] = useState(1)
+
   useEffect(() => {
-    dispatch(fetchActiveAdmissions())
+    dispatch(fetchActiveAdmissions()) // still needed for the Billing page's IPD-admission picker
     dispatch(fetchBeds({ status: 'Available' }))
     dispatch(fetchPatients({ pageSize: 100 }))
     dispatch(fetchDoctors())
   }, [dispatch])
 
+  useEffect(() => {
+    const timeout = setTimeout(() => dispatch(searchAdmissions({ pageNumber: page, pageSize: 10, search, fromDate, toDate, status: statusFilter })), 300)
+    return () => clearTimeout(timeout)
+  }, [dispatch, page, search, fromDate, toDate, statusFilter])
+
   const handleAdmit = async () => {
     if (!patientId || !doctorId || !bedId) return
     setSubmitting(true)
     try {
-      await dispatch(admitPatient({ patientId, doctorId, bedId, admissionType, reasonForAdmission: reason || undefined, branchId: user?.branchId ?? 1 }))
+      const admission = await dispatch(admitPatient({ patientId, doctorId, bedId, admissionType, reasonForAdmission: reason || undefined, branchId: user?.branchId ?? 1 }))
       toast.success('Patient admitted.')
       setAdmitOpen(false)
       setPatientId(''); setDoctorId(''); setBedId(''); setReason('')
       dispatch(fetchActiveAdmissions())
+      dispatch(searchAdmissions({ pageNumber: page, pageSize: 10, search, fromDate, toDate, status: statusFilter }))
       dispatch(fetchBeds({ status: 'Available' }))
+      // Admission naturally continues into billing for the stay - carry the patient and their new
+      // admission along so Create Bill opens pre-set to "IPD" against it, instead of the receptionist
+      // having to switch it over and find the admission themselves.
+      navigate('/app/billing', { state: { guidedPatientId: admission.patientId, guidedIpdAdmissionId: admission.id } })
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -77,6 +98,7 @@ export function IpdPage() {
       setDischargeTarget(null)
       setDischargeDiagnosis(''); setDischargeCondition('')
       dispatch(fetchActiveAdmissions())
+      dispatch(searchAdmissions({ pageNumber: page, pageSize: 10, search, fromDate, toDate, status: statusFilter }))
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -95,9 +117,12 @@ export function IpdPage() {
   const columns: Column<IpdAdmissionDto>[] = [
     { key: 'number', header: 'Admission #', render: (a) => <span className="font-mono text-xs">{a.admissionNumber}</span> },
     { key: 'patient', header: 'Patient', render: (a) => a.patientName },
+    { key: 'uhid', header: 'UHID', render: (a) => <span className="font-mono text-xs text-ink-500">{a.uhid}</span> },
     { key: 'doctor', header: 'Doctor', render: (a) => a.doctorName },
+    { key: 'department', header: 'Department', render: (a) => a.departmentName },
     { key: 'bed', header: 'Bed', render: (a) => `${a.roomNumber} · ${a.bedNumber}` },
-    { key: 'type', header: 'Type', render: (a) => <Badge tone="neutral">{a.admissionType}</Badge> },
+    { key: 'type', header: 'Type', render: (a) => <Badge tone="neutral">{admissionTypeLabel(a.admissionType)}</Badge> },
+    { key: 'insurance', header: 'Insurance', render: (a) => a.insuranceCompany ?? <span className="text-ink-400">—</span> },
     { key: 'status', header: 'Status', render: (a) => <Badge>{a.status}</Badge> },
     {
       key: 'actions', header: '', render: (a) => (
@@ -124,9 +149,38 @@ export function IpdPage() {
       />
 
       <Card padded={false}>
-        <div className="p-4">
-          <Table columns={columns} rows={active} keyField={(a) => a.id} loading={status === 'loading'} emptyMessage="No active admissions." />
+        <div className="flex flex-wrap items-end gap-3 border-b border-ink-100 p-4">
+          <SearchBox
+            value={search}
+            onChange={(v) => { setSearch(v); setPage(1) }}
+            placeholder="Search by patient, UHID, mobile, or admission #…"
+            className="w-full max-w-sm"
+          />
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-ink-700">From</span>
+            <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
+              className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-ink-700">To</span>
+            <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1) }}
+              className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+          </label>
+          <Select label="Status" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1) }} className="w-40">
+            <option value="Admitted">Admitted</option>
+            <option value="Discharged">Discharged</option>
+            <option value="">All</option>
+          </Select>
+          {(search || fromDate || toDate || statusFilter !== 'Admitted') && (
+            <Button variant="secondary" size="sm" onClick={() => { setSearch(''); setFromDate(''); setToDate(''); setStatusFilter('Admitted'); setPage(1) }}>
+              Clear filters
+            </Button>
+          )}
         </div>
+        <div className="p-4">
+          <Table columns={columns} rows={admissions} keyField={(a) => a.id} loading={status === 'loading'} emptyMessage="No admissions match these filters." />
+        </div>
+        {list && <PaginationBar pageNumber={list.pageNumber} totalPages={list.totalPages} totalCount={list.totalCount} onPageChange={setPage} />}
       </Card>
 
       <Modal open={admitOpen} onClose={() => setAdmitOpen(false)} title="Admit Patient">
@@ -144,8 +198,8 @@ export function IpdPage() {
               <option value="">Select bed</option>
               {beds.map((b) => <option key={b.id} value={b.id}>{b.roomNumber} · {b.bedNumber} ({b.roomType})</option>)}
             </Select>
-            <Select label="Admission type" value={admissionType} onChange={(e) => setAdmissionType(e.target.value)}>
-              {admissionTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            <Select label="Admission type" value={admissionType} onChange={(e) => setAdmissionType(e.target.value as typeof admissionType)}>
+              {ADMISSION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </Select>
           </div>
           <Select label="Reason for admission" value={reason} onChange={(e) => setReason(e.target.value)}>

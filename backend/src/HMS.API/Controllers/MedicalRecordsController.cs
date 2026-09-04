@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.MedicalRecords;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +24,8 @@ public class MedicalRecordsController : ApiControllerBase
 
     [HttpGet("ip-patient-list")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Doctor + "," + RoleNames.Nurse)]
-    public async Task<ActionResult<IReadOnlyList<IpPatientListRowDto>>> GetIpPatientList() => Ok(await _medicalRecordService.GetIpPatientListAsync(CurrentBranchId));
+    public async Task<ActionResult<PagedResult<IpPatientListRowDto>>> GetIpPatientList([FromQuery] PagedRequest request)
+        => Ok(await _medicalRecordService.GetIpPatientListAsync(CurrentBranchId, request));
 
     [HttpDelete("{id:int}")]
     [Authorize(Roles = RoleNames.AdminOnly)]

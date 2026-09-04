@@ -6,9 +6,10 @@ namespace HMS.Application.Features.Billing;
 public record BillItemDto(string Description, int Quantity, decimal UnitPrice, decimal LineTotal);
 
 public record BillDto(
-    int Id, string BillNumber, int PatientId, string PatientName, BillType Type,
+    int Id, string BillNumber, int PatientId, string PatientName, BillType Type, BillCategory Category,
+    int? OpdVisitId, int? IpdAdmissionId,
     decimal SubTotal, decimal GstAmount, decimal DiscountAmount, decimal TotalAmount,
-    decimal PaidAmount, BillStatus Status, DateTime BillDate, IReadOnlyList<BillItemDto> Items);
+    decimal PaidAmount, BillStatus Status, DateTime BillDate, IReadOnlyList<BillItemDto> Items, int BranchId);
 
 public record BillItemRequest(string Description, int Quantity, decimal UnitPrice);
 
@@ -31,12 +32,14 @@ public interface IBillingService
 {
     Task<BillDto> CreateBillAsync(CreateBillRequest request, int userId);
     Task<BillDto> GetByIdAsync(int id);
-    Task<PagedResult<BillDto>> SearchAsync(PagedRequest request, BillStatus? status = null);
-    Task<IReadOnlyList<BillDto>> GetByPatientAsync(int patientId);
+    Task<PagedResult<BillDto>> SearchAsync(PagedRequest request, int branchId, BillStatus? status = null, BillCategory? category = null);
+    /// <summary> Pass `branchId` to scope to one branch's bills for this patient (front-desk/staff use);
+    /// pass null for every bill this patient has ever been issued, across every branch (their own view). </summary>
+    Task<IReadOnlyList<BillDto>> GetByPatientAsync(int patientId, int? branchId = null);
     /// <summary> Cash (or any manually-recorded mode) payment collection - no gateway involved. </summary>
     Task<PaymentDto> CollectPaymentAsync(CollectPaymentRequest request, int userId);
     Task<PaymentDto> RefundAsync(RefundPaymentRequest request, int userId);
-    Task<IReadOnlyList<BillDto>> GetPendingBillsAsync();
+    Task<IReadOnlyList<BillDto>> GetPendingBillsAsync(int branchId, BillCategory? category = null);
 
     /// <summary> Step 1 of online payment: creates a Razorpay order for the bill's outstanding balance. </summary>
     Task<RazorpayOrderResponseDto> CreateRazorpayOrderAsync(int billId);

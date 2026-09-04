@@ -22,14 +22,19 @@ public class OpdVisitsController : ApiControllerBase
         => Ok(await _opdVisitService.CompleteConsultationAsync(id, request));
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<OpdVisitDto>> GetById(int id) => Ok(await _opdVisitService.GetByIdAsync(id));
+    public async Task<ActionResult<OpdVisitDto>> GetById(int id)
+    {
+        var visit = await _opdVisitService.GetByIdAsync(id);
+        if (CurrentBranchIdOrNull is { } branchId && visit.BranchId != branchId) return Forbid();
+        return Ok(visit);
+    }
 
     [HttpGet("patient/{patientId:int}")]
-    public async Task<ActionResult<IReadOnlyList<OpdVisitDto>>> GetByPatient(int patientId) => Ok(await _opdVisitService.GetByPatientAsync(patientId));
+    public async Task<ActionResult<IReadOnlyList<OpdVisitDto>>> GetByPatient(int patientId) => Ok(await _opdVisitService.GetByPatientAsync(patientId, CurrentBranchId));
 
     [HttpGet("doctor/{doctorId:int}")]
     public async Task<ActionResult<IReadOnlyList<OpdVisitDto>>> GetByDoctor(int doctorId, [FromQuery] DateTime? date)
-        => Ok(await _opdVisitService.GetByDoctorAsync(doctorId, date));
+        => Ok(await _opdVisitService.GetByDoctorAsync(doctorId, CurrentBranchId, date));
 
     [HttpPost("{id:int}/nursing-note")]
     [Authorize(Roles = RoleNames.Nurse)]

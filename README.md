@@ -1,4 +1,4 @@
-# City Care HMS — Hospital Management System
+# Effisys Group HMS — Hospital Management System
 
 A full-stack, multi-hospital Hospital Management System built from the SRS in `Software Requirements Specification_changes_26-08-26.pdf`, covering all 24 functional modules and 9 user roles (including a platform-level SuperAdmin).
 

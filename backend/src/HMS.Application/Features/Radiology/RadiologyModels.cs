@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Domain.Enums;
 
 namespace HMS.Application.Features.Radiology;
@@ -15,5 +16,5 @@ public interface IRadiologyService
     Task<RadiologyOrderDto> OrderAsync(OrderRadiologyRequest request, int doctorId);
     Task<RadiologyOrderDto> UploadReportAsync(int orderId, UploadRadiologyReportRequest request, int uploadedByUserId);
     Task<IReadOnlyList<RadiologyOrderDto>> GetByPatientAsync(int patientId);
-    Task<IReadOnlyList<RadiologyOrderDto>> GetPendingAsync(int branchId);
+    Task<PagedResult<RadiologyOrderDto>> GetPendingAsync(int branchId, PagedRequest request);
 }

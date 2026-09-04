@@ -12,7 +12,7 @@ namespace HMS.Infrastructure.Services;
 /// <summary> QuestPDF-based renderer for every printable document the hospital needs (NFR: File Storage / Reports). </summary>
 public class PdfService : IPdfService
 {
-    private const string HospitalName = "City Care Hospital";
+    private const string HospitalName = "Effisys Group";
 
     public byte[] GenerateDischargeSummaryPdf(DischargeSummaryDto summary)
     {

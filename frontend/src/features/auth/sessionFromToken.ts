@@ -37,6 +37,7 @@ export function getUserFromStoredToken(): AuthUser | null {
     username: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] as string,
     email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] as string,
     role: firstRoleClaim(payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']),
+    hospitalId: payload.hospitalId ? Number(payload.hospitalId) : null,
     branchId: payload.branchId ? Number(payload.branchId) : null,
     linkedProfileId: payload.linkedProfileId ? Number(payload.linkedProfileId) : null,
   }

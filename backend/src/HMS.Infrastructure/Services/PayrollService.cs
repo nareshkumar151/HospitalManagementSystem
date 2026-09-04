@@ -1,4 +1,5 @@
 using HMS.Application.Common.Interfaces;
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Payroll;
 
 namespace HMS.Infrastructure.Services;
@@ -48,6 +49,23 @@ public class PayrollService : IPayrollService
     public Task<IReadOnlyList<PayrollDto>> GetByEmployeeAsync(int employeeId)
         => _db.QueryAsync<PayrollDto>("sp_Payroll_GetByEmployee", new { EmployeeId = employeeId });
 
-    public Task<IReadOnlyList<PayrollDto>> GetByPeriodAsync(string payPeriod, int branchId)
-        => _db.QueryAsync<PayrollDto>("sp_Payroll_GetByPeriod", new { PayPeriod = payPeriod, BranchId = branchId });
+    public async Task<PagedResult<PayrollDto>> GetByPeriodAsync(string payPeriod, int branchId, PagedRequest request)
+    {
+        var (items, counts) = await _db.QueryMultipleAsync<PayrollDto, int>("sp_Payroll_GetByPeriod", new
+        {
+            PayPeriod = payPeriod,
+            BranchId = branchId,
+            request.PageNumber,
+            request.PageSize,
+            request.Search
+        });
+
+        return new PagedResult<PayrollDto>
+        {
+            Items = items,
+            TotalCount = counts.FirstOrDefault(),
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
 }

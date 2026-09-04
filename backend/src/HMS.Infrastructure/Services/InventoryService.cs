@@ -1,4 +1,6 @@
+using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Inventory;
 
 namespace HMS.Infrastructure.Services;
@@ -14,8 +16,29 @@ public class InventoryService : IInventoryService
         _auditService = auditService;
     }
 
-    public Task<IReadOnlyList<InventoryItemDto>> GetAllAsync(int branchId, Domain.Enums.InventoryItemType? type = null)
-        => _db.QueryAsync<InventoryItemDto>("sp_InventoryItem_GetAll", new { BranchId = branchId, Type = type?.ToString() });
+    public async Task<PagedResult<InventoryItemDto>> GetAllAsync(int branchId, PagedRequest request, Domain.Enums.InventoryItemType? type = null)
+    {
+        var (items, counts) = await _db.QueryMultipleAsync<InventoryItemDto, int>("sp_InventoryItem_GetAll", new
+        {
+            BranchId = branchId,
+            Type = type?.ToString(),
+            request.PageNumber,
+            request.PageSize,
+            request.Search
+        });
+
+        return new PagedResult<InventoryItemDto>
+        {
+            Items = items,
+            TotalCount = counts.FirstOrDefault(),
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
+
+    public async Task<InventoryItemDto> GetByIdAsync(int id)
+        => await _db.QuerySingleOrDefaultAsync<InventoryItemDto>("sp_InventoryItem_GetById", new { Id = id })
+           ?? throw new NotFoundException(nameof(Domain.Entities.InventoryItem), id);
 
     public async Task<InventoryItemDto> CreateAsync(UpsertInventoryItemRequest request)
     {
@@ -31,8 +54,7 @@ public class InventoryService : IInventoryService
             request.BranchId
         });
         await _auditService.LogAsync("InventoryItemCreated", "InventoryItem", newId.ToString());
-        var all = await GetAllAsync(request.BranchId);
-        return all.First(i => i.Id == newId);
+        return await GetByIdAsync(newId);
     }
 
     public async Task RecordMovementAsync(int itemId, RecordMovementRequest request, int userId)

@@ -65,9 +65,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO Doctors (DoctorCode, FullName, DepartmentId, Qualification, ExperienceYears, ConsultationFee,
-                          AvailableDays, Mobile, Email, BranchId, CreatedBy)
+                          AvailableDays, Mobile, Email, BranchId, HospitalId, CreatedBy)
     VALUES (@DoctorCode, @FullName, @DepartmentId, @Qualification, @ExperienceYears, @ConsultationFee,
-            @AvailableDays, @Mobile, @Email, @BranchId, @CreatedBy);
+            @AvailableDays, @Mobile, @Email, @BranchId, (SELECT HospitalId FROM Branches WHERE Id = @BranchId), @CreatedBy);
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO

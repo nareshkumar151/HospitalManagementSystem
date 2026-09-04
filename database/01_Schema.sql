@@ -192,6 +192,7 @@ CREATE TABLE Patients (
     InsurancePolicyNumber     NVARCHAR(100) NULL,
     Allergies                 NVARCHAR(400) NULL,
     BranchId                  INT NOT NULL REFERENCES Branches(Id),
+    RegisteredByUserId        INT NULL REFERENCES Users(Id), -- front-desk attribution for the receptionist's own-revenue dashboard tile
     CreatedAt                 DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     CreatedBy                 NVARCHAR(100) NULL,
     UpdatedAt                 DATETIME2 NULL,
@@ -218,6 +219,7 @@ CREATE TABLE Appointments (
     RescheduledFromSlot     NVARCHAR(20) NULL,
     CancellationReason      NVARCHAR(300) NULL,
     BranchId                INT NOT NULL REFERENCES Branches(Id),
+    BookedByUserId          INT NULL REFERENCES Users(Id), -- front-desk attribution for the receptionist's own-revenue dashboard tile; null for patient self-bookings
     CreatedAt               DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     CreatedBy               NVARCHAR(100) NULL,
     UpdatedAt               DATETIME2 NULL,

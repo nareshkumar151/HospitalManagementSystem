@@ -23,7 +23,7 @@ public class JwtTokenService : IJwtTokenService
         _settings = settings.Value;
     }
 
-    public TokenResult GenerateTokens(int userId, string username, string email, RoleName role, int? branchId, int? linkedProfileId)
+    public TokenResult GenerateTokens(int userId, string username, string email, RoleName role, int? hospitalId, int? branchId, int? linkedProfileId)
     {
         var claims = new List<Claim>
         {
@@ -43,6 +43,7 @@ public class JwtTokenService : IJwtTokenService
         if (role == RoleName.SuperAdmin)
             claims.Add(new Claim(ClaimTypes.Role, RoleName.Administrator.ToString()));
 
+        if (hospitalId.HasValue) claims.Add(new Claim("hospitalId", hospitalId.Value.ToString()));
         if (branchId.HasValue) claims.Add(new Claim("branchId", branchId.Value.ToString()));
         if (linkedProfileId.HasValue) claims.Add(new Claim("linkedProfileId", linkedProfileId.Value.ToString()));
 

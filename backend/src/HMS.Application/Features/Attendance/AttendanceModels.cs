@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Domain.Enums;
 
 namespace HMS.Application.Features.Attendance;
@@ -26,5 +27,5 @@ public interface IAttendanceService
     Task<LeaveRequestDto> ApplyLeaveAsync(ApplyLeaveRequest request);
     Task<LeaveRequestDto> ReviewLeaveAsync(int leaveRequestId, ReviewLeaveRequest request, int reviewerUserId);
     /// <summary> Pass <paramref name="employeeId"/> to scope this to one employee's own requests (self-service); leave null for the full HR/Admin review queue. </summary>
-    Task<IReadOnlyList<LeaveRequestDto>> GetLeaveRequestsAsync(int branchId, LeaveStatus? status = null, int? employeeId = null);
+    Task<PagedResult<LeaveRequestDto>> GetLeaveRequestsAsync(int branchId, PagedRequest request, LeaveStatus? status = null, int? employeeId = null);
 }

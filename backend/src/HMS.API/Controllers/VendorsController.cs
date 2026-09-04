@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Vendors;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +13,7 @@ public class VendorsController : ApiControllerBase
     public VendorsController(IVendorService vendorService) => _vendorService = vendorService;
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<VendorDto>>> GetAll() => Ok(await _vendorService.GetAllAsync());
+    public async Task<ActionResult<PagedResult<VendorDto>>> GetAll([FromQuery] PagedRequest request) => Ok(await _vendorService.GetAllAsync(request));
 
     [HttpPost]
     public async Task<ActionResult<VendorDto>> Create(UpsertVendorRequest request) => Ok(await _vendorService.CreateAsync(request));

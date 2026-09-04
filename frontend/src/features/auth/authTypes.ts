@@ -5,6 +5,7 @@ export interface AuthUser {
   username: string
   email: string
   role: RoleName
+  hospitalId: number | null
   branchId: number | null
   linkedProfileId: number | null
 }

@@ -1,5 +1,6 @@
 using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Radiology;
 
 namespace HMS.Infrastructure.Services;
@@ -51,6 +52,22 @@ public class RadiologyService : IRadiologyService
     public Task<IReadOnlyList<RadiologyOrderDto>> GetByPatientAsync(int patientId)
         => _db.QueryAsync<RadiologyOrderDto>("sp_RadiologyOrder_GetByPatient", new { PatientId = patientId });
 
-    public Task<IReadOnlyList<RadiologyOrderDto>> GetPendingAsync(int branchId)
-        => _db.QueryAsync<RadiologyOrderDto>("sp_RadiologyOrder_GetPending", new { BranchId = branchId });
+    public async Task<PagedResult<RadiologyOrderDto>> GetPendingAsync(int branchId, PagedRequest request)
+    {
+        var (items, counts) = await _db.QueryMultipleAsync<RadiologyOrderDto, int>("sp_RadiologyOrder_GetPending", new
+        {
+            BranchId = branchId,
+            request.PageNumber,
+            request.PageSize,
+            request.Search
+        });
+
+        return new PagedResult<RadiologyOrderDto>
+        {
+            Items = items,
+            TotalCount = counts.FirstOrDefault(),
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
 }

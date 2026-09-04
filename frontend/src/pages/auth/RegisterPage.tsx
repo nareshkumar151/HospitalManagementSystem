@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -6,8 +6,9 @@ import { motion } from 'framer-motion'
 import { UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAppDispatch } from '../../app/hooks'
+import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { registerPatient } from '../../features/auth/authActions'
+import { fetchBranches } from '../../features/organization/organizationSlice'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { extractErrorMessage } from '../../api/client'
@@ -19,6 +20,7 @@ const schema = z.object({
   gender: z.enum(['Male', 'Female', 'Other']),
   dateOfBirth: z.string().optional(),
   password: z.string().min(8, 'At least 8 characters'),
+  branchId: z.coerce.number().optional(),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -26,10 +28,16 @@ export function RegisterPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
+  const { branches } = useAppSelector((state) => state.organization)
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { gender: 'Male' },
   })
+
+  // Lets a new patient pick which hospital branch they're registering at, instead of always landing on
+  // branch 1 - the same account can still be treated at any other branch of that hospital later (patients
+  // aren't locked to one branch), this just records where they first signed up.
+  useEffect(() => { dispatch(fetchBranches()) }, [dispatch])
 
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true)
@@ -65,6 +73,11 @@ export function RegisterPage() {
             </Select>
           </div>
           <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
+          {branches.length > 0 && (
+            <Select label="Hospital branch" hint="Where you'll be registered - you can still visit any other branch later" {...register('branchId')}>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name} · {b.city}</option>)}
+            </Select>
+          )}
           <Input label="Date of birth" type="date" {...register('dateOfBirth')} />
           <Input label="Password" type="password" error={errors.password?.message} {...register('password')} />
           <Button type="submit" className="w-full" loading={submitting} icon={<UserPlus size={16} />}>

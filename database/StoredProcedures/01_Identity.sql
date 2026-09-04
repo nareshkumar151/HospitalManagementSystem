@@ -16,7 +16,7 @@ CREATE OR ALTER PROCEDURE sp_User_GetByUsernameOrEmail
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP 1 Id, Username, Email, PasswordHash, RoleId, RoleName, LinkedProfileId, BranchId,
+    SELECT TOP 1 Id, Username, Email, PasswordHash, RoleId, RoleName, LinkedProfileId, BranchId, HospitalId,
            IsActive, LastLoginAt, FailedLoginAttempts, LockedUntil
     FROM Users
     WHERE IsDeleted = 0 AND (Username = @UsernameOrEmail OR Email = @UsernameOrEmail);
@@ -28,7 +28,7 @@ CREATE OR ALTER PROCEDURE sp_User_GetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT Id, Username, Email, PasswordHash, RoleId, RoleName, LinkedProfileId, BranchId,
+    SELECT Id, Username, Email, PasswordHash, RoleId, RoleName, LinkedProfileId, BranchId, HospitalId,
            IsActive, LastLoginAt, FailedLoginAttempts, LockedUntil
     FROM Users WHERE Id = @Id AND IsDeleted = 0;
 END
@@ -71,8 +71,11 @@ BEGIN
         RAISERROR('Username or Email already exists.', 16, 1);
         RETURN;
     END
-    INSERT INTO Users (Username, Email, PasswordHash, RoleId, RoleName, LinkedProfileId, BranchId, CreatedBy)
-    VALUES (@Username, @Email, @PasswordHash, @RoleId, @RoleName, @LinkedProfileId, @BranchId, @CreatedBy);
+    -- HospitalId is always derived from the branch being assigned, never a separate client-supplied value -
+    -- a user can never be stamped with a hospital that doesn't match their own branch.
+    INSERT INTO Users (Username, Email, PasswordHash, RoleId, RoleName, LinkedProfileId, BranchId, HospitalId, CreatedBy)
+    VALUES (@Username, @Email, @PasswordHash, @RoleId, @RoleName, @LinkedProfileId, @BranchId,
+            (SELECT HospitalId FROM Branches WHERE Id = @BranchId), @CreatedBy);
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO

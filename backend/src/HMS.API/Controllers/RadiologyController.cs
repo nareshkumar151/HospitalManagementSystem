@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Radiology;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ public class RadiologyController : ApiControllerBase
 
     [HttpGet("orders/pending")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.LabTechnician + "," + RoleNames.Doctor)]
-    public async Task<ActionResult<IReadOnlyList<RadiologyOrderDto>>> GetPending() => Ok(await _radiologyService.GetPendingAsync(CurrentBranchId));
+    public async Task<ActionResult<PagedResult<RadiologyOrderDto>>> GetPending([FromQuery] PagedRequest request) => Ok(await _radiologyService.GetPendingAsync(CurrentBranchId, request));
 
     [HttpGet("orders/patient/{patientId:int}")]
     public async Task<ActionResult<IReadOnlyList<RadiologyOrderDto>>> GetByPatient(int patientId)

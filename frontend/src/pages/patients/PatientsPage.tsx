@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -21,7 +22,9 @@ const schema = z.object({
   mobile: z.string().regex(/^\+?[0-9]{10,15}$/, 'Enter a valid mobile number'),
   gender: z.enum(['Male', 'Female', 'Other']),
   dateOfBirth: z.string().optional(),
+  age: z.coerce.number({ invalid_type_error: 'Required' }).int().min(1, 'Enter a valid age').max(149, 'Enter a valid age'),
   email: z.string().email().optional().or(z.literal('')),
+  address: z.string().optional(),
   bloodGroup: z.string(),
   allergies: z.string().optional(),
   referredByDoctorName: z.string().optional(),
@@ -33,6 +36,7 @@ const bloodGroups = ['Unknown', 'APositive', 'ANegative', 'BPositive', 'BNegativ
 
 export function PatientsPage() {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { list, status } = useAppSelector((state) => state.patients)
   const branchId = useAppSelector((state) => state.auth.user?.branchId) ?? 1
   const [search, setSearch] = useState('')
@@ -52,11 +56,13 @@ export function PatientsPage() {
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true)
     try {
-      await dispatch(createPatient({ ...values, branchId }))
+      const created = await dispatch(createPatient({ ...values, dateOfBirth: values.dateOfBirth || undefined, branchId }))
       toast.success('Patient registered successfully.')
       setModalOpen(false)
       reset()
-      dispatch(fetchPatients({ pageNumber: 1, pageSize: 10 }))
+      // Front-desk registration naturally continues into booking an appointment for the patient just
+      // registered - carry them along instead of leaving the receptionist to search for them again.
+      navigate('/app/appointments', { state: { guidedPatientId: created.id } })
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -131,13 +137,17 @@ export function PatientsPage() {
             <option value="Female">Female</option>
             <option value="Other">Other</option>
           </Select>
-          <Input label="Date of birth" type="date" {...register('dateOfBirth')} />
+          <Input label="Date of birth" hint="Optional" type="date" {...register('dateOfBirth')} />
+          <Input label="Age" type="number" min={1} max={149} error={errors.age?.message} {...register('age')} />
           <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
           <Select label="Blood group" {...register('bloodGroup')}>
             {bloodGroups.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
           </Select>
-          <Input label="Referred by (doctor)" hint="Optional" {...register('referredByDoctorName')} />
+          <Input label="Referred by" hint="Optional" {...register('referredByDoctorName')} />
           <Input label="Insurance company" hint="Optional" {...register('insuranceCompany')} />
+          <div className="sm:col-span-2">
+            <Input label="Address" hint="Optional" {...register('address')} />
+          </div>
           <div className="sm:col-span-2">
             <Input label="Allergies" hint="Optional - comma separated" {...register('allergies')} />
           </div>

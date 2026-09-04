@@ -38,7 +38,7 @@ GO
 -- (bypassing the filter) only for InsuranceService's internal "read back the row I just wrote by its own
 -- id" lookup - every controller-facing call always passes a real branch id.
 CREATE OR ALTER PROCEDURE sp_InsuranceClaim_GetAll
-    @BranchId INT = NULL, @Status NVARCHAR(20) = NULL
+    @BranchId INT = NULL, @Status NVARCHAR(20) = NULL, @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -46,6 +46,13 @@ BEGIN
            c.CoverageAmount, c.ApprovedAmount, c.Status, c.SubmittedAt, c.Remarks
     FROM InsuranceClaims c JOIN Patients p ON p.Id = c.PatientId
     WHERE c.IsDeleted = 0 AND (@BranchId IS NULL OR p.BranchId = @BranchId) AND (@Status IS NULL OR c.Status = @Status)
-    ORDER BY c.SubmittedAt DESC;
+      AND (@Search IS NULL OR p.FullName LIKE '%' + @Search + '%' OR c.InsuranceCompany LIKE '%' + @Search + '%' OR c.PolicyNumber LIKE '%' + @Search + '%')
+    ORDER BY c.SubmittedAt DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount
+    FROM InsuranceClaims c JOIN Patients p ON p.Id = c.PatientId
+    WHERE c.IsDeleted = 0 AND (@BranchId IS NULL OR p.BranchId = @BranchId) AND (@Status IS NULL OR c.Status = @Status)
+      AND (@Search IS NULL OR p.FullName LIKE '%' + @Search + '%' OR c.InsuranceCompany LIKE '%' + @Search + '%' OR c.PolicyNumber LIKE '%' + @Search + '%');
 END
 GO

@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Application.Features.Attendance;
 using HMS.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -62,13 +63,13 @@ public class AttendanceController : ApiControllerBase
 
     [HttpGet("leave-requests")]
     [Authorize(Roles = RoleNames.EmployeeSelfService)]
-    public async Task<ActionResult<IReadOnlyList<LeaveRequestDto>>> GetLeaveRequests([FromQuery] LeaveStatus? status)
+    public async Task<ActionResult<PagedResult<LeaveRequestDto>>> GetLeaveRequests([FromQuery] PagedRequest request, [FromQuery] LeaveStatus? status)
     {
         if (IsHrOrAdmin())
-            return Ok(await _attendanceService.GetLeaveRequestsAsync(CurrentBranchId, status));
+            return Ok(await _attendanceService.GetLeaveRequestsAsync(CurrentBranchId, request, status));
 
         if (CurrentLinkedProfileId is not { } ownEmployeeId) return Forbid();
-        return Ok(await _attendanceService.GetLeaveRequestsAsync(CurrentBranchId, status, ownEmployeeId));
+        return Ok(await _attendanceService.GetLeaveRequestsAsync(CurrentBranchId, request, status, ownEmployeeId));
     }
 
     private bool IsHrOrAdmin() => User.IsInRole(RoleNames.Administrator) || User.IsInRole(RoleNames.HR);

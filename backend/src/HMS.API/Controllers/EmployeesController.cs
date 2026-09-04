@@ -16,12 +16,17 @@ public class EmployeesController : ApiControllerBase
     public async Task<ActionResult<PagedResult<EmployeeDto>>> Search([FromQuery] PagedRequest request) => Ok(await _employeeService.SearchAsync(request, CurrentBranchId));
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<EmployeeDto>> GetById(int id) => Ok(await _employeeService.GetByIdAsync(id));
+    public async Task<ActionResult<EmployeeDto>> GetById(int id)
+    {
+        var employee = await _employeeService.GetByIdAsync(id);
+        if (CurrentBranchIdOrNull is { } branchId && employee.BranchId != branchId) return Forbid();
+        return Ok(employee);
+    }
 
     [HttpPost]
     public async Task<ActionResult<EmployeeDto>> Create(UpsertEmployeeRequest request)
     {
-        var created = await _employeeService.CreateAsync(request);
+        var created = await _employeeService.CreateAsync(request with { BranchId = CurrentBranchIdOrNull ?? request.BranchId });
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 

@@ -14,6 +14,7 @@ import { Select } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { AttendanceMonthMatrix } from '../../components/attendance/AttendanceMonthMatrix'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import type { AttendanceDto } from '../../types'
 
 function currentMonthValue() {
@@ -23,19 +24,38 @@ function currentMonthValue() {
 
 export function AttendanceLeavePage() {
   const dispatch = useAppDispatch()
-  const { items, status } = useAppSelector((state) => state.leaveRequests)
+  const { list, status } = useAppSelector((state) => state.leaveRequests)
   const { list: employees } = useAppSelector((state) => state.employees)
   const { history, monthMatrix, summary, status: attendanceStatus } = useAppSelector((state) => state.attendance)
+  const items = list?.items ?? []
   const [checkInEmployeeId, setCheckInEmployeeId] = useState<number | ''>('')
   const [selectedMonth, setSelectedMonth] = useState(currentMonthValue())
+  const [leaveSearch, setLeaveSearch] = useState('')
+  const [leavePage, setLeavePage] = useState(1)
 
-  const refreshLeaveRequests = () => dispatch(leaveRequestResource.fetchAll())
+  // The month matrix needs every Approved leave request that could overlap the displayed month, not just
+  // one page of the review queue below - fetched separately (status-filtered, generously sized) so it
+  // doesn't fight with the queue table's own paged/search fetch of the same Redux slice.
+  const [matrixLeave, setMatrixLeave] = useState<LeaveRequestRow[]>([])
+  const refreshMatrixLeave = async () => {
+    const { data } = await apiClient.get<{ items: LeaveRequestRow[] }>('/attendance/leave-requests', { params: { status: 'Approved', pageSize: 500 } })
+    setMatrixLeave(data.items)
+  }
+
+  const refreshLeaveRequests = () => dispatch(leaveRequestResource.fetchPage({ pageNumber: leavePage, pageSize: 10, search: leaveSearch }))
 
   useEffect(() => {
-    refreshLeaveRequests()
     dispatch(fetchEmployees({ pageSize: 100 }))
     dispatch(fetchAttendanceSummary())
+    refreshMatrixLeave()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch])
+
+  useEffect(() => {
+    const timeout = setTimeout(refreshLeaveRequests, 300)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, leavePage, leaveSearch])
 
   useEffect(() => {
     dispatch(fetchAttendanceForMonth(`${selectedMonth}-01`))
@@ -50,6 +70,7 @@ export function AttendanceLeavePage() {
       await apiClient.put(`/attendance/leave-requests/${id}/review`, { status: statusValue })
       toast.success(`Leave request ${statusValue.toLowerCase()}.`)
       refreshLeaveRequests()
+      refreshMatrixLeave()
       dispatch(fetchAttendanceSummary())
     } catch (error) {
       toast.error(extractErrorMessage(error))
@@ -131,7 +152,7 @@ export function AttendanceLeavePage() {
             month={`${selectedMonth}-01`}
             employees={employees?.items ?? []}
             attendanceRows={monthMatrix}
-            leaveRequests={items}
+            leaveRequests={matrixLeave}
           />
         </div>
       </Card>
@@ -157,9 +178,14 @@ export function AttendanceLeavePage() {
       </Card>
 
       <Card padded={false}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 p-4">
+          <h3 className="text-sm font-semibold text-ink-900">Leave Requests</h3>
+          <SearchBox value={leaveSearch} onChange={(v) => { setLeaveSearch(v); setLeavePage(1) }} placeholder="Search by employee or reason…" />
+        </div>
         <div className="p-4">
           <Table columns={leaveColumns} rows={items} keyField={(l) => l.id} loading={status === 'loading'} emptyMessage="No leave requests." />
         </div>
+        {list && <PaginationBar pageNumber={list.pageNumber} totalPages={list.totalPages} totalCount={list.totalCount} onPageChange={setLeavePage} />}
       </Card>
     </div>
   )

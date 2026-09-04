@@ -12,6 +12,7 @@ public record LoginResponse(
     string Username,
     string Email,
     RoleName Role,
+    int? HospitalId,
     int? BranchId,
     int? LinkedProfileId);
 
@@ -26,13 +27,17 @@ public record CreateUserRequest(
     int? LinkedProfileId,
     int? BranchId);
 
+/// <summary> `BranchId` is optional - the public registration page lets a patient pick which branch they're
+/// registering at (via GET /organization/branches); omitted, it falls back to the system's first branch so
+/// existing single-branch deployments keep working unchanged. </summary>
 public record RegisterPatientRequest(
     string FullName,
     string Mobile,
     string Email,
     string Password,
     Gender Gender,
-    DateTime? DateOfBirth);
+    DateTime? DateOfBirth,
+    int? BranchId = null);
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 

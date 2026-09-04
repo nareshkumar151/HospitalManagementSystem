@@ -27,7 +27,7 @@ GO
 /* "IP Patient list" operation - patients currently or previously admitted, with their latest admission.
    @BranchId keeps one hospital's medical-records list from including another hospital's admissions. */
 CREATE OR ALTER PROCEDURE sp_MedicalRecord_GetIpPatientList
-    @BranchId INT
+    @BranchId INT, @PageNumber INT = 1, @PageSize INT = 20, @Search NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -35,7 +35,15 @@ BEGIN
     FROM Patients p
     JOIN IpdAdmissions a ON a.PatientId = p.Id
     WHERE a.Id IN (SELECT MAX(Id) FROM IpdAdmissions GROUP BY PatientId) AND a.BranchId = @BranchId
-    ORDER BY a.AdmissionDate DESC;
+      AND (@Search IS NULL OR p.FullName LIKE '%' + @Search + '%' OR p.UHID LIKE '%' + @Search + '%' OR p.Mobile LIKE '%' + @Search + '%' OR a.AdmissionNumber LIKE '%' + @Search + '%')
+    ORDER BY a.AdmissionDate DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+
+    SELECT COUNT(*) AS TotalCount
+    FROM Patients p
+    JOIN IpdAdmissions a ON a.PatientId = p.Id
+    WHERE a.Id IN (SELECT MAX(Id) FROM IpdAdmissions GROUP BY PatientId) AND a.BranchId = @BranchId
+      AND (@Search IS NULL OR p.FullName LIKE '%' + @Search + '%' OR p.UHID LIKE '%' + @Search + '%' OR p.Mobile LIKE '%' + @Search + '%' OR a.AdmissionNumber LIKE '%' + @Search + '%');
 END
 GO
 

@@ -68,13 +68,15 @@ public class BillingService : IBillingService
         return Map(header, items);
     }
 
-    public async Task<PagedResult<BillDto>> SearchAsync(PagedRequest request, BillStatus? status = null)
+    public async Task<PagedResult<BillDto>> SearchAsync(PagedRequest request, int branchId, BillStatus? status = null, BillCategory? category = null)
     {
         var (headers, counts) = await _db.QueryMultipleAsync<BillHeaderRow, int>("sp_Bill_Search", new
         {
+            BranchId = branchId,
             request.PageNumber,
             request.PageSize,
-            Status = status?.ToString()
+            Status = status?.ToString(),
+            Category = category?.ToString()
         });
 
         return new PagedResult<BillDto>
@@ -86,9 +88,9 @@ public class BillingService : IBillingService
         };
     }
 
-    public async Task<IReadOnlyList<BillDto>> GetByPatientAsync(int patientId)
+    public async Task<IReadOnlyList<BillDto>> GetByPatientAsync(int patientId, int? branchId = null)
     {
-        var headers = await _db.QueryAsync<BillHeaderRow>("sp_Bill_GetByPatient", new { PatientId = patientId });
+        var headers = await _db.QueryAsync<BillHeaderRow>("sp_Bill_GetByPatient", new { PatientId = patientId, BranchId = branchId });
         return headers.Select(h => Map(h, Array.Empty<BillItemDto>())).ToList();
     }
 
@@ -129,9 +131,9 @@ public class BillingService : IBillingService
         return new PaymentDto(paymentId, request.BillId, request.Amount, PaymentMode.Cash, null, true, DateTime.UtcNow);
     }
 
-    public async Task<IReadOnlyList<BillDto>> GetPendingBillsAsync()
+    public async Task<IReadOnlyList<BillDto>> GetPendingBillsAsync(int branchId, BillCategory? category = null)
     {
-        var headers = await _db.QueryAsync<BillHeaderRow>("sp_Bill_GetPending");
+        var headers = await _db.QueryAsync<BillHeaderRow>("sp_Bill_GetPending", new { BranchId = branchId, Category = category?.ToString() });
         return headers.Select(h => Map(h, Array.Empty<BillItemDto>())).ToList();
     }
 
@@ -187,12 +189,13 @@ public class BillingService : IBillingService
     }
 
     private static BillDto Map(BillHeaderRow h, IEnumerable<BillItemDto> items) =>
-        new(h.Id, h.BillNumber, h.PatientId, h.PatientName, Enum.Parse<BillType>(h.Type), h.SubTotal, h.GstAmount,
-            h.DiscountAmount, h.TotalAmount, h.PaidAmount, Enum.Parse<BillStatus>(h.Status), h.BillDate, items.ToList());
+        new(h.Id, h.BillNumber, h.PatientId, h.PatientName, Enum.Parse<BillType>(h.Type),
+            h.IpdAdmissionId is not null ? BillCategory.IPD : BillCategory.OPD, h.OpdVisitId, h.IpdAdmissionId,
+            h.SubTotal, h.GstAmount, h.DiscountAmount, h.TotalAmount, h.PaidAmount, Enum.Parse<BillStatus>(h.Status), h.BillDate, items.ToList(), h.BranchId);
 
     internal record BillHeaderRow(
-        int Id, string BillNumber, int PatientId, string PatientName, string Type, decimal SubTotal, decimal GstAmount,
-        decimal DiscountAmount, decimal TotalAmount, decimal PaidAmount, string Status, DateTime BillDate);
+        int Id, string BillNumber, int PatientId, string PatientName, string Type, int? OpdVisitId, int? IpdAdmissionId,
+        decimal SubTotal, decimal GstAmount, decimal DiscountAmount, decimal TotalAmount, decimal PaidAmount, string Status, DateTime BillDate, int BranchId);
 
     internal record RazorpayOrderRow(int Id, int BillId, string RazorpayOrderId, string? RazorpayPaymentId, int AmountInPaise, string Status, DateTime CreatedAt, DateTime? PaidAt);
 

@@ -29,7 +29,7 @@ export function StatCard({ label, value, icon: Icon, tone = 'brand', hint }: Sta
           key={String(value)}
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="truncate text-2xl font-semibold text-ink-900"
+          className="break-words text-2xl font-semibold leading-tight text-ink-900"
         >
           {value}
         </motion.p>

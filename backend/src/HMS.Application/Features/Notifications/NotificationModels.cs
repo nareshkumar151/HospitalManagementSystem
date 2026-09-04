@@ -1,3 +1,4 @@
+using HMS.Application.Common.Models;
 using HMS.Domain.Enums;
 
 namespace HMS.Application.Features.Notifications;
@@ -12,6 +13,6 @@ public interface INotificationService
 {
     /// <summary> Queues a notification; actual SMS/Email/Push dispatch runs via a Hangfire background job (see NFR). </summary>
     Task<NotificationDto> QueueAsync(SendNotificationRequest request);
-    Task<IReadOnlyList<NotificationDto>> GetForUserAsync(int userId, bool unreadOnly = false);
+    Task<PagedResult<NotificationDto>> GetForUserAsync(int userId, PagedRequest request, bool unreadOnly = false);
     Task MarkReadAsync(int id);
 }

@@ -12,12 +12,14 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 
 export function InsurancePage() {
   const dispatch = useAppDispatch()
   const role = useAppSelector((state) => state.auth.user?.role)
-  const { items, status } = useAppSelector((state) => state.insurance)
+  const { list, status } = useAppSelector((state) => state.insurance)
   const { list: patients } = useAppSelector((state) => state.patients)
+  const items = list?.items ?? []
 
   const [modalOpen, setModalOpen] = useState(false)
   const [patientId, setPatientId] = useState<number | ''>('')
@@ -25,9 +27,16 @@ export function InsurancePage() {
   const [policyNumber, setPolicyNumber] = useState('')
   const [coverage, setCoverage] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
-  const refresh = () => dispatch(insuranceResource.fetchAll())
-  useEffect(() => { refresh(); dispatch(fetchPatients({ pageSize: 100 })) }, [dispatch])
+  const refresh = () => dispatch(insuranceResource.fetchPage({ pageNumber: page, pageSize: 10, search }))
+  useEffect(() => { dispatch(fetchPatients({ pageSize: 100 })) }, [dispatch])
+  useEffect(() => {
+    const timeout = setTimeout(refresh, 300)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, page, search])
 
   const submitClaim = async () => {
     if (!patientId || !company || !policyNumber) return
@@ -77,12 +86,16 @@ export function InsurancePage() {
         actions={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Submit Claim</Button>}
       />
       <Card padded={false}>
-        <div className="flex items-center gap-2 border-b border-ink-100 p-4 text-sm font-medium text-ink-700">
-          <ShieldCheck size={16} /> Claims
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
+            <ShieldCheck size={16} /> Claims
+          </div>
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Search by patient, company, or policy #…" />
         </div>
         <div className="p-4">
           <Table columns={columns} rows={items} keyField={(c) => c.id} loading={status === 'loading'} emptyMessage="No insurance claims yet." />
         </div>
+        {list && <PaginationBar pageNumber={list.pageNumber} totalPages={list.totalPages} totalCount={list.totalCount} onPageChange={setPage} />}
       </Card>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Submit Insurance Claim">
