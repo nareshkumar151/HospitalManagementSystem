@@ -5,17 +5,19 @@ import type { ErDoctorAssessmentDto, ErNurseAssessmentDto, ErVisitDto } from '..
 export interface ErState {
   active: ErVisitDto[]
   current: ErVisitDto | null
+  patientHistory: ErVisitDto[]
   nurseAssessments: ErNurseAssessmentDto[]
   doctorAssessments: ErDoctorAssessmentDto[]
   status: 'idle' | 'loading' | 'succeeded' | 'failed'
   error: string | null
 }
 
-const initialState: ErState = { active: [], current: null, nurseAssessments: [], doctorAssessments: [], status: 'idle', error: null }
+const initialState: ErState = { active: [], current: null, patientHistory: [], nurseAssessments: [], doctorAssessments: [], status: 'idle', error: null }
 
 const START = 'er/start'
 const ACTIVE_SUCCESS = 'er/activeSuccess'
 const VISIT_SUCCESS = 'er/visitSuccess'
+const PATIENT_HISTORY_SUCCESS = 'er/patientHistorySuccess'
 const NURSE_SUCCESS = 'er/nurseSuccess'
 const DOCTOR_SUCCESS = 'er/doctorSuccess'
 const FAILURE = 'er/failure'
@@ -24,6 +26,7 @@ type ErAction =
   | { type: typeof START }
   | { type: typeof ACTIVE_SUCCESS; payload: ErVisitDto[] }
   | { type: typeof VISIT_SUCCESS; payload: ErVisitDto }
+  | { type: typeof PATIENT_HISTORY_SUCCESS; payload: ErVisitDto[] }
   | { type: typeof NURSE_SUCCESS; payload: ErNurseAssessmentDto[] }
   | { type: typeof DOCTOR_SUCCESS; payload: ErDoctorAssessmentDto[] }
   | { type: typeof FAILURE; payload: string }
@@ -33,10 +36,21 @@ export function erReducer(state = initialState, action: ErAction): ErState {
     case START: return { ...state, status: 'loading', error: null }
     case ACTIVE_SUCCESS: return { ...state, status: 'succeeded', active: action.payload }
     case VISIT_SUCCESS: return { ...state, status: 'succeeded', current: action.payload }
+    case PATIENT_HISTORY_SUCCESS: return { ...state, status: 'succeeded', patientHistory: action.payload }
     case NURSE_SUCCESS: return { ...state, status: 'succeeded', nurseAssessments: action.payload }
     case DOCTOR_SUCCESS: return { ...state, status: 'succeeded', doctorAssessments: action.payload }
     case FAILURE: return { ...state, status: 'failed', error: action.payload }
     default: return state
+  }
+}
+
+export const fetchErHistoryForPatient = (patientId: number): AppThunk<Promise<void>> => async (dispatch) => {
+  dispatch({ type: START })
+  try {
+    const { data } = await apiClient.get<ErVisitDto[]>(`/er/visits/patient/${patientId}`)
+    dispatch({ type: PATIENT_HISTORY_SUCCESS, payload: data })
+  } catch (error) {
+    dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
   }
 }
 

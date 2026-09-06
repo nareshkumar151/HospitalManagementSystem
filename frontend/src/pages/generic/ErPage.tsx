@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Plus, Siren } from 'lucide-react'
+import { History, Plus, Siren } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { fetchPatients } from '../../features/patients/patientsSlice'
-import { fetchActiveErVisits, registerErVisit } from '../../features/er/erSlice'
+import { fetchActiveErVisits, fetchErHistoryForPatient, registerErVisit } from '../../features/er/erSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Table, type Column } from '../../components/ui/Table'
@@ -12,7 +12,8 @@ import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
 import { SearchBox } from '../../components/ui/ListToolbar'
-import { extractErrorMessage } from '../../api/client'
+import { apiClient, extractErrorMessage } from '../../api/client'
+import type { PagedResult, PatientDto } from '../../types'
 import { ErVisitFormsModal } from './ErVisitFormsModal'
 import type { ErVisitDto } from '../../types'
 
@@ -26,7 +27,7 @@ function triageTone(t: string): 'danger' | 'warning' | 'success' {
 export function ErPage() {
   const dispatch = useAppDispatch()
   const role = useAppSelector((state) => state.auth.user?.role)
-  const { active, status } = useAppSelector((state) => state.er)
+  const { active, patientHistory, status } = useAppSelector((state) => state.er)
   const { list: patientList } = useAppSelector((state) => state.patients)
 
   const [modalOpen, setModalOpen] = useState(false)
@@ -39,6 +40,12 @@ export function ErPage() {
   const [triageCategory, setTriageCategory] = useState('Yellow')
   const [submitting, setSubmitting] = useState(false)
 
+  // Separate search for "ER History" - once a visit leaves the active board (Admitted/Discharged/etc.) this
+  // is the only place staff can still find and open it for a particular patient.
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyPatientList, setHistoryPatientList] = useState<{ id: number; fullName: string; uhid: string }[]>([])
+  const [historyPatient, setHistoryPatient] = useState<{ id: number; fullName: string } | null>(null)
+
   useEffect(() => { dispatch(fetchActiveErVisits()) }, [dispatch])
 
   useEffect(() => {
@@ -47,6 +54,20 @@ export function ErPage() {
     }, 300)
     return () => clearTimeout(handle)
   }, [dispatch, patientSearch])
+
+  useEffect(() => {
+    const handle = setTimeout(async () => {
+      if (historySearch.trim().length >= 2) {
+        const { data } = await apiClient.get<PagedResult<PatientDto>>('/patients', { params: { pageNumber: 1, pageSize: 6, search: historySearch } })
+        setHistoryPatientList(data.items)
+      }
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [historySearch])
+
+  useEffect(() => {
+    if (historyPatient) dispatch(fetchErHistoryForPatient(historyPatient.id))
+  }, [dispatch, historyPatient])
 
   const resetForm = () => {
     setSelectedPatient(null); setPatientSearch(''); setModeOfArrival('WalkIn'); setBroughtBy('')
@@ -101,6 +122,37 @@ export function ErPage() {
         </div>
         <div className="p-4">
           <Table columns={columns} rows={active} keyField={(v) => v.id} loading={status === 'loading'} emptyMessage="No patients currently in the ER." />
+        </div>
+      </Card>
+
+      <Card className="mt-4" padded={false}>
+        <div className="flex items-center gap-2 border-b border-ink-100 p-4 text-sm font-medium text-ink-700">
+          <History size={16} /> ER History
+        </div>
+        <div className="p-4">
+          <SearchBox value={historySearch} onChange={setHistorySearch} placeholder="Search patient by name or UHID to see their ER history…" className="w-full max-w-md" />
+          {!historyPatient && historyPatientList.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {historyPatientList.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => { setHistoryPatient({ id: p.id, fullName: p.fullName }); setHistorySearch(''); setHistoryPatientList([]) }}
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-muted"
+                >
+                  {p.fullName} <span className="text-xs text-ink-500">· {p.uhid}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {historyPatient && (
+            <div className="mt-3">
+              <div className="mb-3 rounded-lg bg-brand-50 p-3 text-sm text-brand-700">
+                Showing ER history for <strong>{historyPatient.fullName}</strong>
+                <button className="ml-2 text-xs underline" onClick={() => setHistoryPatient(null)}>change</button>
+              </div>
+              <Table columns={columns} rows={patientHistory} keyField={(v) => v.id} emptyMessage="No ER visits on file for this patient." />
+            </div>
+          )}
         </div>
       </Card>
 

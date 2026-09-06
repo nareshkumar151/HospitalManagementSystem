@@ -338,6 +338,7 @@ export interface ConsentRecordDto {
   patientName: string
   templateId: number
   templateTitle: string
+  templateBodyText: string
   category: ConsentCategory
   context: ConsentContext
   contextId: number | null

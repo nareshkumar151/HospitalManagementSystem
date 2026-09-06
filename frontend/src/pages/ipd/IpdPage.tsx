@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { BedDouble, Download, LogOut, Plus } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { admitPatient, dischargePatient, fetchActiveAdmissions, searchAdmissions } from '../../features/ipd/ipdSlice'
@@ -22,6 +22,10 @@ import { ADMISSION_TYPES, admissionTypeLabel } from '../../utils/admissionTypes'
 export function IpdPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
+  // A patient can arrive here already chosen - e.g. an ER doctor's "Admit" disposition hands off to
+  // reception/nursing to actually complete the admission, since ER only flips the visit's own status.
+  const guidedPatientId = (location.state as { guidedPatientId?: number } | null)?.guidedPatientId
   const user = useAppSelector((state) => state.auth.user)
   const { list, status } = useAppSelector((state) => state.ipd)
   const { beds } = useAppSelector((state) => state.beds)
@@ -29,9 +33,9 @@ export function IpdPage() {
   const { list: doctors } = useAppSelector((state) => state.doctors)
   const admissions = list?.items ?? []
 
-  const [admitOpen, setAdmitOpen] = useState(false)
+  const [admitOpen, setAdmitOpen] = useState(!!guidedPatientId)
   const [dischargeTarget, setDischargeTarget] = useState<IpdAdmissionDto | null>(null)
-  const [patientId, setPatientId] = useState<number | ''>('')
+  const [patientId, setPatientId] = useState<number | ''>(guidedPatientId ?? '')
   const [doctorId, setDoctorId] = useState<number | ''>('')
   const [bedId, setBedId] = useState<number | ''>('')
   const [admissionType, setAdmissionType] = useState(ADMISSION_TYPES[0].value)

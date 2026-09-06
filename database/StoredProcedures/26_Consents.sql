@@ -56,7 +56,7 @@ CREATE OR ALTER PROCEDURE sp_ConsentRecord_GetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category,
+    SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category, t.BodyText AS TemplateBodyText,
            c.Context, c.ContextId, c.ProcedureName, c.Decision, c.SignedByName, c.RelationToPatient,
            c.WitnessName, wu.Username AS WitnessUserName, c.RefusalReason, c.Notes,
            ru.Username AS RecordedByName, c.SignedAt
@@ -74,7 +74,7 @@ CREATE OR ALTER PROCEDURE sp_ConsentRecord_GetByPatient
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category,
+    SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category, t.BodyText AS TemplateBodyText,
            c.Context, c.ContextId, c.ProcedureName, c.Decision, c.SignedByName, c.RelationToPatient,
            c.WitnessName, wu.Username AS WitnessUserName, c.RefusalReason, c.Notes,
            ru.Username AS RecordedByName, c.SignedAt
@@ -95,7 +95,7 @@ CREATE OR ALTER PROCEDURE sp_ConsentRecord_Search
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category,
+    SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category, t.BodyText AS TemplateBodyText,
            c.Context, c.ContextId, c.ProcedureName, c.Decision, c.SignedByName, c.RelationToPatient,
            c.WitnessName, wu.Username AS WitnessUserName, c.RefusalReason, c.Notes,
            ru.Username AS RecordedByName, c.SignedAt

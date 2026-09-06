@@ -10,7 +10,7 @@ public record UpdateConsentTemplateRequest(string Title, string BodyText, bool I
 
 public record ConsentRecordDto(
     int Id, int PatientId, string PatientName, int TemplateId, string TemplateTitle, string Category,
-    string Context, int? ContextId, string? ProcedureName, string Decision, string SignedByName,
+    string TemplateBodyText, string Context, int? ContextId, string? ProcedureName, string Decision, string SignedByName,
     string? RelationToPatient, string? WitnessName, string? WitnessUserName, string? RefusalReason,
     string? Notes, string RecordedByName, DateTime SignedAt);
 

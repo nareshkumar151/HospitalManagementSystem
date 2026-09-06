@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Download } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
@@ -39,7 +40,12 @@ export function ErVisitFormsModal({ visit, role, onClose }: { visit: ErVisitDto;
       </div>
 
       {tab === 'Nurse' && <NurseAssessmentTab visitId={visit.id} canRecord={role === 'Nurse'} history={nurseAssessments} />}
-      {tab === 'Doctor' && <DoctorAssessmentTab visitId={visit.id} canRecord={role === 'Doctor'} history={doctorAssessments} />}
+      {tab === 'Doctor' && (
+        <DoctorAssessmentTab
+          visitId={visit.id} canRecord={role === 'Doctor'} history={doctorAssessments}
+          patientId={visit.patientId} patientName={visit.patientName} onClose={onClose}
+        />
+      )}
     </Modal>
   )
 }
@@ -111,8 +117,12 @@ function NurseAssessmentTab({ visitId, canRecord, history }: { visitId: number; 
   )
 }
 
-function DoctorAssessmentTab({ visitId, canRecord, history }: { visitId: number; canRecord: boolean; history: import('../../types').ErDoctorAssessmentDto[] }) {
+function DoctorAssessmentTab({ visitId, canRecord, history, patientId, patientName, onClose }: {
+  visitId: number; canRecord: boolean; history: import('../../types').ErDoctorAssessmentDto[]
+  patientId: number; patientName: string; onClose: () => void
+}) {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const [form, setForm] = useState({ historyOfPresentIllness: '', examinationFindings: '', provisionalDiagnosis: '', treatmentGiven: '', disposition: 'Admit', remarks: '' })
   const [submitting, setSubmitting] = useState(false)
 
@@ -127,7 +137,16 @@ function DoctorAssessmentTab({ visitId, canRecord, history }: { visitId: number;
         disposition: form.disposition,
         remarks: form.remarks || undefined,
       }))
-      toast.success('Doctor assessment recorded - visit disposition updated.')
+      if (form.disposition === 'Admit') {
+        // ER only flips the visit's own status to "Admitted" - it doesn't create a real IPD admission, so
+        // without this the patient would never actually appear on the IPD/Admissions list. Hand off to
+        // whoever completes admissions (front desk/nursing) with the patient already selected.
+        toast.success(`${patientName} marked for admission - opening Admit Patient…`)
+        onClose()
+        navigate('/app/ipd', { state: { guidedPatientId: patientId } })
+      } else {
+        toast.success('Doctor assessment recorded - visit disposition updated.')
+      }
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {

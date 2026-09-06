@@ -202,6 +202,11 @@ export function ConsentsPage() {
                 <option value="">Select a template</option>
                 {templates.filter((t) => t.isActive).map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
               </Select>
+              {selectedTemplate && (
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-ink-100 bg-surface-muted p-3 text-xs leading-relaxed text-ink-700 whitespace-pre-line">
+                  {selectedTemplate.bodyText}
+                </div>
+              )}
               {selectedTemplate?.category === 'Procedure' && (
                 <Input label="Procedure name" placeholder="e.g. URSL, Circumcision" value={procedureName} onChange={(e) => setProcedureName(e.target.value)} />
               )}

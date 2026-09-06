@@ -228,15 +228,40 @@ public class PdfService : IPdfService
     {
         container.Column(column =>
         {
-            LabeledRow(column.Item(), "Category", record.Category);
-            LabeledRow(column.Item(), "Context", record.Context + (record.ProcedureName != null ? $" - {record.ProcedureName}" : ""));
-            LabeledRow(column.Item(), "Decision", record.Decision);
-            LabeledRow(column.Item(), "Signed By", record.SignedByName + (record.RelationToPatient != null ? $" ({record.RelationToPatient})" : ""));
-            if (!string.IsNullOrWhiteSpace(record.WitnessName)) LabeledRow(column.Item(), "Witness", record.WitnessName!);
-            if (!string.IsNullOrWhiteSpace(record.RefusalReason)) LabeledRow(column.Item(), "Refusal Reason", record.RefusalReason!);
-            LabeledRow(column.Item(), "Signed At", record.SignedAt.ToString("dd MMM yyyy, hh:mm tt"));
-            LabeledRow(column.Item(), "Recorded By", record.RecordedByName);
-            column.Item().PaddingTop(4).Text(record.TemplateTitle).Italic().FontSize(9);
+            column.Item().Row(row =>
+            {
+                row.RelativeItem().Text(record.TemplateTitle + (record.ProcedureName != null ? $" — {record.ProcedureName}" : ""))
+                    .FontSize(12).Bold().FontColor(Color.FromHex(BrandHex));
+                row.ConstantItem(100).Element(c => DecisionChip(c, record.Decision));
+            });
+            column.Item().PaddingTop(6).Element(c => LegalTextBlock(c, record.TemplateBodyText));
+
+            column.Item().PaddingTop(10).Row(row =>
+            {
+                row.RelativeItem().Column(left =>
+                {
+                    LabeledRow(left.Item(), "Category", record.Category);
+                    LabeledRow(left.Item(), "Context", record.Context);
+                    LabeledRow(left.Item(), "Signed By", record.SignedByName + (record.RelationToPatient != null ? $" ({record.RelationToPatient})" : ""));
+                });
+                row.RelativeItem().Column(right =>
+                {
+                    LabeledRow(right.Item(), "Signed At", record.SignedAt.ToString("dd MMM yyyy, hh:mm tt"));
+                    if (!string.IsNullOrWhiteSpace(record.WitnessName)) LabeledRow(right.Item(), "Witness", record.WitnessName!);
+                    LabeledRow(right.Item(), "Recorded By", record.RecordedByName);
+                });
+            });
+            if (!string.IsNullOrWhiteSpace(record.RefusalReason))
+                column.Item().PaddingTop(4).Text(text => { text.Span("Refusal Reason: ").SemiBold().FontColor(Colors.Red.Darken1); text.Span(record.RefusalReason!); });
+
+            // Signature block - a printed copy of this PDF still needs somewhere for a wet-ink signature,
+            // since the system captures a typed name/witness rather than a scanned signature image.
+            column.Item().PaddingTop(16).Row(row =>
+            {
+                row.RelativeItem().Column(c => { c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten1); c.Item().PaddingTop(2).Text("Patient / Representative Signature").FontSize(8).FontColor(Colors.Grey.Darken1); });
+                row.ConstantItem(20);
+                row.RelativeItem().Column(c => { c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten1); c.Item().PaddingTop(2).Text("Witness Signature").FontSize(8).FontColor(Colors.Grey.Darken1); });
+            });
         });
     }
 
@@ -361,13 +386,28 @@ public class PdfService : IPdfService
         });
     }
 
+    // The app's own brand accent (matches the frontend's teal buttons/theme) so every generated document
+    // reads as part of the same product, not a generic black-on-white printout.
+    private const string BrandHex = "#0F766E";
+    private const string BrandLightHex = "#E6F3F1";
+
     private static void SectionHeading(IContainer container, string title)
     {
-        container.Column(column =>
-        {
-            column.Item().Text(title).FontSize(13).Bold().FontColor(Colors.Blue.Darken2);
-            column.Item().PaddingBottom(4).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-        });
+        container.Background(Color.FromHex(BrandLightHex)).Padding(6).Text(title).FontSize(12).Bold().FontColor(Color.FromHex(BrandHex));
+    }
+
+    /// <summary> A boxed, quoted block for the actual legal/consent wording a patient reads and signs against. </summary>
+    private static void LegalTextBlock(IContainer container, string text)
+    {
+        container.Border(1).BorderColor(Colors.Grey.Lighten2).Background(Colors.Grey.Lighten5)
+            .Padding(10).Text(text).FontSize(9.5f).LineHeight(1.35f).FontColor(Colors.Grey.Darken3);
+    }
+
+    /// <summary> Small colored pill for a consent's Accepted/Refused decision, so it reads at a glance. </summary>
+    private static void DecisionChip(IContainer container, string decision)
+    {
+        var color = decision == "Refused" ? Colors.Red.Medium : decision == "Fatal" ? Colors.Red.Darken2 : Colors.Green.Medium;
+        container.Background(color).PaddingVertical(5).PaddingHorizontal(8).AlignCenter().Text(decision).FontColor(Colors.White).Bold().FontSize(10);
     }
 
     /// <summary> Shared A4 letterhead + footer wrapper so every document looks like it belongs to the same hospital. </summary>
@@ -378,27 +418,38 @@ public class PdfService : IPdfService
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
-                page.Margin(36);
-                page.DefaultTextStyle(x => x.FontSize(11));
+                page.Margin(0);
+                page.DefaultTextStyle(x => x.FontSize(10.5f).FontColor(Colors.Grey.Darken3));
 
                 page.Header().Column(column =>
                 {
-                    column.Item().Text(HospitalName).FontSize(18).Bold();
-                    column.Item().Text(title).FontSize(14).FontColor(Colors.Blue.Darken2);
-                    column.Item().PaddingTop(2).Text($"Patient/Subject: {subjectName}").SemiBold();
-                    column.Item().PaddingTop(2).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
+                    column.Item().Background(Color.FromHex(BrandHex)).Padding(20).Row(row =>
+                    {
+                        row.RelativeItem().Column(inner =>
+                        {
+                            inner.Item().Text(HospitalName).FontSize(20).Bold().FontColor(Colors.White);
+                            inner.Item().PaddingTop(1).Text("Hospital Management System").FontSize(8.5f).FontColor(Colors.White);
+                        });
+                        row.ConstantItem(220).AlignRight().Text(title).FontSize(14).Bold().FontColor(Colors.White);
+                    });
+                    column.Item().Background(Color.FromHex(BrandLightHex)).Padding(10)
+                        .Text($"Patient / Subject: {subjectName}").FontSize(11).Bold().FontColor(Color.FromHex(BrandHex));
                 });
 
-                page.Content().PaddingVertical(12).Column(body);
+                page.Content().PaddingHorizontal(30).PaddingVertical(16).Column(body);
 
-                page.Footer().Row(row =>
+                page.Footer().PaddingHorizontal(30).PaddingBottom(12).Column(column =>
                 {
-                    row.RelativeItem().Text($"Generated {DateTime.Now:dd MMM yyyy, hh:mm tt}").FontSize(8).FontColor(Colors.Grey.Darken1);
-                    row.RelativeItem().AlignRight().Text(text =>
+                    column.Item().LineHorizontal(0.75f).LineColor(Colors.Grey.Lighten2);
+                    column.Item().PaddingTop(4).Row(row =>
                     {
-                        text.CurrentPageNumber().FontSize(8);
-                        text.Span(" / ").FontSize(8);
-                        text.TotalPages().FontSize(8);
+                        row.RelativeItem().Text($"Generated {DateTime.Now:dd MMM yyyy, hh:mm tt} · System-generated document.").FontSize(7.5f).Italic().FontColor(Colors.Grey.Darken1);
+                        row.RelativeItem().AlignRight().Text(text =>
+                        {
+                            text.CurrentPageNumber().FontSize(8);
+                            text.Span(" / ").FontSize(8);
+                            text.TotalPages().FontSize(8);
+                        });
                     });
                 });
             });
@@ -420,7 +471,7 @@ public class PdfService : IPdfService
     {
         container.PaddingBottom(8).Column(column =>
         {
-            column.Item().Text(label).SemiBold().FontColor(Colors.Blue.Darken1);
+            column.Item().Text(label).SemiBold().FontColor(Color.FromHex(BrandHex));
             column.Item().Text(value);
         });
     }
