@@ -155,7 +155,7 @@ export function AppointmentsPage() {
       <PageHeader
         title="Appointments"
         subtitle="Book, view, and manage OPD appointments by date."
-        actions={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Book Appointment</Button>}
+        actions={!isDoctor ? <Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Book Appointment</Button> : undefined}
       />
 
       <Card padded={false}>
@@ -227,7 +227,7 @@ export function AppointmentsPage() {
             </label>
             <Select label="Time slot" value={slot} onChange={(e) => setSlot(e.target.value)}>
               <option value="" disabled>Select a slot</option>
-              {slots.map((s) => <option key={s.timeSlot} value={s.timeSlot} disabled={s.isBooked}>{s.timeSlot}{s.isBooked ? ' (booked)' : ''}</option>)}
+              {slots.map((s) => <option key={s.timeSlot} value={s.timeSlot} disabled={s.isBooked || s.isPast}>{s.timeSlot}{s.isBooked ? ' (booked)' : s.isPast ? ' (passed)' : ''}</option>)}
             </Select>
           </div>
           <div className="flex justify-end gap-2 pt-2">

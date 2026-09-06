@@ -55,6 +55,9 @@ public class AppointmentService : IAppointmentService
 
     public async Task<AppointmentDto> BookAsync(BookAppointmentRequest request, int? bookedByUserId = null)
     {
+        if (IsSlotInThePast(request.AppointmentDate, request.TimeSlot))
+            throw new ValidationAppException("This time slot has already passed today - pick a later slot.");
+
         var slotTaken = await _db.ExecuteScalarAsync<int>("sp_Appointment_CheckSlotTaken", new
         {
             request.DoctorId,
@@ -166,6 +169,20 @@ public class AppointmentService : IAppointmentService
     {
         var booked = await _db.QueryAsync<string>("sp_Appointment_GetBookedSlots", new { DoctorId = doctorId, Date = date.Date });
         var bookedSet = booked.ToHashSet();
-        return DefaultSlots.Select(slot => new DoctorSlotAvailabilityDto(slot, bookedSet.Contains(slot))).ToList();
+        return DefaultSlots.Select(slot => new DoctorSlotAvailabilityDto(slot, bookedSet.Contains(slot), IsSlotInThePast(date, slot))).ToList();
+    }
+
+    // The app has no per-hospital timezone setting, and every slot label ("09:00-09:20" etc.) is a plain
+    // local wall-clock time, so this assumes IST (the hospital's own locale - INR currency, Indian seed
+    // data) rather than comparing against server UTC directly, which would misfire by the UTC+5:30 offset.
+    private static readonly TimeSpan IstOffset = TimeSpan.FromHours(5.5);
+
+    private static bool IsSlotInThePast(DateTime date, string timeSlot)
+    {
+        var nowIst = DateTime.UtcNow + IstOffset;
+        if (date.Date != nowIst.Date) return date.Date < nowIst.Date;
+
+        var startText = timeSlot.Split('-')[0];
+        return TimeSpan.TryParse(startText, out var slotStart) && slotStart < nowIst.TimeOfDay;
     }
 }

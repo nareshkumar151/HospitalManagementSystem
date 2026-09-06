@@ -16,7 +16,7 @@ public record BookAppointmentRequest(
 public record RescheduleAppointmentRequest(DateTime NewDate, string NewTimeSlot);
 public record CancelAppointmentRequest(string Reason);
 
-public record DoctorSlotAvailabilityDto(string TimeSlot, bool IsBooked);
+public record DoctorSlotAvailabilityDto(string TimeSlot, bool IsBooked, bool IsPast);
 
 public interface IAppointmentService
 {

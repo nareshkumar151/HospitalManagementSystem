@@ -163,6 +163,7 @@ export interface AppointmentRequestDto {
 export interface DoctorSlotAvailabilityDto {
   timeSlot: string
   isBooked: boolean
+  isPast: boolean
 }
 
 export interface OpdVisitDto {
