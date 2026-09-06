@@ -29,3 +29,20 @@ public interface IAppointmentService
     Task<AppointmentDto> MarkCompletedAsync(int id);
     Task<IReadOnlyList<DoctorSlotAvailabilityDto>> GetAvailableSlotsAsync(int doctorId, DateTime date);
 }
+
+// --- Appointment Action Requests: a doctor cannot cancel an appointment directly - they can only request a
+// Cancel/Transfer/Refer, which Administrator/Receptionist review and action. ---------------------------------
+
+public record AppointmentRequestDto(
+    int Id, int AppointmentId, string PatientName, string DoctorName, DateTime AppointmentDate, string TimeSlot,
+    string RequestType, string Reason, string Status, DateTime CreatedAt);
+
+public record CreateAppointmentActionRequest(string RequestType, string Reason); // RequestType: Cancel | Transfer | Refer
+public record ResolveAppointmentActionRequest(string Status, string? ResolutionNotes); // Status: Approved | Rejected
+
+public interface IAppointmentRequestService
+{
+    Task<AppointmentRequestDto> CreateAsync(int appointmentId, CreateAppointmentActionRequest request, int doctorId);
+    Task<IReadOnlyList<AppointmentRequestDto>> GetPendingAsync(int branchId);
+    Task ResolveAsync(int id, ResolveAppointmentActionRequest request, int resolvedByUserId);
+}

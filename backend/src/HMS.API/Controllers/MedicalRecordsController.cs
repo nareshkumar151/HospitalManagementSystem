@@ -11,8 +11,9 @@ public class MedicalRecordsController : ApiControllerBase
 
     public MedicalRecordsController(IMedicalRecordService medicalRecordService) => _medicalRecordService = medicalRecordService;
 
+    // Doctor is deliberately excluded here - a doctor can only view medical records, never add/upload one.
     [HttpPost]
-    [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Doctor + "," + RoleNames.Nurse + "," + RoleNames.LabTechnician)]
+    [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Nurse + "," + RoleNames.LabTechnician)]
     public async Task<ActionResult<MedicalRecordDto>> Add(CreateMedicalRecordRequest request) => Ok(await _medicalRecordService.AddAsync(request));
 
     [HttpGet("patient/{patientId:int}")]

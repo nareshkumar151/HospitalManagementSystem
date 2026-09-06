@@ -12,6 +12,11 @@ public record DashboardSummaryDto(
     int PendingBillsCount,
     int AvailableDoctorsCount,
     int TodaysSurgeriesCount,
+    /// <summary> Doctor Dashboard tiles - populated only when a doctorId is passed to GetSummaryAsync (0 otherwise). </summary>
+    int DoctorTodaysAppointments,
+    int DoctorIpPatientsCount,
+    int DoctorPlannedDischargesCount,
+    int DoctorTodaysSurgeriesCount,
     IReadOnlyList<PharmacyStockAlertDto> PharmacyStockAlerts);
 
 public record PharmacyStockAlertDto(int MedicineId, string MedicineName, int Stock, int ReorderLevel);
@@ -19,6 +24,6 @@ public record PharmacyStockAlertDto(int MedicineId, string MedicineName, int Sto
 public interface IDashboardService
 {
     /// <summary> `receptionistUserId` personalizes TodaysRevenue to that user's own collected payments;
-    /// pass null for the unscoped, branch-wide figure. </summary>
-    Task<DashboardSummaryDto> GetSummaryAsync(int branchId, int? receptionistUserId = null);
+    /// `doctorId` populates the Doctor-scoped tiles. Pass null for either to get the unscoped figures. </summary>
+    Task<DashboardSummaryDto> GetSummaryAsync(int branchId, int? receptionistUserId = null, int? doctorId = null);
 }

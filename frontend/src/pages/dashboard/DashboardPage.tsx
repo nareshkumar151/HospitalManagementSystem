@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Users, IndianRupee, BedDouble, Receipt, Stethoscope, Scissors, AlertTriangle } from 'lucide-react'
+import { Users, IndianRupee, BedDouble, Receipt, Stethoscope, Scissors, AlertTriangle, CalendarCheck, LogOut } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { fetchDashboardSummary } from '../../features/dashboard/dashboardSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -22,33 +22,43 @@ export function DashboardPage() {
     <div>
       <PageHeader title={`Welcome back, ${user?.username}`} subtitle="Here's what's happening across the hospital today." />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Today's Patients" value={summary?.todaysPatients ?? 0} icon={Users} tone="brand" />
-        <StatCard
-          label={user?.role === 'Receptionist' ? "Today's Collection" : "Today's Revenue"}
-          value={`₹${(summary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`}
-          icon={IndianRupee}
-          tone="success"
-        />
-        <StatCard
-          label="OPD Revenue"
-          value={`₹${(summary?.todaysOpdRevenue ?? 0).toLocaleString('en-IN')}`}
-          icon={IndianRupee}
-          tone="brand"
-          hint="Outpatient bills"
-        />
-        <StatCard
-          label="IPD Revenue"
-          value={`₹${(summary?.todaysIpdRevenue ?? 0).toLocaleString('en-IN')}`}
-          icon={IndianRupee}
-          tone="warning"
-          hint="Admission-linked bills"
-        />
-        <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
-        <StatCard label="Pending Bills" value={summary?.pendingBillsCount ?? 0} icon={Receipt} tone="danger" />
-        <StatCard label="Available Doctors" value={summary?.availableDoctorsCount ?? 0} icon={Stethoscope} tone="brand" />
-        <StatCard label="Today's Surgeries" value={summary?.todaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
-      </div>
+      {user?.role === 'Doctor' ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <StatCard label="Total Appointments" value={summary?.doctorTodaysAppointments ?? 0} icon={CalendarCheck} tone="brand" hint="Today" />
+          <StatCard label="IP Patients" value={summary?.doctorIpPatientsCount ?? 0} icon={Users} tone="brand" hint="Currently admitted, under you" />
+          <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
+          <StatCard label="Planned Discharges" value={summary?.doctorPlannedDischargesCount ?? 0} icon={LogOut} tone="success" hint="Today" />
+          <StatCard label="Today's Surgeries" value={summary?.doctorTodaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <StatCard label="Today's Patients" value={summary?.todaysPatients ?? 0} icon={Users} tone="brand" />
+          <StatCard
+            label={user?.role === 'Receptionist' ? "Today's Collection" : "Today's Revenue"}
+            value={`₹${(summary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`}
+            icon={IndianRupee}
+            tone="success"
+          />
+          <StatCard
+            label="OPD Revenue"
+            value={`₹${(summary?.todaysOpdRevenue ?? 0).toLocaleString('en-IN')}`}
+            icon={IndianRupee}
+            tone="brand"
+            hint="Outpatient bills"
+          />
+          <StatCard
+            label="IPD Revenue"
+            value={`₹${(summary?.todaysIpdRevenue ?? 0).toLocaleString('en-IN')}`}
+            icon={IndianRupee}
+            tone="warning"
+            hint="Admission-linked bills"
+          />
+          <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
+          <StatCard label="Pending Bills" value={summary?.pendingBillsCount ?? 0} icon={Receipt} tone="danger" />
+          <StatCard label="Available Doctors" value={summary?.availableDoctorsCount ?? 0} icon={Stethoscope} tone="brand" />
+          <StatCard label="Today's Surgeries" value={summary?.todaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>

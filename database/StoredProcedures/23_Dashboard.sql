@@ -10,7 +10,7 @@ GO
 -- which an earlier registration-date-based version of this query got wrong. Pass NULL (Administrator,
 -- SuperAdmin, etc.) for the unscoped branch-wide figure.
 CREATE OR ALTER PROCEDURE sp_Dashboard_GetSummary
-    @BranchId INT, @ReceptionistUserId INT = NULL
+    @BranchId INT, @ReceptionistUserId INT = NULL, @DoctorId INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -54,7 +54,16 @@ BEGIN
         (SELECT COUNT(*) FROM Bills WHERE BranchId = @BranchId AND Status IN ('Pending','PartiallyPaid') AND IsDeleted = 0) AS PendingBillsCount,
         (SELECT COUNT(*) FROM Doctors WHERE BranchId = @BranchId AND IsActive = 1 AND IsDeleted = 0) AS AvailableDoctorsCount,
         (SELECT COUNT(*) FROM Surgeries s JOIN IpdAdmissions a ON a.Id = s.IpdAdmissionId
-         WHERE a.BranchId = @BranchId AND CAST(s.ScheduledAt AS DATE) = @Today AND s.IsDeleted = 0) AS TodaysSurgeriesCount;
+         WHERE a.BranchId = @BranchId AND CAST(s.ScheduledAt AS DATE) = @Today AND s.IsDeleted = 0) AS TodaysSurgeriesCount,
+        -- Doctor Dashboard tiles - all scoped to @DoctorId (NULL for every other role, so these read 0).
+        (SELECT COUNT(*) FROM Appointments WHERE DoctorId = @DoctorId AND AppointmentDate = @Today AND IsDeleted = 0) AS DoctorTodaysAppointments,
+        (SELECT COUNT(*) FROM IpdAdmissions WHERE DoctorId = @DoctorId AND Status = 'Admitted' AND IsDeleted = 0) AS DoctorIpPatientsCount,
+        -- "Planned Discharges" - the schema has no separate planned-discharge-date field, so this counts
+        -- this doctor's patients actually discharged today (the closest real number to "discharges due today").
+        (SELECT COUNT(*) FROM IpdAdmissions WHERE DoctorId = @DoctorId AND Status = 'Discharged' AND IsDeleted = 0
+         AND CAST(DischargeDate AS DATE) = @Today) AS DoctorPlannedDischargesCount,
+        (SELECT COUNT(*) FROM Surgeries s JOIN IpdAdmissions a ON a.Id = s.IpdAdmissionId
+         WHERE s.SurgeonDoctorId = @DoctorId AND CAST(s.ScheduledAt AS DATE) = @Today AND s.IsDeleted = 0) AS DoctorTodaysSurgeriesCount;
 
     SELECT Id AS MedicineId, MedicineName, Stock, ReorderLevel
     FROM Medicines WHERE BranchId = @BranchId AND Stock <= ReorderLevel AND IsDeleted = 0

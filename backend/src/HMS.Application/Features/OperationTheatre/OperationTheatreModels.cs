@@ -4,11 +4,11 @@ public record SurgeryDto(
     int Id, int PatientId, string PatientName, int IpdAdmissionId, string SurgeryName,
     int SurgeonDoctorId, string SurgeonName, int? AssistantDoctorId, int? NurseUserId,
     string? Equipment, DateTime ScheduledAt, DateTime? CompletedAt, string? OperationNotes,
-    string? Anesthesia, decimal OperationCost, string Status);
+    string? Anesthesia, decimal OperationCost, string Status, string? Notes);
 
 public record ScheduleSurgeryRequest(
     int PatientId, int IpdAdmissionId, string SurgeryName, int SurgeonDoctorId, int? AssistantDoctorId,
-    int? NurseUserId, string? Equipment, DateTime ScheduledAt, decimal OperationCost);
+    int? NurseUserId, string? Equipment, DateTime ScheduledAt, decimal OperationCost, string? Notes);
 
 public record CompleteSurgeryRequest(string OperationNotes, string? Anesthesia);
 

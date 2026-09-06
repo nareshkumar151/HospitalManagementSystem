@@ -4,7 +4,7 @@ import type { ConsentTemplateDto, ConsentRecordDto } from '../../types'
 // Minimal row shapes for the scaffold modules - widen these as each screen grows real business logic.
 export interface InsuranceClaimRow { id: number; patientId: number; patientName: string; insuranceCompany: string; policyNumber: string; coverageAmount: number; approvedAmount: number | null; status: string; submittedAt: string }
 export interface RadiologyOrderRow { id: number; patientId: number; patientName: string; doctorId: number; doctorName: string; scanType: string; status: string; orderedAt: string; price: number; reportFileUrl: string | null; doctorNotes: string | null }
-export interface SurgeryRow { id: number; patientId: number; patientName: string; surgeryName: string; surgeonDoctorId: number; surgeonName: string; scheduledAt: string; operationCost: number; status: string }
+export interface SurgeryRow { id: number; patientId: number; patientName: string; surgeryName: string; surgeonDoctorId: number; surgeonName: string; scheduledAt: string; operationCost: number; status: string; notes: string | null }
 export interface InventoryItemRow { id: number; itemName: string; type: string; unit: string; stock: number; reorderLevel: number; expiryDate: string | null }
 export interface VendorRow { id: number; name: string; gstNumber: string; contact: string; address: string | null; isActive: boolean }
 export interface PayrollRow { id: number; employeeId: number; employeeName: string; payPeriod: string; basicSalary: number; pf: number; esi: number; taxDeduction: number; bonus: number; netSalary: number; generatedAt: string }

@@ -18,6 +18,8 @@ public class Surgery : BaseEntity
     public string? Anesthesia { get; set; }
     public decimal OperationCost { get; set; }
     public string Status { get; set; } = "Scheduled"; // Scheduled | InProgress | Completed | Cancelled
+    /// <summary> Pre-op notes captured when scheduling - distinct from OperationNotes (the post-op summary). </summary>
+    public string? Notes { get; set; }
 }
 
 /// <summary>

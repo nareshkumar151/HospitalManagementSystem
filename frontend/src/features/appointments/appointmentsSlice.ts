@@ -1,25 +1,28 @@
 import { apiClient, extractErrorMessage } from '../../api/client'
 import type { AppThunk } from '../../app/store'
-import type { AppointmentDto, DoctorSlotAvailabilityDto, PagedResult } from '../../types'
+import type { AppointmentDto, AppointmentRequestDto, DoctorSlotAvailabilityDto, PagedResult } from '../../types'
 
 export interface AppointmentsState {
   list: PagedResult<AppointmentDto> | null
   slots: DoctorSlotAvailabilityDto[]
+  pendingRequests: AppointmentRequestDto[]
   status: 'idle' | 'loading' | 'succeeded' | 'failed'
   error: string | null
 }
 
-const initialState: AppointmentsState = { list: null, slots: [], status: 'idle', error: null }
+const initialState: AppointmentsState = { list: null, slots: [], pendingRequests: [], status: 'idle', error: null }
 
 const START = 'appointments/start'
 const LIST_SUCCESS = 'appointments/listSuccess'
 const SLOTS_SUCCESS = 'appointments/slotsSuccess'
+const PENDING_REQUESTS_SUCCESS = 'appointments/pendingRequestsSuccess'
 const FAILURE = 'appointments/failure'
 
 type AppointmentsAction =
   | { type: typeof START }
   | { type: typeof LIST_SUCCESS; payload: PagedResult<AppointmentDto> }
   | { type: typeof SLOTS_SUCCESS; payload: DoctorSlotAvailabilityDto[] }
+  | { type: typeof PENDING_REQUESTS_SUCCESS; payload: AppointmentRequestDto[] }
   | { type: typeof FAILURE; payload: string }
 
 export function appointmentsReducer(state = initialState, action: AppointmentsAction): AppointmentsState {
@@ -27,6 +30,7 @@ export function appointmentsReducer(state = initialState, action: AppointmentsAc
     case START: return { ...state, status: 'loading', error: null }
     case LIST_SUCCESS: return { ...state, status: 'succeeded', list: action.payload }
     case SLOTS_SUCCESS: return { ...state, slots: action.payload }
+    case PENDING_REQUESTS_SUCCESS: return { ...state, status: 'succeeded', pendingRequests: action.payload }
     case FAILURE: return { ...state, status: 'failed', error: action.payload }
     default: return state
   }
@@ -86,3 +90,36 @@ export const cancelAppointment = (id: number, reason: string): AppThunk<Promise<
     throw error
   }
 }
+
+// --- Appointment Action Requests: a doctor cannot cancel directly - they request Cancel/Transfer/Refer,
+// which Administrator/Receptionist review and action. ---------------------------------------------------
+
+export const requestAppointmentAction = (id: number, requestType: 'Cancel' | 'Transfer' | 'Refer', reason: string): AppThunk<Promise<void>> =>
+  async (dispatch) => {
+    try {
+      await apiClient.post(`/appointments/${id}/request-action`, { requestType, reason })
+    } catch (error) {
+      dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+      throw error
+    }
+  }
+
+export const fetchPendingAppointmentRequests = (): AppThunk<Promise<void>> => async (dispatch) => {
+  try {
+    const { data } = await apiClient.get<AppointmentRequestDto[]>('/appointments/requests/pending')
+    dispatch({ type: PENDING_REQUESTS_SUCCESS, payload: data })
+  } catch (error) {
+    dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+  }
+}
+
+export const resolveAppointmentRequest = (id: number, status: 'Approved' | 'Rejected', resolutionNotes?: string): AppThunk<Promise<void>> =>
+  async (dispatch) => {
+    try {
+      await apiClient.put(`/appointments/requests/${id}/resolve`, { status, resolutionNotes })
+      await dispatch(fetchPendingAppointmentRequests())
+    } catch (error) {
+      dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+      throw error
+    }
+  }

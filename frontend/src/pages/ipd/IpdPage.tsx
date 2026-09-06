@@ -160,7 +160,7 @@ export function IpdPage() {
       <PageHeader
         title="IPD / Admissions"
         subtitle="Track admitted patients, assign beds, and process discharges."
-        actions={<Button icon={<Plus size={16} />} onClick={() => setAdmitOpen(true)}>Admit Patient</Button>}
+        actions={user?.role !== 'Doctor' ? <Button icon={<Plus size={16} />} onClick={() => setAdmitOpen(true)}>Admit Patient</Button> : undefined}
       />
 
       <Card padded={false}>

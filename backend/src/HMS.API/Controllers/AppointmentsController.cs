@@ -8,8 +8,13 @@ namespace HMS.API.Controllers;
 public class AppointmentsController : ApiControllerBase
 {
     private readonly IAppointmentService _appointmentService;
+    private readonly IAppointmentRequestService _appointmentRequestService;
 
-    public AppointmentsController(IAppointmentService appointmentService) => _appointmentService = appointmentService;
+    public AppointmentsController(IAppointmentService appointmentService, IAppointmentRequestService appointmentRequestService)
+    {
+        _appointmentService = appointmentService;
+        _appointmentRequestService = appointmentRequestService;
+    }
 
     [HttpGet]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Receptionist + "," + RoleNames.Doctor)]
@@ -65,4 +70,24 @@ public class AppointmentsController : ApiControllerBase
     [HttpPut("{id:int}/complete")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Doctor)]
     public async Task<ActionResult<AppointmentDto>> Complete(int id) => Ok(await _appointmentService.MarkCompletedAsync(id));
+
+    // --- Appointment Action Requests: doctors request Cancel/Transfer/Refer instead of cancelling directly ---
+
+    [HttpPost("{id:int}/request-action")]
+    [Authorize(Roles = RoleNames.Doctor)]
+    public async Task<ActionResult<AppointmentRequestDto>> RequestAction(int id, CreateAppointmentActionRequest request)
+        => Ok(await _appointmentRequestService.CreateAsync(id, request, CurrentLinkedProfileId!.Value));
+
+    [HttpGet("requests/pending")]
+    [Authorize(Roles = RoleNames.AdminOnly + "," + RoleNames.Receptionist)]
+    public async Task<ActionResult<IReadOnlyList<AppointmentRequestDto>>> GetPendingRequests()
+        => Ok(await _appointmentRequestService.GetPendingAsync(CurrentBranchId));
+
+    [HttpPut("requests/{id:int}/resolve")]
+    [Authorize(Roles = RoleNames.AdminOnly + "," + RoleNames.Receptionist)]
+    public async Task<IActionResult> ResolveRequest(int id, ResolveAppointmentActionRequest request)
+    {
+        await _appointmentRequestService.ResolveAsync(id, request, CurrentUserId);
+        return NoContent();
+    }
 }

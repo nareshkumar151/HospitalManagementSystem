@@ -12,7 +12,6 @@ import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Select } from '../../components/ui/Input'
-import { Badge } from '../../components/ui/Badge'
 import { HandwritingField } from '../../components/clinical/HandwritingField'
 import { extractErrorMessage } from '../../api/client'
 import type { OpdVisitDto } from '../../types'
@@ -155,9 +154,8 @@ export function DoctorConsolePage() {
             <p className="text-sm text-ink-500">Start a consultation from the queue to begin.</p>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg bg-brand-50 px-3 py-2.5 text-sm">
+              <div className="rounded-lg bg-brand-50 px-3 py-2.5 text-sm">
                 <span className="font-medium text-brand-800">{visit.patientName} · {visit.opdVisitNumber}</span>
-                <Badge tone={visit.isFreeFollowUp ? 'success' : 'brand'}>{visit.isFreeFollowUp ? 'Free follow-up' : `Fee ₹${visit.consultationFee}`}</Badge>
               </div>
 
               <div className="rounded-xl border border-ink-100">
@@ -196,8 +194,8 @@ export function DoctorConsolePage() {
                 )}
               </div>
 
-              <HandwritingField key={`symptoms-${visit.id}`} label="Symptoms" value={symptoms} onChange={setSymptoms} />
-              <HandwritingField key={`diagnosis-${visit.id}`} label="Diagnosis" required value={diagnosis} onChange={setDiagnosis} />
+              <HandwritingField key={`symptoms-${visit.id}`} label="Symptoms" multiline value={symptoms} onChange={setSymptoms} />
+              <HandwritingField key={`diagnosis-${visit.id}`} label="Diagnosis" required multiline value={diagnosis} onChange={setDiagnosis} />
               <HandwritingField key={`clinical-notes-${visit.id}`} label="Clinical notes" multiline value={clinicalNotes} onChange={setClinicalNotes} />
 
               <div className="grid grid-cols-2 gap-3">

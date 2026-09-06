@@ -147,6 +147,19 @@ export interface AppointmentDto {
   branchId: number
 }
 
+export interface AppointmentRequestDto {
+  id: number
+  appointmentId: number
+  patientName: string
+  doctorName: string
+  appointmentDate: string
+  timeSlot: string
+  requestType: 'Cancel' | 'Transfer' | 'Refer'
+  reason: string
+  status: 'Pending' | 'Approved' | 'Rejected'
+  createdAt: string
+}
+
 export interface DoctorSlotAvailabilityDto {
   timeSlot: string
   isBooked: boolean
@@ -522,5 +535,9 @@ export interface DashboardSummaryDto {
   pendingBillsCount: number
   availableDoctorsCount: number
   todaysSurgeriesCount: number
+  doctorTodaysAppointments: number
+  doctorIpPatientsCount: number
+  doctorPlannedDischargesCount: number
+  doctorTodaysSurgeriesCount: number
   pharmacyStockAlerts: { medicineId: number; medicineName: string; stock: number; reorderLevel: number }[]
 }

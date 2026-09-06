@@ -4,14 +4,14 @@ GO
 CREATE OR ALTER PROCEDURE sp_Surgery_Insert
     @PatientId INT, @IpdAdmissionId INT, @SurgeryName NVARCHAR(200), @SurgeonDoctorId INT,
     @AssistantDoctorId INT = NULL, @NurseUserId INT = NULL, @Equipment NVARCHAR(400) = NULL,
-    @ScheduledAt DATETIME2, @OperationCost DECIMAL(12,2)
+    @ScheduledAt DATETIME2, @OperationCost DECIMAL(12,2), @Notes NVARCHAR(400) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO Surgeries (PatientId, IpdAdmissionId, SurgeryName, SurgeonDoctorId, AssistantDoctorId, NurseUserId,
-        Equipment, ScheduledAt, OperationCost)
+        Equipment, ScheduledAt, OperationCost, Notes)
     VALUES (@PatientId, @IpdAdmissionId, @SurgeryName, @SurgeonDoctorId, @AssistantDoctorId, @NurseUserId,
-        @Equipment, @ScheduledAt, @OperationCost);
+        @Equipment, @ScheduledAt, @OperationCost, @Notes);
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO
@@ -43,7 +43,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT s.Id, s.PatientId, p.FullName AS PatientName, s.IpdAdmissionId, s.SurgeryName, s.SurgeonDoctorId,
            doc.FullName AS SurgeonName, s.AssistantDoctorId, s.NurseUserId, s.Equipment, s.ScheduledAt,
-           s.CompletedAt, s.OperationNotes, s.Anesthesia, s.OperationCost, s.Status
+           s.CompletedAt, s.OperationNotes, s.Anesthesia, s.OperationCost, s.Status, s.Notes
     FROM Surgeries s JOIN Patients p ON p.Id = s.PatientId JOIN Doctors doc ON doc.Id = s.SurgeonDoctorId
     WHERE s.Id = @Id AND s.IsDeleted = 0;
 END
@@ -58,7 +58,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT s.Id, s.PatientId, p.FullName AS PatientName, s.IpdAdmissionId, s.SurgeryName, s.SurgeonDoctorId,
            doc.FullName AS SurgeonName, s.AssistantDoctorId, s.NurseUserId, s.Equipment, s.ScheduledAt,
-           s.CompletedAt, s.OperationNotes, s.Anesthesia, s.OperationCost, s.Status
+           s.CompletedAt, s.OperationNotes, s.Anesthesia, s.OperationCost, s.Status, s.Notes
     FROM Surgeries s
     JOIN Patients p ON p.Id = s.PatientId
     JOIN Doctors doc ON doc.Id = s.SurgeonDoctorId
@@ -75,7 +75,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT s.Id, s.PatientId, p.FullName AS PatientName, s.IpdAdmissionId, s.SurgeryName, s.SurgeonDoctorId,
            doc.FullName AS SurgeonName, s.AssistantDoctorId, s.NurseUserId, s.Equipment, s.ScheduledAt,
-           s.CompletedAt, s.OperationNotes, s.Anesthesia, s.OperationCost, s.Status
+           s.CompletedAt, s.OperationNotes, s.Anesthesia, s.OperationCost, s.Status, s.Notes
     FROM Surgeries s JOIN Patients p ON p.Id = s.PatientId JOIN Doctors doc ON doc.Id = s.SurgeonDoctorId
     WHERE s.PatientId = @PatientId AND s.IsDeleted = 0
     ORDER BY s.ScheduledAt DESC;

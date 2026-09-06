@@ -28,6 +28,7 @@ export function OperationTheatrePage() {
   const [surgeonId, setSurgeonId] = useState<number | ''>('')
   const [scheduledAt, setScheduledAt] = useState('')
   const [cost, setCost] = useState(0)
+  const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formsSurgery, setFormsSurgery] = useState<SurgeryRow | null>(null)
 
@@ -40,12 +41,12 @@ export function OperationTheatrePage() {
     setSubmitting(true)
     try {
       await dispatch(surgeryResource.create(
-        { patientId: admission.patientId, ipdAdmissionId: admission.id, surgeryName, surgeonDoctorId: surgeonId, scheduledAt, operationCost: cost },
+        { patientId: admission.patientId, ipdAdmissionId: admission.id, surgeryName, surgeonDoctorId: surgeonId, scheduledAt, operationCost: cost, notes: notes || undefined },
         undefined,
         '/operationtheatre', // the resource's default endpoint ('/operationtheatre/today') is a GET-only view; scheduling has to POST to the base route.
       ))
       toast.success('Surgery scheduled.')
-      setModalOpen(false); setSurgeryName(''); setSurgeonId(''); setScheduledAt(''); setCost(0); setAdmissionId('')
+      setModalOpen(false); setSurgeryName(''); setSurgeonId(''); setScheduledAt(''); setCost(0); setAdmissionId(''); setNotes('')
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -113,6 +114,15 @@ export function OperationTheatrePage() {
           </Select>
           <Input label="Scheduled at" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
           <Input label="Operation cost" type="number" value={cost} onChange={(e) => setCost(Number(e.target.value))} />
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-ink-700">Notes</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
+            />
+          </label>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
             <Button loading={submitting} onClick={schedule}>Schedule</Button>

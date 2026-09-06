@@ -15,6 +15,9 @@ public class DashboardController : ApiControllerBase
         // A receptionist's "Today's Revenue" tile is their own collected payments, not the whole branch's -
         // every other role keeps seeing the branch-wide figure.
         var receptionistUserId = User.IsInRole(RoleNames.Receptionist) ? CurrentUserId : (int?)null;
-        return Ok(await _dashboardService.GetSummaryAsync(CurrentBranchId, receptionistUserId));
+        // A doctor's dashboard tiles (appointments/IP patients/discharges/surgeries) are scoped to their own
+        // Doctors.Id (their linkedProfileId), not the whole branch's.
+        var doctorId = User.IsInRole(RoleNames.Doctor) ? CurrentLinkedProfileId : null;
+        return Ok(await _dashboardService.GetSummaryAsync(CurrentBranchId, receptionistUserId, doctorId));
     }
 }
