@@ -39,6 +39,9 @@ public class ErService : IErService
         => await _db.QuerySingleOrDefaultAsync<ErVisitDto>("sp_ErVisit_GetById", new { Id = id })
            ?? throw new NotFoundException(nameof(Domain.Entities.ErVisit), id);
 
+    public Task<IReadOnlyList<ErVisitDto>> GetByPatientAsync(int patientId)
+        => _db.QueryAsync<ErVisitDto>("sp_ErVisit_GetByPatient", new { PatientId = patientId });
+
     public async Task UpdateDispositionAsync(int id, UpdateErDispositionRequest request)
     {
         await _db.ExecuteAsync("sp_ErVisit_UpdateStatus", new { Id = id, request.Status });

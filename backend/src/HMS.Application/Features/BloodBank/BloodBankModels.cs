@@ -12,5 +12,6 @@ public record RecordTransfusionReactionRequest(
 public interface IBloodBankService
 {
     Task<TransfusionReactionDto> RecordAsync(RecordTransfusionReactionRequest request, int userId);
+    Task<TransfusionReactionDto> GetByIdAsync(int id);
     Task<IReadOnlyList<TransfusionReactionDto>> GetByPatientAsync(int patientId);
 }

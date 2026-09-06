@@ -22,6 +22,7 @@ using HMS.Application.Features.Nutrition;
 using HMS.Application.Features.OpdVisits;
 using HMS.Application.Features.OperationTheatre;
 using HMS.Application.Features.Patients;
+using HMS.Application.Features.PatientDocuments;
 using HMS.Application.Features.Payroll;
 using HMS.Application.Features.Pharmacy;
 using HMS.Application.Features.Prescriptions;
@@ -84,6 +85,7 @@ public static class DependencyInjection
         services.AddScoped<IBloodBankService, BloodBankService>();
         services.AddScoped<IDialysisService, DialysisService>();
         services.AddScoped<INutritionService, NutritionService>();
+        services.AddScoped<IPatientDocumentBundleService, PatientDocumentBundleService>();
         services.AddScoped<IDischargeService, DischargeService>();
         services.AddScoped<IMedicalRecordService, MedicalRecordService>();
         services.AddScoped<IEmployeeService, EmployeeService>();

@@ -1,4 +1,6 @@
+using HMS.Application.Common.Interfaces;
 using HMS.Application.Features.OperationTheatre;
+using HMS.Application.Features.PatientDocuments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,8 +10,13 @@ namespace HMS.API.Controllers;
 public class OperationTheatreController : ApiControllerBase
 {
     private readonly IOperationTheatreService _operationTheatreService;
+    private readonly IPdfService _pdfService;
 
-    public OperationTheatreController(IOperationTheatreService operationTheatreService) => _operationTheatreService = operationTheatreService;
+    public OperationTheatreController(IOperationTheatreService operationTheatreService, IPdfService pdfService)
+    {
+        _operationTheatreService = operationTheatreService;
+        _pdfService = pdfService;
+    }
 
     // Receptionist no longer coordinates the OT calendar - Administrator/Doctor only.
     [HttpPost]
@@ -65,5 +72,17 @@ public class OperationTheatreController : ApiControllerBase
     {
         await _operationTheatreService.MarkRecoveryDischargedAsync(id);
         return NoContent();
+    }
+
+    [HttpGet("{surgeryId:int}/pdf")]
+    public async Task<IActionResult> DownloadFormsPdf(int surgeryId)
+    {
+        var bundle = new SurgeryFormsBundle(
+            await _operationTheatreService.GetByIdAsync(surgeryId),
+            await _operationTheatreService.GetChecklistsAsync(surgeryId),
+            await _operationTheatreService.GetAnesthesiaRecordsAsync(surgeryId),
+            await _operationTheatreService.GetRecoveryRecordsAsync(surgeryId));
+        var pdfBytes = _pdfService.GenerateSurgeryFormsPdf(bundle);
+        return File(pdfBytes, "application/pdf", $"OTForms-{surgeryId}.pdf");
     }
 }

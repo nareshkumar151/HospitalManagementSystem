@@ -31,6 +31,7 @@ public interface IErService
     Task<ErVisitDto> RegisterVisitAsync(RegisterErVisitRequest request, int branchId, int hospitalId, int registeredByUserId);
     Task<IReadOnlyList<ErVisitDto>> GetActiveVisitsAsync(int branchId);
     Task<ErVisitDto> GetVisitAsync(int id);
+    Task<IReadOnlyList<ErVisitDto>> GetByPatientAsync(int patientId);
     Task UpdateDispositionAsync(int id, UpdateErDispositionRequest request);
 
     Task<ErNurseAssessmentDto> RecordNurseAssessmentAsync(int visitId, RecordErNurseAssessmentRequest request, int nurseUserId);

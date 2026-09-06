@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Activity, Plus } from 'lucide-react'
+import { Activity, Download, Plus } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { fetchActiveAdmissions } from '../../features/ipd/ipdSlice'
 import { fetchNursingChart, recordVitals } from '../../features/nursing/nursingSlice'
@@ -9,7 +9,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
-import { extractErrorMessage } from '../../api/client'
+import { downloadFile, extractErrorMessage } from '../../api/client'
 
 const AVPU_OPTIONS = ['Alert', 'Verbal', 'Pain', 'Unresponsive']
 
@@ -99,7 +99,15 @@ export function NursingPage() {
           </Card>
 
           <Card className="lg:col-span-2">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink-900"><Activity size={16} /> Vitals History</h3>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><Activity size={16} /> Vitals History</h3>
+              <Button
+                variant="secondary" size="sm" icon={<Download size={14} />}
+                onClick={() => downloadFile(`/nursing/admissions/${admissionId}/pdf`, `NursingChart-${admissionId}.pdf`).catch(() => toast.error('Could not download the PDF.'))}
+              >
+                Download Chart (PDF)
+              </Button>
+            </div>
             {status === 'loading' && <p className="text-sm text-ink-500">Loading…</p>}
             <div className="space-y-2">
               {chart.map((entry) => (

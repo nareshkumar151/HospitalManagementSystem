@@ -41,6 +41,19 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE sp_ErVisit_GetByPatient
+    @PatientId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT v.Id, v.PatientId, p.FullName AS PatientName, p.UHID AS Uhid, v.ArrivalTime, v.ModeOfArrival,
+           v.BroughtBy, v.ChiefComplaint, v.TriageCategory, v.Status, u.Username AS RegisteredByName
+    FROM ErVisits v JOIN Patients p ON p.Id = v.PatientId JOIN Users u ON u.Id = v.RegisteredByUserId
+    WHERE v.PatientId = @PatientId AND v.IsDeleted = 0
+    ORDER BY v.ArrivalTime DESC;
+END
+GO
+
 CREATE OR ALTER PROCEDURE sp_ErVisit_UpdateStatus
     @Id INT, @Status NVARCHAR(20)
 AS

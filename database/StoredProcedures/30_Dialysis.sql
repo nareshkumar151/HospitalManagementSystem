@@ -20,6 +20,19 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE sp_DialysisSession_GetById
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT s.Id, s.PatientId, p.FullName AS PatientName, s.IpdAdmissionId, s.SessionDate, s.DialysisType,
+           s.DurationMinutes, s.PreWeight, s.PostWeight, s.PreBloodPressure, s.PostBloodPressure, s.DialyzerType,
+           s.BloodFlowRate, s.UfGoal, s.UfAchieved, s.Complications, s.Remarks, u.Username AS PerformedByName
+    FROM DialysisSessions s JOIN Patients p ON p.Id = s.PatientId JOIN Users u ON u.Id = s.PerformedByUserId
+    WHERE s.Id = @Id AND s.IsDeleted = 0;
+END
+GO
+
 CREATE OR ALTER PROCEDURE sp_DialysisSession_GetByPatient
     @PatientId INT
 AS

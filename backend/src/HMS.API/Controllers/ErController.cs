@@ -1,4 +1,6 @@
+using HMS.Application.Common.Interfaces;
 using HMS.Application.Features.Er;
+using HMS.Application.Features.PatientDocuments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,8 +11,13 @@ namespace HMS.API.Controllers;
 public class ErController : ApiControllerBase
 {
     private readonly IErService _erService;
+    private readonly IPdfService _pdfService;
 
-    public ErController(IErService erService) => _erService = erService;
+    public ErController(IErService erService, IPdfService pdfService)
+    {
+        _erService = erService;
+        _pdfService = pdfService;
+    }
 
     [HttpPost("visits")]
     [Authorize(Roles = RoleNames.AdminOnly + "," + RoleNames.Receptionist + "," + RoleNames.Nurse)]
@@ -22,6 +29,9 @@ public class ErController : ApiControllerBase
 
     [HttpGet("visits/{id:int}")]
     public async Task<ActionResult<ErVisitDto>> GetVisit(int id) => Ok(await _erService.GetVisitAsync(id));
+
+    [HttpGet("visits/patient/{patientId:int}")]
+    public async Task<ActionResult<IReadOnlyList<ErVisitDto>>> GetByPatient(int patientId) => Ok(await _erService.GetByPatientAsync(patientId));
 
     [HttpPut("visits/{id:int}/disposition")]
     [Authorize(Roles = RoleNames.AdminOnly + "," + RoleNames.Doctor + "," + RoleNames.Nurse)]
@@ -48,4 +58,15 @@ public class ErController : ApiControllerBase
     [HttpGet("visits/{id:int}/doctor-assessments")]
     public async Task<ActionResult<IReadOnlyList<ErDoctorAssessmentDto>>> GetDoctorAssessments(int id)
         => Ok(await _erService.GetDoctorAssessmentsAsync(id));
+
+    [HttpGet("visits/{id:int}/pdf")]
+    public async Task<IActionResult> DownloadVisitPdf(int id)
+    {
+        var bundle = new ErVisitBundle(
+            await _erService.GetVisitAsync(id),
+            await _erService.GetNurseAssessmentsAsync(id),
+            await _erService.GetDoctorAssessmentsAsync(id));
+        var pdfBytes = _pdfService.GenerateErVisitPdf(bundle);
+        return File(pdfBytes, "application/pdf", $"ErVisit-{id}.pdf");
+    }
 }

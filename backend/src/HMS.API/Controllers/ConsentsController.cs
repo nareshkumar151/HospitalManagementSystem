@@ -1,3 +1,4 @@
+using HMS.Application.Common.Interfaces;
 using HMS.Application.Common.Models;
 using HMS.Application.Features.Consents;
 using Microsoft.AspNetCore.Authorization;
@@ -11,8 +12,13 @@ namespace HMS.API.Controllers;
 public class ConsentsController : ApiControllerBase
 {
     private readonly IConsentService _consentService;
+    private readonly IPdfService _pdfService;
 
-    public ConsentsController(IConsentService consentService) => _consentService = consentService;
+    public ConsentsController(IConsentService consentService, IPdfService pdfService)
+    {
+        _consentService = consentService;
+        _pdfService = pdfService;
+    }
 
     [HttpGet("templates")]
     public async Task<ActionResult<IReadOnlyList<ConsentTemplateDto>>> GetTemplates([FromQuery] bool includeInactive = false)
@@ -34,6 +40,14 @@ public class ConsentsController : ApiControllerBase
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ConsentRecordDto>> GetById(int id) => Ok(await _consentService.GetByIdAsync(id));
+
+    [HttpGet("{id:int}/pdf")]
+    public async Task<IActionResult> DownloadPdf(int id)
+    {
+        var record = await _consentService.GetByIdAsync(id);
+        var pdfBytes = _pdfService.GenerateConsentRecordPdf(record);
+        return File(pdfBytes, "application/pdf", $"Consent-{id}.pdf");
+    }
 
     [HttpGet("patient/{patientId:int}")]
     public async Task<ActionResult<IReadOnlyList<ConsentRecordDto>>> GetByPatient(int patientId)

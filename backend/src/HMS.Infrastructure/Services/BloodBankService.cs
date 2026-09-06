@@ -1,3 +1,4 @@
+using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
 using HMS.Application.Features.BloodBank;
 
@@ -34,6 +35,10 @@ public class BloodBankService : IBloodBankService
         var list = await GetByPatientAsync(request.PatientId);
         return list.First(r => r.Id == newId);
     }
+
+    public async Task<TransfusionReactionDto> GetByIdAsync(int id)
+        => await _db.QuerySingleOrDefaultAsync<TransfusionReactionDto>("sp_TransfusionReaction_GetById", new { Id = id })
+           ?? throw new NotFoundException(nameof(Domain.Entities.TransfusionReaction), id);
 
     public Task<IReadOnlyList<TransfusionReactionDto>> GetByPatientAsync(int patientId)
         => _db.QueryAsync<TransfusionReactionDto>("sp_TransfusionReaction_GetByPatient", new { PatientId = patientId });

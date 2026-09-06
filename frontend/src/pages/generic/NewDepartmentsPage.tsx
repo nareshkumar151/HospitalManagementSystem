@@ -13,7 +13,7 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
 import { SearchBox } from '../../components/ui/ListToolbar'
-import { extractErrorMessage } from '../../api/client'
+import { downloadFile, extractErrorMessage } from '../../api/client'
 
 type Dept = 'BloodBank' | 'Dialysis' | 'Nutrition'
 
@@ -150,7 +150,15 @@ function BloodBankPanel({ patientId }: { patientId: number }) {
           <div key={r.id} className="rounded-lg bg-surface-muted p-3 text-sm">
             <p className="mb-1 flex items-center justify-between text-xs font-medium text-ink-500">
               {new Date(r.onsetTime).toLocaleString()} · {r.reportedByName}
-              <Badge tone={r.outcome === 'Fatal' ? 'danger' : r.outcome === 'Resolved' ? 'success' : 'warning'}>{r.outcome}</Badge>
+              <span className="flex items-center gap-2">
+                <Badge tone={r.outcome === 'Fatal' ? 'danger' : r.outcome === 'Resolved' ? 'success' : 'warning'}>{r.outcome}</Badge>
+                <button
+                  className="font-medium text-brand-600 hover:underline"
+                  onClick={() => downloadFile(`/bloodbank/transfusion-reactions/${r.id}/pdf`, `TransfusionReaction-${r.id}.pdf`).catch(() => toast.error('Could not download the PDF.'))}
+                >
+                  Download
+                </button>
+              </span>
             </p>
             <p className="text-ink-700">{r.componentTransfused} ({r.unitsTransfused ?? '—'} units) · <strong>{r.reactionType}</strong></p>
             {r.symptoms && <p className="mt-1 text-xs text-ink-600">Symptoms: {r.symptoms}</p>}
@@ -227,7 +235,15 @@ function DialysisPanel({ patientId }: { patientId: number }) {
         {status === 'loading' && <p className="text-sm text-ink-500">Loading…</p>}
         {dialysisSessions.map((s) => (
           <div key={s.id} className="rounded-lg bg-surface-muted p-3 text-sm">
-            <p className="mb-1 text-xs font-medium text-ink-500">{new Date(s.sessionDate).toLocaleString()} · {s.performedByName}</p>
+            <p className="mb-1 flex items-center justify-between text-xs font-medium text-ink-500">
+              <span>{new Date(s.sessionDate).toLocaleString()} · {s.performedByName}</span>
+              <button
+                className="font-medium text-brand-600 hover:underline"
+                onClick={() => downloadFile(`/dialysis/sessions/${s.id}/pdf`, `DialysisSession-${s.id}.pdf`).catch(() => toast.error('Could not download the PDF.'))}
+              >
+                Download
+              </button>
+            </p>
             <div className="flex flex-wrap gap-3 text-ink-700">
               <span>{s.dialysisType}</span>
               {s.durationMinutes != null && <span>{s.durationMinutes} min</span>}
@@ -298,7 +314,15 @@ function NutritionPanel({ patientId }: { patientId: number }) {
           <div key={a.id} className="rounded-lg bg-surface-muted p-3 text-sm">
             <p className="mb-1 flex items-center justify-between text-xs font-medium text-ink-500">
               {new Date(a.assessedAt).toLocaleString()} · {a.assessedByName}
-              <Badge tone={a.nutritionalRisk === 'High' ? 'danger' : a.nutritionalRisk === 'Medium' ? 'warning' : 'success'}>{a.nutritionalRisk} risk</Badge>
+              <span className="flex items-center gap-2">
+                <Badge tone={a.nutritionalRisk === 'High' ? 'danger' : a.nutritionalRisk === 'Medium' ? 'warning' : 'success'}>{a.nutritionalRisk} risk</Badge>
+                <button
+                  className="font-medium text-brand-600 hover:underline"
+                  onClick={() => downloadFile(`/nutrition/assessments/${a.id}/pdf`, `NutritionAssessment-${a.id}.pdf`).catch(() => toast.error('Could not download the PDF.'))}
+                >
+                  Download
+                </button>
+              </span>
             </p>
             <div className="flex flex-wrap gap-3 text-ink-700">
               <span>{a.dietType}</span>

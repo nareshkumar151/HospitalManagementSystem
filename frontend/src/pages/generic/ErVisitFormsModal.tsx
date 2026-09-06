@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { Download } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import {
   fetchErNurseAssessments, recordErNurseAssessment, fetchErDoctorAssessments, recordErDoctorAssessment,
@@ -8,7 +9,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
-import { extractErrorMessage } from '../../api/client'
+import { downloadFile, extractErrorMessage } from '../../api/client'
 import type { ErVisitDto } from '../../types'
 
 const DISPOSITIONS = ['Admit', 'Discharge', 'LAMA', 'Refer', 'DeceasedInEr']
@@ -23,9 +24,15 @@ export function ErVisitFormsModal({ visit, role, onClose }: { visit: ErVisitDto;
     dispatch(fetchErDoctorAssessments(visit.id))
   }, [dispatch, visit.id])
 
+  const downloadPdf = () =>
+    downloadFile(`/er/visits/${visit.id}/pdf`, `ErVisit-${visit.id}.pdf`).catch(() => toast.error('Could not download the PDF.'))
+
   return (
     <Modal open onClose={onClose} title={`ER Visit · ${visit.patientName} (${visit.uhid})`} widthClassName="max-w-2xl">
-      <p className="mb-3 text-sm text-ink-600">Chief complaint: <strong>{visit.chiefComplaint}</strong> · Triage <Badge tone={visit.triageCategory === 'Red' ? 'danger' : visit.triageCategory === 'Yellow' ? 'warning' : 'success'}>{visit.triageCategory}</Badge></p>
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm text-ink-600">Chief complaint: <strong>{visit.chiefComplaint}</strong> · Triage <Badge tone={visit.triageCategory === 'Red' ? 'danger' : visit.triageCategory === 'Yellow' ? 'warning' : 'success'}>{visit.triageCategory}</Badge></p>
+        <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={downloadPdf}>Download PDF</Button>
+      </div>
       <div className="mb-4 flex gap-1 border-b border-ink-100 pb-2">
         <button onClick={() => setTab('Nurse')} className={`rounded-lg px-3 py-1.5 text-xs font-medium ${tab === 'Nurse' ? 'bg-brand-500 text-white' : 'text-ink-700 hover:bg-surface-muted'}`}>ER Nurses Assessment</button>
         <button onClick={() => setTab('Doctor')} className={`rounded-lg px-3 py-1.5 text-xs font-medium ${tab === 'Doctor' ? 'bg-brand-500 text-white' : 'text-ink-700 hover:bg-surface-muted'}`}>ER Doctor Assessment</button>

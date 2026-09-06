@@ -1,3 +1,4 @@
+using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
 using HMS.Application.Features.Dialysis;
 
@@ -38,6 +39,10 @@ public class DialysisService : IDialysisService
         var list = await GetByPatientAsync(request.PatientId);
         return list.First(s => s.Id == newId);
     }
+
+    public async Task<DialysisSessionDto> GetByIdAsync(int id)
+        => await _db.QuerySingleOrDefaultAsync<DialysisSessionDto>("sp_DialysisSession_GetById", new { Id = id })
+           ?? throw new NotFoundException(nameof(Domain.Entities.DialysisSession), id);
 
     public Task<IReadOnlyList<DialysisSessionDto>> GetByPatientAsync(int patientId)
         => _db.QueryAsync<DialysisSessionDto>("sp_DialysisSession_GetByPatient", new { PatientId = patientId });

@@ -18,6 +18,19 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE sp_TransfusionReaction_GetById
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT r.Id, r.PatientId, p.FullName AS PatientName, r.IpdAdmissionId, r.BloodGroup, r.ComponentTransfused,
+           r.UnitsTransfused, r.ReactionType, r.Symptoms, r.OnsetTime, r.ActionTaken, r.Outcome, r.Remarks,
+           u.Username AS ReportedByName
+    FROM TransfusionReactions r JOIN Patients p ON p.Id = r.PatientId JOIN Users u ON u.Id = r.ReportedByUserId
+    WHERE r.Id = @Id AND r.IsDeleted = 0;
+END
+GO
+
 CREATE OR ALTER PROCEDURE sp_TransfusionReaction_GetByPatient
     @PatientId INT
 AS

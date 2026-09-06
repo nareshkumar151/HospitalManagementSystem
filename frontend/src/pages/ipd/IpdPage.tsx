@@ -90,10 +90,12 @@ export function IpdPage() {
       await dispatch(dischargePatient(dischargeTarget.id, { diagnosis: dischargeDiagnosis, conditionAtDischarge: dischargeCondition }))
       toast.success('Patient discharged.')
       try {
-        await downloadFile(`/discharge/admissions/${dischargeTarget.id}/pdf`, `DischargeSummary-${dischargeTarget.admissionNumber}.pdf`)
+        // One-click bundle: discharge summary + every consent/OT/nursing/ER/blood-bank/dialysis/nutrition
+        // record on file for this admission's patient, not just the discharge summary alone.
+        await downloadFile(`/discharge/admissions/${dischargeTarget.id}/documents-pdf`, `PatientDocuments-${dischargeTarget.admissionNumber}.pdf`)
       } catch {
         // Discharge already succeeded - a failed PDF fetch shouldn't look like the discharge itself failed.
-        toast('Discharged, but the summary PDF could not be downloaded automatically.', { icon: '⚠️' })
+        toast('Discharged, but the documents PDF could not be downloaded automatically.', { icon: '⚠️' })
       }
       setDischargeTarget(null)
       setDischargeDiagnosis(''); setDischargeCondition('')
@@ -111,6 +113,16 @@ export function IpdPage() {
       await downloadFile(`/ipdadmissions/${admission.id}/pdf`, `AdmissionDocument-${admission.admissionNumber}.pdf`)
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Could not download the admission document.'))
+    }
+  }
+
+  // One-click bundle covering discharge AND a mid-admission ward/bed transfer - works whether or not the
+  // patient has been discharged yet (the discharge summary section is simply omitted until then).
+  const handleDownloadAllDocuments = async (admission: IpdAdmissionDto) => {
+    try {
+      await downloadFile(`/discharge/admissions/${admission.id}/documents-pdf`, `PatientDocuments-${admission.admissionNumber}.pdf`)
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Could not download the patient documents.'))
     }
   }
 
@@ -133,7 +145,10 @@ export function IpdPage() {
             </button>
           )}
           <button onClick={() => handleDownloadAdmissionPdf(a)} className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:underline">
-            <Download size={13} /> PDF
+            <Download size={13} /> Admission PDF
+          </button>
+          <button onClick={() => handleDownloadAllDocuments(a)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+            <Download size={13} /> All Documents
           </button>
         </div>
       ),

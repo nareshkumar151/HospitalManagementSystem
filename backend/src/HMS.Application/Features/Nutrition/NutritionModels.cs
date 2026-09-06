@@ -13,5 +13,6 @@ public record RecordNutritionAssessmentRequest(
 public interface INutritionService
 {
     Task<NutritionAssessmentDto> RecordAsync(RecordNutritionAssessmentRequest request, int userId);
+    Task<NutritionAssessmentDto> GetByIdAsync(int id);
     Task<IReadOnlyList<NutritionAssessmentDto>> GetByPatientAsync(int patientId);
 }

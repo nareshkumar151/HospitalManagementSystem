@@ -14,5 +14,6 @@ public record RecordDialysisSessionRequest(
 public interface IDialysisService
 {
     Task<DialysisSessionDto> RecordAsync(RecordDialysisSessionRequest request, int userId);
+    Task<DialysisSessionDto> GetByIdAsync(int id);
     Task<IReadOnlyList<DialysisSessionDto>> GetByPatientAsync(int patientId);
 }

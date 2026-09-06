@@ -13,7 +13,7 @@ import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
 import { SearchBox } from '../../components/ui/ListToolbar'
-import { extractErrorMessage } from '../../api/client'
+import { downloadFile, extractErrorMessage } from '../../api/client'
 import type { ConsentContext, ConsentDecision, ConsentRecordDto, ConsentTemplateDto } from '../../types'
 
 const CONTEXTS: ConsentContext[] = ['Registration', 'OPD', 'IPD', 'Surgery']
@@ -144,6 +144,16 @@ export function ConsentsPage() {
     { key: 'witness', header: 'Witness', render: (c) => c.witnessName || c.witnessUserName || '—' },
     { key: 'details', header: 'Details', render: (c) => (c.decision === 'Refused' ? c.refusalReason : c.notes) || '—' },
     { key: 'recordedBy', header: 'Recorded by', render: (c) => c.recordedByName },
+    {
+      key: 'download', header: '', render: (c) => (
+        <button
+          onClick={() => downloadFile(`/consents/${c.id}/pdf`, `Consent-${c.id}.pdf`).catch(() => toast.error('Could not download the PDF.'))}
+          className="text-xs font-medium text-brand-600 hover:underline"
+        >
+          Download
+        </button>
+      ),
+    },
   ]
 
   const templateColumns: Column<ConsentTemplateDto>[] = [

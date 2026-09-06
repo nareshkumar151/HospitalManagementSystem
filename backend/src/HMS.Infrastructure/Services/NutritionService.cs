@@ -1,3 +1,4 @@
+using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
 using HMS.Application.Features.Nutrition;
 
@@ -34,6 +35,10 @@ public class NutritionService : INutritionService
         var list = await GetByPatientAsync(request.PatientId);
         return list.First(a => a.Id == newId);
     }
+
+    public async Task<NutritionAssessmentDto> GetByIdAsync(int id)
+        => await _db.QuerySingleOrDefaultAsync<NutritionAssessmentDto>("sp_NutritionAssessment_GetById", new { Id = id })
+           ?? throw new NotFoundException(nameof(Domain.Entities.NutritionAssessment), id);
 
     public Task<IReadOnlyList<NutritionAssessmentDto>> GetByPatientAsync(int patientId)
         => _db.QueryAsync<NutritionAssessmentDto>("sp_NutritionAssessment_GetByPatient", new { PatientId = patientId });

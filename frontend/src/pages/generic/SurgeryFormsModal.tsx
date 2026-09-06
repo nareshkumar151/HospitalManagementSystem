@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
+import { Download } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import {
   fetchChecklists, saveChecklist, fetchAnesthesiaRecords, recordAnesthesia,
@@ -10,7 +11,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
-import { extractErrorMessage } from '../../api/client'
+import { downloadFile, extractErrorMessage } from '../../api/client'
 import type { SurgeryRow } from '../../features/generic/resources'
 import type { ChecklistItemDto, SurgeryChecklistDto, SurgeryAnesthesiaRecordDto, SurgeryRecoveryRecordDto } from '../../types'
 
@@ -36,8 +37,14 @@ export function SurgeryFormsModal({ surgery, onClose }: { surgery: SurgeryRow; o
     dispatch(fetchRecoveryRecords(surgery.id))
   }, [dispatch, surgery.id])
 
+  const downloadPdf = () =>
+    downloadFile(`/operationtheatre/${surgery.id}/pdf`, `OTForms-${surgery.id}.pdf`).catch(() => toast.error('Could not download the PDF.'))
+
   return (
     <Modal open onClose={onClose} title={`Forms · ${surgery.surgeryName} (${surgery.patientName})`} widthClassName="max-w-3xl">
+      <div className="mb-3 flex justify-end">
+        <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={downloadPdf}>Download All OT Forms (PDF)</Button>
+      </div>
       <div className="mb-4 flex flex-wrap gap-1 border-b border-ink-100 pb-2">
         {TABS.map((t) => (
           <button
