@@ -8,7 +8,17 @@ import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
+import { Badge } from '../../components/ui/Badge'
 import { extractErrorMessage } from '../../api/client'
+
+const AVPU_OPTIONS = ['Alert', 'Verbal', 'Pain', 'Unresponsive']
+
+function ewsTone(score: number | null): 'success' | 'warning' | 'danger' {
+  if (score === null) return 'success'
+  if (score >= 5) return 'danger'
+  if (score >= 3) return 'warning'
+  return 'success'
+}
 
 export function NursingPage() {
   const dispatch = useAppDispatch()
@@ -16,7 +26,10 @@ export function NursingPage() {
   const { chart, status } = useAppSelector((state) => state.nursing)
 
   const [admissionId, setAdmissionId] = useState<number | ''>('')
-  const [form, setForm] = useState({ temperature: '', pulse: '', bloodPressure: '', oxygen: '', weight: '', sugarLevel: '', dailyNotes: '' })
+  const [form, setForm] = useState({
+    temperature: '', pulse: '', bloodPressure: '', oxygen: '', weight: '', sugarLevel: '', dailyNotes: '',
+    respiratoryRate: '', painScore: '', consciousness: 'Alert',
+  })
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => { dispatch(fetchActiveAdmissions()) }, [dispatch])
@@ -34,9 +47,12 @@ export function NursingPage() {
         weight: form.weight ? Number(form.weight) : undefined,
         sugarLevel: form.sugarLevel ? Number(form.sugarLevel) : undefined,
         dailyNotes: form.dailyNotes || undefined,
+        respiratoryRate: form.respiratoryRate ? Number(form.respiratoryRate) : undefined,
+        painScore: form.painScore ? Number(form.painScore) : undefined,
+        consciousness: form.consciousness || undefined,
       }))
       toast.success('Vitals recorded.')
-      setForm({ temperature: '', pulse: '', bloodPressure: '', oxygen: '', weight: '', sugarLevel: '', dailyNotes: '' })
+      setForm({ temperature: '', pulse: '', bloodPressure: '', oxygen: '', weight: '', sugarLevel: '', dailyNotes: '', respiratoryRate: '', painScore: '', consciousness: 'Alert' })
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -70,6 +86,13 @@ export function NursingPage() {
                 <Input label="Weight (kg)" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} />
               </div>
               <Input label="Sugar level" value={form.sugarLevel} onChange={(e) => setForm({ ...form, sugarLevel: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input label="Resp. rate" value={form.respiratoryRate} onChange={(e) => setForm({ ...form, respiratoryRate: e.target.value })} />
+                <Input label="Pain score (0-10)" value={form.painScore} onChange={(e) => setForm({ ...form, painScore: e.target.value })} />
+              </div>
+              <Select label="Consciousness (AVPU)" value={form.consciousness} onChange={(e) => setForm({ ...form, consciousness: e.target.value })}>
+                {AVPU_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </Select>
               <Input label="Notes" value={form.dailyNotes} onChange={(e) => setForm({ ...form, dailyNotes: e.target.value })} />
               <Button className="w-full" loading={submitting} onClick={handleSubmit}>Save Vitals</Button>
             </div>
@@ -81,12 +104,18 @@ export function NursingPage() {
             <div className="space-y-2">
               {chart.map((entry) => (
                 <div key={entry.id} className="rounded-lg bg-surface-muted p-3 text-sm">
-                  <p className="mb-1 text-xs font-medium text-ink-500">{new Date(entry.recordedAt).toLocaleString()} · {entry.nurseName}</p>
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className="text-xs font-medium text-ink-500">{new Date(entry.recordedAt).toLocaleString()} · {entry.nurseName}</p>
+                    {entry.earlyWarningScore != null && <Badge tone={ewsTone(entry.earlyWarningScore)}>EWS {entry.earlyWarningScore}</Badge>}
+                  </div>
                   <div className="flex flex-wrap gap-3 text-ink-700">
                     {entry.temperature != null && <span>🌡 {entry.temperature}°F</span>}
                     {entry.pulse != null && <span>♥ {entry.pulse} bpm</span>}
                     {entry.bloodPressure && <span>BP {entry.bloodPressure}</span>}
                     {entry.oxygen != null && <span>SpO2 {entry.oxygen}%</span>}
+                    {entry.respiratoryRate != null && <span>RR {entry.respiratoryRate}/min</span>}
+                    {entry.painScore != null && <span>Pain {entry.painScore}/10</span>}
+                    {entry.consciousness && <span>AVPU {entry.consciousness}</span>}
                     {entry.weight != null && <span>{entry.weight} kg</span>}
                     {entry.sugarLevel != null && <span>Sugar {entry.sugarLevel}</span>}
                   </div>

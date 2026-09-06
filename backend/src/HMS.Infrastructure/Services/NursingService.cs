@@ -23,11 +23,37 @@ public class NursingService : INursingService
             request.SugarLevel,
             request.MedicationSchedule,
             request.DailyNotes,
-            request.PatientMonitoring
+            request.PatientMonitoring,
+            request.RespiratoryRate,
+            request.PainScore,
+            request.Consciousness,
+            EarlyWarningScore = CalculateEarlyWarningScore(request),
         });
 
         var chart = await GetChartAsync(admissionId);
         return chart.First(c => c.Id == newId);
+    }
+
+    /// <summary>
+    /// A simple MEWS-style (Modified Early Warning Score) track-and-trigger total: each vital that falls
+    /// outside its normal band scores 0-3, summed to a single number the nursing station can act on at a
+    /// glance - this mirrors the paper Clinical Chart's early-warning log, not a clinically-validated MEWS
+    /// implementation, so treat it as a triage aid rather than a diagnostic score.
+    /// </summary>
+    private static int? CalculateEarlyWarningScore(RecordVitalsRequest r)
+    {
+        if (r.Pulse is null && r.Temperature is null && r.RespiratoryRate is null && r.Oxygen is null && r.BloodPressure is null)
+            return null;
+
+        var score = 0;
+        if (r.Pulse is int p) score += p switch { < 40 or > 130 => 3, < 50 or > 110 => 2, < 60 or > 100 => 1, _ => 0 };
+        if (r.Temperature is decimal t) score += t switch { < 95 or > 102.2m => 3, < 96.8m or > 100.4m => 1, _ => 0 };
+        if (r.RespiratoryRate is int rr) score += rr switch { < 8 or > 30 => 3, > 24 => 2, < 12 => 1, _ => 0 };
+        if (r.Oxygen is decimal o2) score += o2 switch { < 91 => 3, < 94 => 2, < 96 => 1, _ => 0 };
+        if (r.BloodPressure is string bp && int.TryParse(bp.Split('/').FirstOrDefault(), out var systolic))
+            score += systolic switch { < 90 or > 200 => 3, < 100 => 2, < 110 => 1, _ => 0 };
+
+        return score;
     }
 
     public Task<IReadOnlyList<NursingChartDto>> GetChartAsync(int admissionId)

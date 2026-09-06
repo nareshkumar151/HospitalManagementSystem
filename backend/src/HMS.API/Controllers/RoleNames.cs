@@ -26,6 +26,10 @@ public static class RoleNames
     public const string ClinicalStaff = Administrator + "," + Doctor + "," + Nurse;
     public const string AdminOnly = Administrator;
 
+    /// <summary> Anyone who captures a signed/refused consent on paper today: reception takes the general
+    /// admission consent, doctors/nurses take the clinical ones (surgery, anesthesia, transfusion, LAMA). </summary>
+    public const string ConsentCapture = FrontDesk + "," + Doctor + "," + Nurse;
+
     /// <summary>
     /// Roles that actually have an <c>Employees</c> row (see Module 16/21/22) and so can use attendance
     /// self-service - own check-in/out history, applying for leave. Deliberately excludes Doctor: doctors

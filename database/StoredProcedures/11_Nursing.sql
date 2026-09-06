@@ -5,14 +5,16 @@ CREATE OR ALTER PROCEDURE sp_NursingChart_Insert
     @IpdAdmissionId INT, @NurseUserId INT, @Temperature DECIMAL(5,2) = NULL, @Pulse INT = NULL,
     @BloodPressure NVARCHAR(20) = NULL, @Oxygen DECIMAL(5,2) = NULL, @Weight DECIMAL(6,2) = NULL,
     @SugarLevel DECIMAL(6,2) = NULL, @MedicationSchedule NVARCHAR(400) = NULL,
-    @DailyNotes NVARCHAR(MAX) = NULL, @PatientMonitoring NVARCHAR(MAX) = NULL
+    @DailyNotes NVARCHAR(MAX) = NULL, @PatientMonitoring NVARCHAR(MAX) = NULL,
+    @RespiratoryRate INT = NULL, @PainScore INT = NULL, @Consciousness NVARCHAR(15) = NULL,
+    @EarlyWarningScore INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO NursingCharts (IpdAdmissionId, NurseUserId, Temperature, Pulse, BloodPressure, Oxygen, Weight,
-        SugarLevel, MedicationSchedule, DailyNotes, PatientMonitoring)
+        SugarLevel, MedicationSchedule, DailyNotes, PatientMonitoring, RespiratoryRate, PainScore, Consciousness, EarlyWarningScore)
     VALUES (@IpdAdmissionId, @NurseUserId, @Temperature, @Pulse, @BloodPressure, @Oxygen, @Weight,
-        @SugarLevel, @MedicationSchedule, @DailyNotes, @PatientMonitoring);
+        @SugarLevel, @MedicationSchedule, @DailyNotes, @PatientMonitoring, @RespiratoryRate, @PainScore, @Consciousness, @EarlyWarningScore);
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO
@@ -24,7 +26,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT nc.Id, nc.IpdAdmissionId, nc.NurseUserId, u.Username AS NurseName, nc.RecordedAt, nc.Temperature,
            nc.Pulse, nc.BloodPressure, nc.Oxygen, nc.Weight, nc.SugarLevel, nc.MedicationSchedule,
-           nc.DailyNotes, nc.PatientMonitoring
+           nc.DailyNotes, nc.PatientMonitoring, nc.RespiratoryRate, nc.PainScore, nc.Consciousness, nc.EarlyWarningScore
     FROM NursingCharts nc JOIN Users u ON u.Id = nc.NurseUserId
     WHERE nc.IpdAdmissionId = @IpdAdmissionId AND nc.IsDeleted = 0
     ORDER BY nc.RecordedAt DESC;

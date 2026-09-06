@@ -29,4 +29,41 @@ public class OperationTheatreController : ApiControllerBase
 
     [HttpGet("patient/{patientId:int}")]
     public async Task<ActionResult<IReadOnlyList<SurgeryDto>>> GetByPatient(int patientId) => Ok(await _operationTheatreService.GetByPatientAsync(patientId));
+
+    // --- Checklists: Pre-Op / Instrument & Swab Count / OT Cleaning ---------------------------------------
+
+    [HttpPost("checklists")]
+    public async Task<ActionResult<SurgeryChecklistDto>> SaveChecklist(SaveSurgeryChecklistRequest request)
+        => Ok(await _operationTheatreService.SaveChecklistAsync(request, CurrentUserId));
+
+    [HttpGet("{surgeryId:int}/checklists")]
+    public async Task<ActionResult<IReadOnlyList<SurgeryChecklistDto>>> GetChecklists(int surgeryId)
+        => Ok(await _operationTheatreService.GetChecklistsAsync(surgeryId));
+
+    // --- Anesthesia Monitoring Record ----------------------------------------------------------------------
+
+    [HttpPost("anesthesia-records")]
+    public async Task<ActionResult<SurgeryAnesthesiaRecordDto>> RecordAnesthesia(RecordAnesthesiaRequest request)
+        => Ok(await _operationTheatreService.RecordAnesthesiaAsync(request, CurrentUserId));
+
+    [HttpGet("{surgeryId:int}/anesthesia-records")]
+    public async Task<ActionResult<IReadOnlyList<SurgeryAnesthesiaRecordDto>>> GetAnesthesiaRecords(int surgeryId)
+        => Ok(await _operationTheatreService.GetAnesthesiaRecordsAsync(surgeryId));
+
+    // --- Post-Op Recovery Room Record (Aldrete Score) ------------------------------------------------------
+
+    [HttpPost("recovery-records")]
+    public async Task<ActionResult<SurgeryRecoveryRecordDto>> RecordRecovery(RecordRecoveryRequest request)
+        => Ok(await _operationTheatreService.RecordRecoveryAsync(request, CurrentUserId));
+
+    [HttpGet("{surgeryId:int}/recovery-records")]
+    public async Task<ActionResult<IReadOnlyList<SurgeryRecoveryRecordDto>>> GetRecoveryRecords(int surgeryId)
+        => Ok(await _operationTheatreService.GetRecoveryRecordsAsync(surgeryId));
+
+    [HttpPut("recovery-records/{id:int}/discharge")]
+    public async Task<IActionResult> DischargeFromRecovery(int id)
+    {
+        await _operationTheatreService.MarkRecoveryDischargedAsync(id);
+        return NoContent();
+    }
 }

@@ -3,11 +3,13 @@ namespace HMS.Application.Features.Nursing;
 public record NursingChartDto(
     int Id, int IpdAdmissionId, int NurseUserId, string NurseName, DateTime RecordedAt,
     decimal? Temperature, int? Pulse, string? BloodPressure, decimal? Oxygen, decimal? Weight,
-    decimal? SugarLevel, string? MedicationSchedule, string? DailyNotes, string? PatientMonitoring);
+    decimal? SugarLevel, string? MedicationSchedule, string? DailyNotes, string? PatientMonitoring,
+    int? RespiratoryRate, int? PainScore, string? Consciousness, int? EarlyWarningScore);
 
 public record RecordVitalsRequest(
     decimal? Temperature, int? Pulse, string? BloodPressure, decimal? Oxygen, decimal? Weight,
-    decimal? SugarLevel, string? MedicationSchedule, string? DailyNotes, string? PatientMonitoring);
+    decimal? SugarLevel, string? MedicationSchedule, string? DailyNotes, string? PatientMonitoring,
+    int? RespiratoryRate, int? PainScore, string? Consciousness);
 
 public record NursingRequestDto(int Id, int IpdAdmissionId, string RequestType, string Details, string Status, DateTime CreatedAt);
 public record RaiseNursingRequestRequest(string RequestType, string Details); // Investigation | Medicine | Refund

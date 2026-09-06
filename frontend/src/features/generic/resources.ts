@@ -1,4 +1,5 @@
 import { createResourceSlice, createPagedResourceSlice } from './createResourceSlice'
+import type { ConsentTemplateDto, ConsentRecordDto } from '../../types'
 
 // Minimal row shapes for the scaffold modules - widen these as each screen grows real business logic.
 export interface InsuranceClaimRow { id: number; patientId: number; patientName: string; insuranceCompany: string; policyNumber: string; coverageAmount: number; approvedAmount: number | null; status: string; submittedAt: string }
@@ -26,3 +27,7 @@ export const leaveRequestResource = createPagedResourceSlice<LeaveRequestRow>('l
 export const ipPatientListResource = createPagedResourceSlice<IpPatientListRow>('ipPatientList', '/medicalrecords/ip-patient-list')
 export const notificationResource = createPagedResourceSlice<NotificationRow>('notifications', '/notifications/my')
 export const labOrderResource = createPagedResourceSlice<LabTestOrderRow>('laborders', '/laboratory/orders/pending')
+// Consent templates are a short admin-curated list (rarely more than a couple dozen rows), so the plain
+// "fetch everything" slice fits; consent records can grow without bound, hence the paged search resource.
+export const consentTemplateResource = createResourceSlice<ConsentTemplateDto>('consentTemplates', '/consents/templates')
+export const consentSearchResource = createPagedResourceSlice<ConsentRecordDto>('consentSearch', '/consents/search')

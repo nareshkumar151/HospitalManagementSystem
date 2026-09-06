@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { SurgeryFormsModal } from './SurgeryFormsModal'
 
 export function OperationTheatrePage() {
   const dispatch = useAppDispatch()
@@ -28,6 +29,7 @@ export function OperationTheatrePage() {
   const [scheduledAt, setScheduledAt] = useState('')
   const [cost, setCost] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [formsSurgery, setFormsSurgery] = useState<SurgeryRow | null>(null)
 
   const refresh = () => dispatch(surgeryResource.fetchAll())
   useEffect(() => { refresh(); dispatch(fetchActiveAdmissions()); dispatch(fetchDoctors()) }, [dispatch])
@@ -71,9 +73,14 @@ export function OperationTheatrePage() {
     { key: 'cost', header: 'Cost', render: (s) => `₹${s.operationCost}` },
     { key: 'status', header: 'Status', render: (s) => <Badge>{s.status}</Badge> },
     {
-      key: 'actions', header: '', render: (s) => (role === 'Doctor' && s.status === 'Scheduled') ? (
-        <button onClick={() => complete(s.id)} className="text-xs font-medium text-brand-600 hover:underline">Mark completed</button>
-      ) : null,
+      key: 'actions', header: '', render: (s) => (
+        <div className="flex items-center gap-3">
+          <button onClick={() => setFormsSurgery(s)} className="text-xs font-medium text-brand-600 hover:underline">Forms</button>
+          {role === 'Doctor' && s.status === 'Scheduled' && (
+            <button onClick={() => complete(s.id)} className="text-xs font-medium text-brand-600 hover:underline">Mark completed</button>
+          )}
+        </div>
+      ),
     },
   ]
 
@@ -112,6 +119,8 @@ export function OperationTheatrePage() {
           </div>
         </div>
       </Modal>
+
+      {formsSurgery && <SurgeryFormsModal surgery={formsSurgery} onClose={() => setFormsSurgery(null)} />}
     </div>
   )
 }

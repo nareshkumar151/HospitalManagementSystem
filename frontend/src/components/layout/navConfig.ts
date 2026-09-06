@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Users, Stethoscope, CalendarCheck, ClipboardList, Pill, Receipt, BedDouble,
   FlaskConical, ScanLine, Building2, Briefcase, Boxes, Truck, Wallet, CalendarClock, Bell,
-  FileBarChart, ShieldCheck, Scissors, FileText, Hospital, Clock,
+  FileBarChart, ShieldCheck, Scissors, FileText, Hospital, Clock, FileSignature, Siren, Droplet,
 } from 'lucide-react'
 import type { RoleName } from '../../types'
 
@@ -23,6 +23,7 @@ export const navItems: NavItem[] = [
   { label: 'My Portal', path: '/app/patient', icon: LayoutDashboard, roles: ['Patient'] },
   { label: 'Hospitals', path: '/app/manage/hospitals', icon: Hospital, roles: ['SuperAdmin'] },
   { label: 'Patients', path: '/app/patients', icon: Users, roles: ['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
+  { label: 'Emergency (ER)', path: '/app/er', icon: Siren, roles: ['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
   { label: 'Appointments', path: '/app/appointments', icon: CalendarCheck, roles: ['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor'] },
   { label: 'Doctor Console', path: '/app/doctor-console', icon: Stethoscope, roles: ['Doctor'] },
   { label: 'IPD / Admissions', path: '/app/ipd', icon: BedDouble, roles: ['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
@@ -33,6 +34,8 @@ export const navItems: NavItem[] = [
   { label: 'Billing', path: '/app/billing', icon: Receipt, roles: ['SuperAdmin', 'Administrator', 'Receptionist'] },
   { label: 'Insurance', path: '/app/insurance', icon: ShieldCheck, roles: ['SuperAdmin', 'Administrator', 'Receptionist'] },
   { label: 'Operation Theatre', path: '/app/operation-theatre', icon: Scissors, roles: ['SuperAdmin', 'Administrator', 'Doctor', 'Nurse'] },
+  { label: 'Consents', path: '/app/consents', icon: FileSignature, roles: ['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
+  { label: 'Blood Bank / Dialysis / Nutrition', path: '/app/clinical-depts', icon: Droplet, roles: ['SuperAdmin', 'Administrator', 'Doctor', 'Nurse', 'LabTechnician'] },
   { label: 'Medical Records', path: '/app/medical-records', icon: FileText, roles: ['SuperAdmin', 'Administrator', 'Doctor', 'Nurse'] },
   { label: 'Doctors', path: '/app/manage/doctors', icon: Stethoscope, roles: ['SuperAdmin', 'Administrator'] },
   { label: 'Departments', path: '/app/manage/departments', icon: Building2, roles: ['SuperAdmin', 'Administrator'] },

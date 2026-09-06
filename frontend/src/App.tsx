@@ -20,6 +20,9 @@ import { LaboratoryPage } from './pages/generic/LaboratoryPage'
 import { RadiologyPage } from './pages/generic/RadiologyPage'
 import { InsurancePage } from './pages/generic/InsurancePage'
 import { OperationTheatrePage } from './pages/generic/OperationTheatrePage'
+import { ConsentsPage } from './pages/generic/ConsentsPage'
+import { ErPage } from './pages/generic/ErPage'
+import { NewDepartmentsPage } from './pages/generic/NewDepartmentsPage'
 import { MedicalRecordsPage } from './pages/generic/MedicalRecordsPage'
 import { NotificationsPage } from './pages/generic/NotificationsPage'
 import { HospitalsManagePage } from './pages/admin/HospitalsManagePage'
@@ -95,6 +98,15 @@ export default function App() {
 
           <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Doctor', 'Nurse']} />}>
             <Route path="operation-theatre" element={<OperationTheatrePage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse']} />}>
+            <Route path="consents" element={<ConsentsPage />} />
+            <Route path="er" element={<ErPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Doctor', 'Nurse', 'LabTechnician']} />}>
+            <Route path="clinical-depts" element={<NewDepartmentsPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse']} />}>

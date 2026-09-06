@@ -299,6 +299,190 @@ export interface NursingChartDto {
   medicationSchedule: string | null
   dailyNotes: string | null
   patientMonitoring: string | null
+  respiratoryRate: number | null
+  painScore: number | null
+  consciousness: string | null
+  earlyWarningScore: number | null
+}
+
+export type ConsentCategory = 'Registration' | 'Surgery' | 'Anesthesia' | 'Transfusion' | 'LAMA' | 'Procedure'
+export type ConsentContext = 'Registration' | 'OPD' | 'IPD' | 'Surgery'
+export type ConsentDecision = 'Accepted' | 'Refused'
+
+export interface ConsentTemplateDto {
+  id: number
+  code: string
+  title: string
+  category: ConsentCategory
+  bodyText: string
+  isActive: boolean
+}
+
+export interface ConsentRecordDto {
+  id: number
+  patientId: number
+  patientName: string
+  templateId: number
+  templateTitle: string
+  category: ConsentCategory
+  context: ConsentContext
+  contextId: number | null
+  procedureName: string | null
+  decision: ConsentDecision
+  signedByName: string
+  relationToPatient: string | null
+  witnessName: string | null
+  witnessUserName: string | null
+  refusalReason: string | null
+  notes: string | null
+  recordedByName: string
+  signedAt: string
+}
+
+export interface ChecklistItemDto {
+  label: string
+  checked: boolean
+  remarks: string | null
+}
+
+export interface SurgeryChecklistDto {
+  id: number
+  surgeryId: number
+  checklistType: string
+  items: ChecklistItemDto[]
+  remarks: string | null
+  completedByName: string
+  completedAt: string
+}
+
+export interface SurgeryAnesthesiaRecordDto {
+  id: number
+  surgeryId: number
+  recordedAt: string
+  recordedByName: string
+  anesthesiaType: string | null
+  bloodPressure: string | null
+  pulseRate: number | null
+  spO2: number | null
+  temperature: number | null
+  remarks: string | null
+}
+
+export interface SurgeryRecoveryRecordDto {
+  id: number
+  surgeryId: number
+  recordedAt: string
+  recordedByName: string
+  activity: number
+  respiration: number
+  circulation: number
+  consciousness: number
+  oxygenSaturation: number
+  aldreteTotal: number
+  bloodPressure: string | null
+  pulse: number | null
+  spO2: number | null
+  remarks: string | null
+  dischargedFromRecoveryAt: string | null
+}
+
+export interface ErVisitDto {
+  id: number
+  patientId: number
+  patientName: string
+  uhid: string
+  arrivalTime: string
+  modeOfArrival: string | null
+  broughtBy: string | null
+  chiefComplaint: string
+  triageCategory: 'Red' | 'Yellow' | 'Green'
+  status: string
+  registeredByName: string
+}
+
+export interface ErNurseAssessmentDto {
+  id: number
+  erVisitId: number
+  assessedAt: string
+  nurseName: string
+  bloodPressure: string | null
+  pulse: number | null
+  temperature: number | null
+  respiratoryRate: number | null
+  spO2: number | null
+  painScore: number | null
+  gcsTotal: number | null
+  initialActions: string | null
+  remarks: string | null
+}
+
+export interface ErDoctorAssessmentDto {
+  id: number
+  erVisitId: number
+  assessedAt: string
+  doctorName: string
+  historyOfPresentIllness: string | null
+  examinationFindings: string | null
+  provisionalDiagnosis: string | null
+  treatmentGiven: string | null
+  disposition: string
+  remarks: string | null
+}
+
+export interface TransfusionReactionDto {
+  id: number
+  patientId: number
+  patientName: string
+  ipdAdmissionId: number | null
+  bloodGroup: string | null
+  componentTransfused: string
+  unitsTransfused: number | null
+  reactionType: string
+  symptoms: string | null
+  onsetTime: string
+  actionTaken: string | null
+  outcome: string
+  remarks: string | null
+  reportedByName: string
+}
+
+export interface DialysisSessionDto {
+  id: number
+  patientId: number
+  patientName: string
+  ipdAdmissionId: number | null
+  sessionDate: string
+  dialysisType: string
+  durationMinutes: number | null
+  preWeight: number | null
+  postWeight: number | null
+  preBloodPressure: string | null
+  postBloodPressure: string | null
+  dialyzerType: string | null
+  bloodFlowRate: number | null
+  ufGoal: number | null
+  ufAchieved: number | null
+  complications: string | null
+  remarks: string | null
+  performedByName: string
+}
+
+export interface NutritionAssessmentDto {
+  id: number
+  patientId: number
+  patientName: string
+  ipdAdmissionId: number | null
+  assessedAt: string
+  heightCm: number | null
+  weightKg: number | null
+  bmi: number | null
+  dietType: string
+  nutritionalRisk: 'Low' | 'Medium' | 'High'
+  dietaryHistory: string | null
+  allergies: string | null
+  recommendations: string | null
+  reassessmentDate: string | null
+  assessedByName: string
 }
 
 export interface HospitalDto {

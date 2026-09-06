@@ -41,6 +41,7 @@ export const fetchNursingChart = (admissionId: number): AppThunk<Promise<void>> 
 export const recordVitals = (admissionId: number, payload: {
   temperature?: number; pulse?: number; bloodPressure?: string; oxygen?: number; weight?: number
   sugarLevel?: number; medicationSchedule?: string; dailyNotes?: string; patientMonitoring?: string
+  respiratoryRate?: number; painScore?: number; consciousness?: string
 }): AppThunk<Promise<void>> => async (dispatch) => {
   try {
     await apiClient.post(`/nursing/admissions/${admissionId}/vitals`, payload)
