@@ -67,10 +67,15 @@
 }
 
 /* Google Website Translator widget (see components/layout/LanguageSwitcher) - its own UI is kept off-screen
-   in favor of a custom-styled dropdown, but activating a translation still triggers Google's full-width
-   "Translating..." banner iframe at the very top of <body> (it would otherwise push this app's own sticky
-   topbar down every time a language is picked) and a highlight box around translated text on hover; both
-   are suppressed here regardless of which UI triggered the translation. */
-.goog-te-banner-frame.skiptranslate { display: none !important; }
+   in favor of a custom-styled dropdown, but activating a translation still triggers Google's own full-width
+   "Translating..." banner iframe, fixed to the very top of the viewport. Left unhidden, it doesn't just
+   look bad - being `position: fixed` with a high z-index, it sits on top of and intercepts every click in
+   that strip, silently swallowing clicks on this app's own sticky topbar (including the language switcher
+   itself) the moment a translation is active. Targeted by Google's one stable class for "don't translate
+   this, and this is mine" (`skiptranslate`), not the specific class name it happens to carry right now
+   (`.goog-te-banner-frame` in older widget builds, something else entirely as of this widget version) -
+   that name is auto-generated and changes across Google's own releases, `skiptranslate` does not. Also
+   suppresses the highlight box Google draws around translated text on hover. */
+iframe.skiptranslate { display: none !important; }
 body { top: 0 !important; }
 .goog-text-highlight { background: none !important; box-shadow: none !important; }
