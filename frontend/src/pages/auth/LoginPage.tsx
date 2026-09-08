@@ -10,6 +10,7 @@ import { useAppDispatch } from '../../app/hooks'
 import { login } from '../../features/auth/authActions'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
+import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
 import { extractErrorMessage } from '../../api/client'
 
 const schema = z.object({
@@ -38,7 +39,11 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen grid-cols-1 md:grid-cols-2">
+    <div className="relative grid min-h-screen grid-cols-1 md:grid-cols-2">
+      <div className="absolute right-4 top-4 z-10 rounded-lg bg-surface/90 px-2 py-1.5 shadow-[var(--shadow-card)] backdrop-blur">
+        <LanguageSwitcher />
+      </div>
+
       <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-600 via-brand-500 to-accent-600 p-10 text-white md:flex">
         <motion.div
           className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10"

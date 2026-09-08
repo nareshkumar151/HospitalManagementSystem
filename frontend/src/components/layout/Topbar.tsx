@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { logout } from '../../features/auth/authActions'
 import { notificationResource, type NotificationRow } from '../../features/generic/resources'
 import { apiClient } from '../../api/client'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 const POLL_INTERVAL_MS = 20_000
 
@@ -226,7 +227,7 @@ export function Topbar() {
 
   return (
     <header className="glass sticky top-0 z-30 flex h-16 items-center justify-between border-b border-ink-100 px-4 md:px-6">
-      <div />
+      <LanguageSwitcher />
       <div className="flex items-center gap-3">
         <NotificationBell />
 

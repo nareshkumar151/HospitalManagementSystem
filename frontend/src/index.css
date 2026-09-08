@@ -65,3 +65,26 @@
     backdrop-filter: blur(14px) saturate(160%);
   }
 }
+
+/* Google Website Translator widget (see components/layout/LanguageSwitcher). Hide the full-width
+   "Translating..." banner iframe it injects at the very top of <body> on activation (it would otherwise
+   push this app's own sticky topbar down every time a language is picked) and the box it draws around
+   translated text on hover; keep just the compact language dropdown itself. */
+.goog-te-banner-frame.skiptranslate { display: none !important; }
+body { top: 0 !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
+
+.hms-google-translate .goog-te-gadget { font-family: inherit !important; color: var(--color-ink-500) !important; }
+.hms-google-translate .goog-te-gadget-simple {
+  display: inline-flex !important;
+  align-items: center;
+  border: 1px solid var(--color-ink-100) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.25rem 0.5rem !important;
+  background: var(--color-surface) !important;
+  font-size: 0.8125rem !important;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.hms-google-translate .goog-te-gadget-simple .goog-te-menu-value span { color: var(--color-ink-700) !important; }
+.hms-google-translate .goog-te-gadget-simple .goog-te-menu-value:hover span { color: var(--color-brand-600) !important; }

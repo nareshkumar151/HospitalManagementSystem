@@ -5,7 +5,11 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { store } from './app/store'
 import App from './App'
+import { applyGoogleTranslateDomPatch } from './utils/googleTranslateDomPatch'
 import './index.css'
+
+// Must run before the app renders - see LanguageSwitcher for the widget this protects against.
+applyGoogleTranslateDomPatch()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
