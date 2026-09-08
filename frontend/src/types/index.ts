@@ -269,6 +269,21 @@ export interface BillDto {
   items: BillItemDto[]
 }
 
+export interface PaymentHistoryDto {
+  id: number
+  billId: number
+  billNumber: string
+  patientId: number
+  patientName: string
+  uhid: string
+  amount: number
+  mode: PaymentMode
+  transactionReference: string | null
+  isRefund: boolean
+  paidAt: string
+  receivedByName: string
+}
+
 export interface WardDto { id: number; name: string; type: RoomType; branchId: number }
 export interface RoomDto { id: number; wardId: number; roomNumber: string; type: RoomType; dailyCharge: number }
 export interface BedDto { id: number; roomId: number; roomNumber: string; roomType: RoomType; bedNumber: string; status: BedStatus; isIcu: boolean }

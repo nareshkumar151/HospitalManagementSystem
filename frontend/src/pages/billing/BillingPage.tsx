@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { CreditCard, Download, IndianRupee, Plus, Receipt } from 'lucide-react'
+import { CreditCard, Download, History, IndianRupee, Plus, Receipt } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { collectPayment, createBill, createRazorpayOrder, fetchPendingBills, verifyRazorpayPayment } from '../../features/billing/billingSlice'
+import { collectPayment, createBill, createRazorpayOrder, fetchPaymentHistory, fetchPendingBills, verifyRazorpayPayment } from '../../features/billing/billingSlice'
 import { fetchPatients } from '../../features/patients/patientsSlice'
 import { fetchActiveAdmissions } from '../../features/ipd/ipdSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -13,10 +13,11 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import { downloadFile, extractErrorMessage } from '../../api/client'
 import { openRazorpayCheckout } from '../../utils/razorpay'
 import { admissionTypeLabel } from '../../utils/admissionTypes'
-import type { BillCategory, BillDto } from '../../types'
+import type { BillCategory, BillDto, PaymentHistoryDto } from '../../types'
 
 interface LineItem { description: string; quantity: number; unitPrice: number }
 
@@ -31,7 +32,7 @@ export function BillingPage() {
   // to switch it over and find the admission themselves.
   const guidedIpdAdmissionId = guidedState?.guidedIpdAdmissionId
   const user = useAppSelector((state) => state.auth.user)
-  const { pending, status } = useAppSelector((state) => state.billing)
+  const { pending, paymentHistory, status } = useAppSelector((state) => state.billing)
   const { list: patients } = useAppSelector((state) => state.patients)
   const { active: activeAdmissions } = useAppSelector((state) => state.ipd)
 
@@ -54,9 +55,23 @@ export function BillingPage() {
   // queue below, so working through that queue doesn't get interrupted by a redirect after every payment.
   const [justCreatedFlow, setJustCreatedFlow] = useState(false)
 
+  // Payment History section - independent search/date filters + pagination from the pending-bills queue above.
+  const [paymentSearch, setPaymentSearch] = useState('')
+  const [paymentFromDate, setPaymentFromDate] = useState('')
+  const [paymentToDate, setPaymentToDate] = useState('')
+  const [paymentPage, setPaymentPage] = useState(1)
+
   useEffect(() => { dispatch(fetchPendingBills(categoryFilter || undefined)) }, [dispatch, categoryFilter])
   useEffect(() => { dispatch(fetchPatients({ pageSize: 100 })) }, [dispatch])
   useEffect(() => { dispatch(fetchActiveAdmissions()) }, [dispatch])
+
+  const refreshPaymentHistory = () =>
+    dispatch(fetchPaymentHistory({ pageNumber: paymentPage, pageSize: 10, search: paymentSearch, fromDate: paymentFromDate, toDate: paymentToDate }))
+
+  useEffect(() => {
+    const timeout = setTimeout(() => dispatch(fetchPaymentHistory({ pageNumber: paymentPage, pageSize: 10, search: paymentSearch, fromDate: paymentFromDate, toDate: paymentToDate })), 300)
+    return () => clearTimeout(timeout)
+  }, [dispatch, paymentPage, paymentSearch, paymentFromDate, paymentToDate])
 
   // The patient's own currently-active admission(s), for the IPD admission picker below.
   const patientActiveAdmissions = activeAdmissions.filter((a) => a.patientId === patientId)
@@ -105,6 +120,7 @@ export function BillingPage() {
       toast.success('Payment collected.')
       setPayTarget(null); setPayAmount(0)
       dispatch(fetchPendingBills(categoryFilter || undefined))
+      refreshPaymentHistory()
       if (justCreatedFlow) {
         setJustCreatedFlow(false)
         // Closes the registration -> appointment -> bill -> payment loop by landing back on the dashboard,
@@ -139,6 +155,7 @@ export function BillingPage() {
       toast.success('Payment received via Razorpay.')
       setPayTarget(null)
       dispatch(fetchPendingBills(categoryFilter || undefined))
+      refreshPaymentHistory()
       if (justCreatedFlow) {
         setJustCreatedFlow(false)
         navigate('/app/dashboard')
@@ -150,9 +167,9 @@ export function BillingPage() {
     }
   }
 
-  const handleDownloadReceipt = async (bill: BillDto) => {
+  const handleDownloadReceipt = async (billId: number, billNumber: string) => {
     try {
-      await downloadFile(`/billing/${bill.id}/pdf`, `Receipt-${bill.billNumber}.pdf`)
+      await downloadFile(`/billing/${billId}/pdf`, `Receipt-${billNumber}.pdf`)
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Could not download the receipt.'))
     }
@@ -172,10 +189,27 @@ export function BillingPage() {
           <button onClick={() => { setJustCreatedFlow(false); setPayTarget(b); setPayAmount(b.totalAmount - b.paidAmount) }} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
             <CreditCard size={13} /> Collect
           </button>
-          <button onClick={() => handleDownloadReceipt(b)} className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:underline">
+          <button onClick={() => handleDownloadReceipt(b.id, b.billNumber)} className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:underline">
             <Download size={13} /> Receipt
           </button>
         </div>
+      ),
+    },
+  ]
+
+  const paymentHistoryColumns: Column<PaymentHistoryDto>[] = [
+    { key: 'date', header: 'Date', render: (p) => new Date(p.paidAt).toLocaleString() },
+    { key: 'bill', header: 'Bill #', render: (p) => <span className="font-mono text-xs">{p.billNumber}</span> },
+    { key: 'patient', header: 'Patient', render: (p) => <>{p.patientName}<span className="block text-xs text-ink-500">{p.uhid}</span></> },
+    { key: 'amount', header: 'Amount', render: (p) => `₹${p.amount.toLocaleString('en-IN')}` },
+    { key: 'mode', header: 'Mode', render: (p) => <Badge tone="neutral">{p.mode}</Badge> },
+    { key: 'status', header: 'Status', render: (p) => <Badge tone={p.isRefund ? 'danger' : 'success'}>{p.isRefund ? 'Refund' : 'Paid'}</Badge> },
+    { key: 'receivedBy', header: 'Received By', render: (p) => p.receivedByName },
+    {
+      key: 'actions', header: '', render: (p) => (
+        <button onClick={() => handleDownloadReceipt(p.billId, p.billNumber)} className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:underline">
+          <Download size={13} /> Receipt
+        </button>
       ),
     },
   ]
@@ -202,6 +236,52 @@ export function BillingPage() {
         <div className="p-4">
           <Table columns={columns} rows={pending} keyField={(b) => b.id} loading={status === 'loading'} emptyMessage="No pending bills." />
         </div>
+      </Card>
+
+      <Card className="mt-4" padded={false}>
+        <div className="flex flex-wrap items-end gap-3 border-b border-ink-100 p-4">
+          <div className="mr-auto flex items-center gap-2 text-sm font-medium text-ink-700">
+            <History size={16} /> Payment History
+          </div>
+          <SearchBox
+            value={paymentSearch}
+            onChange={(v) => { setPaymentSearch(v); setPaymentPage(1) }}
+            placeholder="Search by patient, UHID, or bill #…"
+            className="w-full max-w-sm"
+          />
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-ink-700">From</span>
+            <input type="date" value={paymentFromDate} onChange={(e) => { setPaymentFromDate(e.target.value); setPaymentPage(1) }}
+              className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-ink-700">To</span>
+            <input type="date" value={paymentToDate} onChange={(e) => { setPaymentToDate(e.target.value); setPaymentPage(1) }}
+              className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+          </label>
+          {(paymentSearch || paymentFromDate || paymentToDate) && (
+            <Button variant="secondary" size="sm" onClick={() => { setPaymentSearch(''); setPaymentFromDate(''); setPaymentToDate(''); setPaymentPage(1) }}>
+              Clear filters
+            </Button>
+          )}
+        </div>
+        <div className="p-4">
+          <Table
+            columns={paymentHistoryColumns}
+            rows={paymentHistory?.items ?? []}
+            keyField={(p) => p.id}
+            loading={status === 'loading'}
+            emptyMessage="No payments recorded yet for this range."
+          />
+        </div>
+        {paymentHistory && (
+          <PaginationBar
+            pageNumber={paymentHistory.pageNumber}
+            totalPages={paymentHistory.totalPages}
+            totalCount={paymentHistory.totalCount}
+            onPageChange={setPaymentPage}
+          />
+        )}
       </Card>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Bill" widthClassName="max-w-2xl">

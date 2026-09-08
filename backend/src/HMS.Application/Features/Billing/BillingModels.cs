@@ -22,6 +22,12 @@ public record RefundPaymentRequest(int BillId, decimal Amount, string Reason);
 
 public record PaymentDto(int Id, int BillId, decimal Amount, PaymentMode Mode, string? TransactionReference, bool IsRefund, DateTime PaidAt);
 
+/// <summary> One row of the Billing section's Payment History - every payment/refund ever collected,
+/// independent of the underlying bill's own date (see sp_Payment_GetHistory). </summary>
+public record PaymentHistoryDto(
+    int Id, int BillId, string BillNumber, int PatientId, string PatientName, string Uhid,
+    decimal Amount, PaymentMode Mode, string? TransactionReference, bool IsRefund, DateTime PaidAt, string ReceivedByName);
+
 /// <summary> Handed to the frontend so it can open Razorpay's Checkout widget - never includes the key secret. </summary>
 public record RazorpayOrderResponseDto(string RazorpayOrderId, int AmountInPaise, string Currency, string RazorpayKeyId, int BillId);
 
@@ -45,4 +51,9 @@ public interface IBillingService
     Task<RazorpayOrderResponseDto> CreateRazorpayOrderAsync(int billId);
     /// <summary> Step 2: verifies Razorpay's signature server-side, then records the payment exactly like a manual collection. </summary>
     Task<PaymentDto> VerifyAndCollectRazorpayPaymentAsync(VerifyRazorpayPaymentRequest request, int userId);
+
+    /// <summary> Billing section's Payment History - every payment/refund collected in this branch, keyed
+    /// off the payment's own date (not the bill's), optionally narrowed to a date range and/or search text
+    /// (patient name, UHID, or bill number). </summary>
+    Task<PagedResult<PaymentHistoryDto>> GetPaymentHistoryAsync(int branchId, PagedRequest request, DateTime? fromDate = null, DateTime? toDate = null);
 }

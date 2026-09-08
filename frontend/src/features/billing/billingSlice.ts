@@ -1,21 +1,23 @@
 import { apiClient, extractErrorMessage } from '../../api/client'
 import type { AppThunk } from '../../app/store'
-import type { BillDto, RazorpayOrderResponseDto } from '../../types'
+import type { BillDto, PagedResult, PaymentHistoryDto, RazorpayOrderResponseDto } from '../../types'
 
 export interface BillingState {
   pending: BillDto[]
   byPatient: BillDto[]
   current: BillDto | null
+  paymentHistory: PagedResult<PaymentHistoryDto> | null
   status: 'idle' | 'loading' | 'succeeded' | 'failed'
   error: string | null
 }
 
-const initialState: BillingState = { pending: [], byPatient: [], current: null, status: 'idle', error: null }
+const initialState: BillingState = { pending: [], byPatient: [], current: null, paymentHistory: null, status: 'idle', error: null }
 
 const START = 'billing/start'
 const PENDING_SUCCESS = 'billing/pendingSuccess'
 const PATIENT_BILLS_SUCCESS = 'billing/patientBillsSuccess'
 const ONE_SUCCESS = 'billing/oneSuccess'
+const PAYMENT_HISTORY_SUCCESS = 'billing/paymentHistorySuccess'
 const FAILURE = 'billing/failure'
 
 type BillingAction =
@@ -23,6 +25,7 @@ type BillingAction =
   | { type: typeof PENDING_SUCCESS; payload: BillDto[] }
   | { type: typeof PATIENT_BILLS_SUCCESS; payload: BillDto[] }
   | { type: typeof ONE_SUCCESS; payload: BillDto }
+  | { type: typeof PAYMENT_HISTORY_SUCCESS; payload: PagedResult<PaymentHistoryDto> }
   | { type: typeof FAILURE; payload: string }
 
 export function billingReducer(state = initialState, action: BillingAction): BillingState {
@@ -31,6 +34,7 @@ export function billingReducer(state = initialState, action: BillingAction): Bil
     case PENDING_SUCCESS: return { ...state, status: 'succeeded', pending: action.payload }
     case PATIENT_BILLS_SUCCESS: return { ...state, status: 'succeeded', byPatient: action.payload }
     case ONE_SUCCESS: return { ...state, status: 'succeeded', current: action.payload }
+    case PAYMENT_HISTORY_SUCCESS: return { ...state, status: 'succeeded', paymentHistory: action.payload }
     case FAILURE: return { ...state, status: 'failed', error: action.payload }
     default: return state
   }
@@ -100,5 +104,22 @@ export const verifyRazorpayPayment = (payload: {
   } catch (error) {
     dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
     throw error
+  }
+}
+
+export const fetchPaymentHistory = (params: {
+  pageNumber?: number; pageSize?: number; search?: string; fromDate?: string; toDate?: string
+} = {}): AppThunk<Promise<void>> => async (dispatch) => {
+  dispatch({ type: START })
+  try {
+    const { data } = await apiClient.get<PagedResult<PaymentHistoryDto>>('/billing/payments/history', {
+      params: {
+        pageNumber: params.pageNumber ?? 1, pageSize: params.pageSize ?? 10,
+        search: params.search || undefined, fromDate: params.fromDate || undefined, toDate: params.toDate || undefined,
+      },
+    })
+    dispatch({ type: PAYMENT_HISTORY_SUCCESS, payload: data })
+  } catch (error) {
+    dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
   }
 }

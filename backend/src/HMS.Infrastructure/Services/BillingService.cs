@@ -188,6 +188,29 @@ public class BillingService : IBillingService
         return new PaymentDto(paymentId, request.BillId, amount, PaymentMode.Card, request.RazorpayPaymentId, false, DateTime.UtcNow);
     }
 
+    public async Task<PagedResult<PaymentHistoryDto>> GetPaymentHistoryAsync(int branchId, PagedRequest request, DateTime? fromDate = null, DateTime? toDate = null)
+    {
+        var (rows, counts) = await _db.QueryMultipleAsync<PaymentHistoryRow, int>("sp_Payment_GetHistory", new
+        {
+            BranchId = branchId,
+            FromDate = fromDate,
+            ToDate = toDate,
+            request.PageNumber,
+            request.PageSize,
+            request.Search
+        });
+
+        return new PagedResult<PaymentHistoryDto>
+        {
+            Items = rows.Select(r => new PaymentHistoryDto(
+                r.Id, r.BillId, r.BillNumber, r.PatientId, r.PatientName, r.Uhid,
+                r.Amount, Enum.Parse<PaymentMode>(r.Mode), r.TransactionReference, r.IsRefund, r.PaidAt, r.ReceivedByName)).ToList(),
+            TotalCount = counts.FirstOrDefault(),
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
+
     private static BillDto Map(BillHeaderRow h, IEnumerable<BillItemDto> items) =>
         new(h.Id, h.BillNumber, h.PatientId, h.PatientName, Enum.Parse<BillType>(h.Type),
             h.IpdAdmissionId is not null ? BillCategory.IPD : BillCategory.OPD, h.OpdVisitId, h.IpdAdmissionId,
@@ -200,4 +223,8 @@ public class BillingService : IBillingService
     internal record RazorpayOrderRow(int Id, int BillId, string RazorpayOrderId, string? RazorpayPaymentId, int AmountInPaise, string Status, DateTime CreatedAt, DateTime? PaidAt);
 
     internal record PaymentRow(int Id, int BillId, decimal Amount, string Mode, string? TransactionReference, bool IsRefund, DateTime PaidAt);
+
+    internal record PaymentHistoryRow(
+        int Id, int BillId, string BillNumber, int PatientId, string PatientName, string Uhid,
+        decimal Amount, string Mode, string? TransactionReference, bool IsRefund, DateTime PaidAt, string ReceivedByName);
 }
