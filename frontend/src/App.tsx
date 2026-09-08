@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from './app/hooks'
 import { restoreSession } from './features/auth/authActions'
+import { apiClient } from './api/client'
+import { applyHospitalThemeColor } from './utils/hospitalTheme'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 
@@ -45,6 +47,20 @@ export default function App() {
   useEffect(() => {
     dispatch(restoreSession())
   }, [dispatch])
+
+  // Repaints the app in the logged-in user's own hospital's brand color (SuperAdmin and a logged-out
+  // session have no single hospital, so they always see the app's default teal).
+  useEffect(() => {
+    let cancelled = false
+    if (user?.hospitalId) {
+      apiClient.get<{ themeColor: string | null }>(`/organization/hospitals/${user.hospitalId}/theme-color`)
+        .then(({ data }) => { if (!cancelled) applyHospitalThemeColor(data.themeColor) })
+        .catch(() => { if (!cancelled) applyHospitalThemeColor(null) })
+    } else {
+      applyHospitalThemeColor(null)
+    }
+    return () => { cancelled = true }
+  }, [user?.hospitalId])
 
   return (
     <Routes>

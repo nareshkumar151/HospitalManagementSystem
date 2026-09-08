@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Building2, Hospital as HospitalIcon, KeyRound, Plus, Trash2 } from 'lucide-react'
+import { Building2, Hospital as HospitalIcon, KeyRound, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { createBranch, createHospital, deleteBranch, deleteHospital, fetchBranches, fetchHospitals } from '../../features/organization/organizationSlice'
+import { createBranch, createHospital, deleteBranch, deleteHospital, fetchBranches, fetchHospitals, updateHospital } from '../../features/organization/organizationSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Table, type Column } from '../../components/ui/Table'
@@ -13,6 +13,33 @@ import { CreateHospitalUserModal } from '../../components/admin/CreateHospitalUs
 import { extractErrorMessage } from '../../api/client'
 import type { BranchDto, HospitalDto } from '../../types'
 
+const DEFAULT_THEME_COLOR = '#16a08a' // the app's own default brand-500, used as the color picker's starting point
+
+interface HospitalFormState {
+  name: string; registrationNumber: string; address: string; contactNumber: string; email: string; themeColor: string
+}
+const emptyHospitalForm: HospitalFormState = { name: '', registrationNumber: '', address: '', contactNumber: '', email: '', themeColor: DEFAULT_THEME_COLOR }
+
+/** Native color input + hex readout, styled to match the rest of this page's fields. */
+function ColorField({ label, value, onChange, hint }: { label: string; value: string; onChange: (hex: string) => void; hint?: string }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>
+      <div className="flex items-center gap-3">
+        <input
+          type="color" value={value} onChange={(e) => onChange(e.target.value)}
+          className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-ink-100 bg-white p-1"
+        />
+        <input
+          type="text" value={value} onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
+        />
+      </div>
+      {hint && <span className="mt-1 block text-xs text-ink-500">{hint}</span>}
+    </label>
+  )
+}
+
 /** SuperAdmin-only: platform-level management of Hospitals and their Branches. Administrator manages
  * everything within a branch (Departments, Doctors, Employees, ...) but cannot create/delete either. */
 export function HospitalsManagePage() {
@@ -20,12 +47,13 @@ export function HospitalsManagePage() {
   const { hospitals, branches, status } = useAppSelector((state) => state.organization)
 
   const [hospitalModalOpen, setHospitalModalOpen] = useState(false)
+  const [editingHospital, setEditingHospital] = useState<HospitalDto | null>(null)
   const [branchModalOpen, setBranchModalOpen] = useState(false)
   const [selectedHospitalId, setSelectedHospitalId] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [loginTargetBranch, setLoginTargetBranch] = useState<BranchDto | null>(null)
 
-  const [hospitalForm, setHospitalForm] = useState({ name: '', registrationNumber: '', address: '', contactNumber: '', email: '' })
+  const [hospitalForm, setHospitalForm] = useState<HospitalFormState>(emptyHospitalForm)
   const [branchForm, setBranchForm] = useState({ name: '', address: '', city: '', contactNumber: '' })
 
   useEffect(() => { dispatch(fetchHospitals()); dispatch(fetchBranches()) }, [dispatch])
@@ -37,7 +65,30 @@ export function HospitalsManagePage() {
       await dispatch(createHospital({ ...hospitalForm, email: hospitalForm.email || undefined }))
       toast.success('Hospital added.')
       setHospitalModalOpen(false)
-      setHospitalForm({ name: '', registrationNumber: '', address: '', contactNumber: '', email: '' })
+      setHospitalForm(emptyHospitalForm)
+    } catch (error) {
+      toast.error(extractErrorMessage(error))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openEditHospital = (hospital: HospitalDto) => {
+    setEditingHospital(hospital)
+    setHospitalForm({
+      name: hospital.name, registrationNumber: hospital.registrationNumber, address: hospital.address,
+      contactNumber: hospital.contactNumber, email: hospital.email ?? '', themeColor: hospital.themeColor ?? DEFAULT_THEME_COLOR,
+    })
+  }
+
+  const handleUpdateHospital = async () => {
+    if (!editingHospital || !hospitalForm.name || !hospitalForm.registrationNumber || !hospitalForm.address || !hospitalForm.contactNumber) return
+    setSubmitting(true)
+    try {
+      await dispatch(updateHospital(editingHospital.id, { ...hospitalForm, email: hospitalForm.email || undefined }))
+      toast.success('Hospital updated.')
+      setEditingHospital(null)
+      setHospitalForm(emptyHospitalForm)
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -86,13 +137,23 @@ export function HospitalsManagePage() {
   }
 
   const hospitalColumns: Column<HospitalDto>[] = [
-    { key: 'name', header: 'Hospital', render: (h) => <span className="font-medium text-ink-900">{h.name}</span> },
+    {
+      key: 'name', header: 'Hospital', render: (h) => (
+        <div className="flex items-center gap-2">
+          <span className="h-3 w-3 shrink-0 rounded-full border border-ink-100" style={{ background: h.themeColor ?? DEFAULT_THEME_COLOR }} title="Theme color" />
+          <span className="font-medium text-ink-900">{h.name}</span>
+        </div>
+      ),
+    },
     { key: 'reg', header: 'Registration #', render: (h) => h.registrationNumber },
     { key: 'address', header: 'Address', render: (h) => h.address },
     { key: 'contact', header: 'Contact', render: (h) => h.contactNumber },
     {
       key: 'actions', header: '', render: (h) => (
         <div className="flex gap-3">
+          <button onClick={() => openEditHospital(h)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+            <Pencil size={12} /> Edit
+          </button>
           <button onClick={() => openBranchModal(h.id)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
             <Plus size={12} /> Add Branch
           </button>
@@ -123,6 +184,12 @@ export function HospitalsManagePage() {
     },
   ]
 
+  const closeHospitalModals = () => {
+    setHospitalModalOpen(false)
+    setEditingHospital(null)
+    setHospitalForm(emptyHospitalForm)
+  }
+
   return (
     <div>
       <PageHeader
@@ -145,16 +212,22 @@ export function HospitalsManagePage() {
         <div className="p-4"><Table columns={branchColumns} rows={branches} keyField={(b) => b.id} emptyMessage="No branches yet." /></div>
       </Card>
 
-      <Modal open={hospitalModalOpen} onClose={() => setHospitalModalOpen(false)} title="Add Hospital">
+      <Modal open={hospitalModalOpen || !!editingHospital} onClose={closeHospitalModals} title={editingHospital ? `Edit ${editingHospital.name}` : 'Add Hospital'}>
         <div className="space-y-4">
           <Input label="Hospital name" value={hospitalForm.name} onChange={(e) => setHospitalForm({ ...hospitalForm, name: e.target.value })} />
           <Input label="Registration number" value={hospitalForm.registrationNumber} onChange={(e) => setHospitalForm({ ...hospitalForm, registrationNumber: e.target.value })} />
           <Input label="Address" value={hospitalForm.address} onChange={(e) => setHospitalForm({ ...hospitalForm, address: e.target.value })} />
           <Input label="Contact number" value={hospitalForm.contactNumber} onChange={(e) => setHospitalForm({ ...hospitalForm, contactNumber: e.target.value })} />
           <Input label="Email" hint="Optional" type="email" value={hospitalForm.email} onChange={(e) => setHospitalForm({ ...hospitalForm, email: e.target.value })} />
+          <ColorField
+            label="Theme color" value={hospitalForm.themeColor} onChange={(themeColor) => setHospitalForm({ ...hospitalForm, themeColor })}
+            hint="Repaints the app for every login at this hospital."
+          />
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setHospitalModalOpen(false)}>Cancel</Button>
-            <Button loading={submitting} onClick={handleCreateHospital}>Add Hospital</Button>
+            <Button variant="secondary" onClick={closeHospitalModals}>Cancel</Button>
+            <Button loading={submitting} onClick={editingHospital ? handleUpdateHospital : handleCreateHospital}>
+              {editingHospital ? 'Save Changes' : 'Add Hospital'}
+            </Button>
           </div>
         </div>
       </Modal>

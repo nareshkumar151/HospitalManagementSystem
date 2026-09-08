@@ -523,6 +523,7 @@ export interface HospitalDto {
   contactNumber: string
   email: string | null
   logoUrl: string | null
+  themeColor: string | null
 }
 
 export interface BranchDto {
@@ -557,4 +558,25 @@ export interface DashboardSummaryDto {
   doctorPlannedDischargesCount: number
   doctorTodaysSurgeriesCount: number
   pharmacyStockAlerts: { medicineId: number; medicineName: string; stock: number; reorderLevel: number }[]
+}
+
+export interface HospitalBreakdownDto {
+  hospitalId: number
+  hospitalName: string
+  themeColor: string | null
+  branchCount: number
+  doctorCount: number
+  patientCount: number
+}
+
+export interface PlatformSummaryDto {
+  totalHospitals: number
+  totalBranches: number
+  totalDoctors: number
+  totalPatients: number
+  totalEmployees: number
+  todaysAppointments: number
+  todaysRevenue: number
+  pendingBillsCount: number
+  hospitals: HospitalBreakdownDto[]
 }

@@ -42,10 +42,21 @@ export const fetchHospitals = (): AppThunk<Promise<void>> => async (dispatch) =>
   }
 }
 
-export const createHospital = (payload: { name: string; registrationNumber: string; address: string; contactNumber: string; email?: string }): AppThunk<Promise<void>> =>
+export const createHospital = (payload: { name: string; registrationNumber: string; address: string; contactNumber: string; email?: string; themeColor?: string }): AppThunk<Promise<void>> =>
   async (dispatch) => {
     try {
       await apiClient.post('/organization/hospitals', payload)
+      await dispatch(fetchHospitals())
+    } catch (error) {
+      dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+      throw error
+    }
+  }
+
+export const updateHospital = (id: number, payload: { name: string; registrationNumber: string; address: string; contactNumber: string; email?: string; themeColor?: string }): AppThunk<Promise<void>> =>
+  async (dispatch) => {
+    try {
+      await apiClient.put(`/organization/hospitals/${id}`, payload)
       await dispatch(fetchHospitals())
     } catch (error) {
       dispatch({ type: FAILURE, payload: extractErrorMessage(error) })

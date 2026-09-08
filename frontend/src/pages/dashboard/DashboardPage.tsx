@@ -1,20 +1,68 @@
 import { useEffect } from 'react'
-import { Users, IndianRupee, BedDouble, Receipt, Stethoscope, Scissors, AlertTriangle, CalendarCheck, LogOut } from 'lucide-react'
+import { Users, IndianRupee, BedDouble, Receipt, Stethoscope, Scissors, AlertTriangle, CalendarCheck, LogOut, Hospital, Building2, CalendarClock } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { fetchDashboardSummary } from '../../features/dashboard/dashboardSlice'
+import { fetchDashboardSummary, fetchPlatformSummary } from '../../features/dashboard/dashboardSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { StatCard } from '../../components/ui/StatCard'
 import { Card } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
 import { FullPageSpinner } from '../../components/ui/Spinner'
 
 export function DashboardPage() {
   const dispatch = useAppDispatch()
-  const { summary, status } = useAppSelector((state) => state.dashboard)
+  const { summary, platformSummary, status } = useAppSelector((state) => state.dashboard)
   const user = useAppSelector((state) => state.auth.user)
+  const isSuperAdmin = user?.role === 'SuperAdmin'
 
   useEffect(() => {
-    dispatch(fetchDashboardSummary())
-  }, [dispatch])
+    dispatch(isSuperAdmin ? fetchPlatformSummary() : fetchDashboardSummary())
+  }, [dispatch, isSuperAdmin])
+
+  if (isSuperAdmin) {
+    if (status === 'loading' && !platformSummary) return <FullPageSpinner />
+    return (
+      <div>
+        <PageHeader title={`Welcome back, ${user?.username}`} subtitle="Platform-wide totals across every hospital and branch." />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Hospitals" value={platformSummary?.totalHospitals ?? 0} icon={Hospital} tone="brand" />
+          <StatCard label="Branches" value={platformSummary?.totalBranches ?? 0} icon={Building2} tone="brand" />
+          <StatCard label="Doctors" value={platformSummary?.totalDoctors ?? 0} icon={Stethoscope} tone="brand" />
+          <StatCard label="Patients" value={platformSummary?.totalPatients ?? 0} icon={Users} tone="brand" />
+          <StatCard label="Employees" value={platformSummary?.totalEmployees ?? 0} icon={Users} tone="brand" />
+          <StatCard label="Today's Appointments" value={platformSummary?.todaysAppointments ?? 0} icon={CalendarClock} tone="success" hint="Across every branch" />
+          <StatCard label="Today's Revenue" value={`₹${(platformSummary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`} icon={IndianRupee} tone="success" hint="Across every branch" />
+          <StatCard label="Pending Bills" value={platformSummary?.pendingBillsCount ?? 0} icon={Receipt} tone="danger" />
+        </div>
+
+        <Card padded={false} className="mt-6">
+          <div className="flex items-center gap-2 border-b border-ink-100 p-4 text-sm font-medium text-ink-700">
+            <Hospital size={16} /> Hospitals at a glance
+          </div>
+          <div className="divide-y divide-ink-100">
+            {platformSummary?.hospitals.length ? platformSummary.hospitals.map((h) => (
+              <div key={h.hospitalId} className="flex items-center justify-between gap-4 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full border border-ink-100"
+                    style={{ background: h.themeColor ?? 'var(--color-brand-500)' }}
+                  />
+                  <span className="text-sm font-medium text-ink-900">{h.hospitalName}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Badge tone="neutral">{h.branchCount} branch{h.branchCount === 1 ? '' : 'es'}</Badge>
+                  <Badge tone="neutral">{h.doctorCount} doctors</Badge>
+                  <Badge tone="neutral">{h.patientCount} patients</Badge>
+                </div>
+              </div>
+            )) : (
+              <p className="px-4 py-6 text-sm text-ink-500">No hospitals yet - add one from the Hospitals page.</p>
+            )}
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   if (status === 'loading' && !summary) return <FullPageSpinner />
 

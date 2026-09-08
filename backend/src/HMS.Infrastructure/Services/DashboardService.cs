@@ -23,4 +23,16 @@ public class DashboardService : IDashboardService
         int TodaysPatients, decimal TodaysRevenue, decimal TodaysOpdRevenue, decimal TodaysIpdRevenue, decimal BedOccupancyPercent,
         int PendingBillsCount, int AvailableDoctorsCount, int TodaysSurgeriesCount,
         int DoctorTodaysAppointments, int DoctorIpPatientsCount, int DoctorPlannedDischargesCount, int DoctorTodaysSurgeriesCount);
+
+    public async Task<PlatformSummaryDto> GetPlatformSummaryAsync()
+    {
+        var (headers, hospitals) = await _db.QueryMultipleAsync<PlatformSummaryRow, HospitalBreakdownDto>("sp_Dashboard_GetPlatformSummary");
+        var h = headers.First();
+        return new PlatformSummaryDto(h.TotalHospitals, h.TotalBranches, h.TotalDoctors, h.TotalPatients, h.TotalEmployees,
+            h.TodaysAppointments, h.TodaysRevenue, h.PendingBillsCount, hospitals.ToList());
+    }
+
+    internal record PlatformSummaryRow(
+        int TotalHospitals, int TotalBranches, int TotalDoctors, int TotalPatients, int TotalEmployees,
+        int TodaysAppointments, decimal TodaysRevenue, int PendingBillsCount);
 }

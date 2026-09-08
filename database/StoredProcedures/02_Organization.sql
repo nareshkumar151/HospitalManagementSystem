@@ -9,7 +9,7 @@ BEGIN
     SET NOCOUNT ON;
     -- @HospitalId NULL is SuperAdmin's "every hospital" view; a branch-bound Administrator always passes
     -- their own hospital id here, so they can never enumerate another hospital's details.
-    SELECT Id, Name, RegistrationNumber, Address, ContactNumber, Email, LogoUrl FROM Hospitals
+    SELECT Id, Name, RegistrationNumber, Address, ContactNumber, Email, LogoUrl, ThemeColor FROM Hospitals
     WHERE IsDeleted = 0 AND (@HospitalId IS NULL OR Id = @HospitalId)
     ORDER BY Name;
 END
@@ -17,25 +17,37 @@ GO
 
 CREATE OR ALTER PROCEDURE sp_Hospital_Insert
     @Name NVARCHAR(200), @RegistrationNumber NVARCHAR(100), @Address NVARCHAR(400),
-    @ContactNumber NVARCHAR(20), @Email NVARCHAR(150) = NULL, @CreatedBy NVARCHAR(100) = NULL
+    @ContactNumber NVARCHAR(20), @Email NVARCHAR(150) = NULL, @ThemeColor NVARCHAR(9) = NULL, @CreatedBy NVARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO Hospitals (Name, RegistrationNumber, Address, ContactNumber, Email, CreatedBy)
-    VALUES (@Name, @RegistrationNumber, @Address, @ContactNumber, @Email, @CreatedBy);
+    INSERT INTO Hospitals (Name, RegistrationNumber, Address, ContactNumber, Email, ThemeColor, CreatedBy)
+    VALUES (@Name, @RegistrationNumber, @Address, @ContactNumber, @Email, @ThemeColor, @CreatedBy);
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO
 
 CREATE OR ALTER PROCEDURE sp_Hospital_Update
     @Id INT, @Name NVARCHAR(200), @RegistrationNumber NVARCHAR(100), @Address NVARCHAR(400),
-    @ContactNumber NVARCHAR(20), @Email NVARCHAR(150) = NULL, @UpdatedBy NVARCHAR(100) = NULL
+    @ContactNumber NVARCHAR(20), @Email NVARCHAR(150) = NULL, @ThemeColor NVARCHAR(9) = NULL, @UpdatedBy NVARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE Hospitals SET Name=@Name, RegistrationNumber=@RegistrationNumber, Address=@Address,
-        ContactNumber=@ContactNumber, Email=@Email, UpdatedAt=SYSUTCDATETIME(), UpdatedBy=@UpdatedBy
+        ContactNumber=@ContactNumber, Email=@Email, ThemeColor=@ThemeColor, UpdatedAt=SYSUTCDATETIME(), UpdatedBy=@UpdatedBy
     WHERE Id = @Id;
+END
+GO
+
+-- Cosmetic-only, deliberately narrow (Id + ThemeColor, not the full HospitalDto) and callable by anyone
+-- signed in - every staff/patient session needs this to paint the app in its own hospital's colors, without
+-- the Administrator-only sp_Hospital_GetAll/hospitals list.
+CREATE OR ALTER PROCEDURE sp_Hospital_GetThemeColor
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Id, ThemeColor FROM Hospitals WHERE Id = @Id AND IsDeleted = 0;
 END
 GO
 

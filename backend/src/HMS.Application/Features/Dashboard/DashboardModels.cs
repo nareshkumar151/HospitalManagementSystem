@@ -21,9 +21,19 @@ public record DashboardSummaryDto(
 
 public record PharmacyStockAlertDto(int MedicineId, string MedicineName, int Stock, int ReorderLevel);
 
+/// <summary> SuperAdmin's dashboard - no single branch/hospital of their own, so platform-wide totals plus a
+/// per-hospital breakdown instead of the branch-scoped DashboardSummaryDto above. </summary>
+public record PlatformSummaryDto(
+    int TotalHospitals, int TotalBranches, int TotalDoctors, int TotalPatients, int TotalEmployees,
+    int TodaysAppointments, decimal TodaysRevenue, int PendingBillsCount,
+    IReadOnlyList<HospitalBreakdownDto> Hospitals);
+
+public record HospitalBreakdownDto(int HospitalId, string HospitalName, string? ThemeColor, int BranchCount, int DoctorCount, int PatientCount);
+
 public interface IDashboardService
 {
     /// <summary> `receptionistUserId` personalizes TodaysRevenue to that user's own collected payments;
     /// `doctorId` populates the Doctor-scoped tiles. Pass null for either to get the unscoped figures. </summary>
     Task<DashboardSummaryDto> GetSummaryAsync(int branchId, int? receptionistUserId = null, int? doctorId = null);
+    Task<PlatformSummaryDto> GetPlatformSummaryAsync();
 }

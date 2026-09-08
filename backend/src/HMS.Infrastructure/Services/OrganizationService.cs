@@ -53,9 +53,13 @@ public class OrganizationService : IOrganizationService
     }
 
     public Task UpdateHospitalAsync(int id, UpsertHospitalRequest request)
-        => _db.ExecuteAsync("sp_Hospital_Update", new { Id = id, request.Name, request.RegistrationNumber, request.Address, request.ContactNumber, request.Email });
+        => _db.ExecuteAsync("sp_Hospital_Update", new { Id = id, request.Name, request.RegistrationNumber, request.Address, request.ContactNumber, request.Email, request.ThemeColor });
 
     public Task DeleteHospitalAsync(int id) => _db.ExecuteAsync("sp_Hospital_Delete", new { Id = id });
+
+    public async Task<HospitalThemeDto> GetHospitalThemeAsync(int id)
+        => await _db.QuerySingleOrDefaultAsync<HospitalThemeDto>("sp_Hospital_GetThemeColor", new { Id = id })
+           ?? throw new NotFoundException(nameof(Domain.Entities.Hospital), id);
 
     public Task<IReadOnlyList<BranchDto>> GetBranchesAsync(int? hospitalId = null)
         => _db.QueryAsync<BranchDto>("sp_Branch_GetAll", new { HospitalId = hospitalId });

@@ -88,3 +88,35 @@ BEGIN
     ORDER BY Stock;
 END
 GO
+
+-- SuperAdmin's own dashboard: no single branch/hospital of their own, so the per-branch summary above
+-- (which would silently fall back to branch/hospital #1) doesn't make sense for them. This is the
+-- platform-wide view instead - totals across every hospital, plus a per-hospital breakdown row so they can
+-- see at a glance which hospital is busiest.
+CREATE OR ALTER PROCEDURE sp_Dashboard_GetPlatformSummary
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+
+    SELECT
+        (SELECT COUNT(*) FROM Hospitals WHERE IsDeleted = 0) AS TotalHospitals,
+        (SELECT COUNT(*) FROM Branches WHERE IsDeleted = 0) AS TotalBranches,
+        (SELECT COUNT(*) FROM Doctors WHERE IsDeleted = 0 AND IsActive = 1) AS TotalDoctors,
+        (SELECT COUNT(*) FROM Patients WHERE IsDeleted = 0) AS TotalPatients,
+        (SELECT COUNT(*) FROM Employees WHERE IsDeleted = 0 AND IsActive = 1) AS TotalEmployees,
+        (SELECT COUNT(*) FROM Appointments WHERE AppointmentDate = @Today AND IsDeleted = 0) AS TodaysAppointments,
+        (SELECT ISNULL(SUM(pay.Amount), 0) FROM Payments pay
+         WHERE CAST(pay.PaidAt AS DATE) = @Today AND pay.IsRefund = 0 AND pay.IsDeleted = 0) AS TodaysRevenue,
+        (SELECT COUNT(*) FROM Bills WHERE Status IN ('Pending','PartiallyPaid') AND IsDeleted = 0) AS PendingBillsCount;
+
+    SELECT
+        h.Id AS HospitalId, h.Name AS HospitalName, h.ThemeColor,
+        (SELECT COUNT(*) FROM Branches br WHERE br.HospitalId = h.Id AND br.IsDeleted = 0) AS BranchCount,
+        (SELECT COUNT(*) FROM Doctors d WHERE d.HospitalId = h.Id AND d.IsDeleted = 0 AND d.IsActive = 1) AS DoctorCount,
+        (SELECT COUNT(*) FROM Patients p WHERE p.HospitalId = h.Id AND p.IsDeleted = 0) AS PatientCount
+    FROM Hospitals h
+    WHERE h.IsDeleted = 0
+    ORDER BY h.Name;
+END
+GO

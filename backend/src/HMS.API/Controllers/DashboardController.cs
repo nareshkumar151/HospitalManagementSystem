@@ -1,4 +1,5 @@
 using HMS.Application.Features.Dashboard;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HMS.API.Controllers;
@@ -20,4 +21,10 @@ public class DashboardController : ApiControllerBase
         var doctorId = User.IsInRole(RoleNames.Doctor) ? CurrentLinkedProfileId : null;
         return Ok(await _dashboardService.GetSummaryAsync(CurrentBranchId, receptionistUserId, doctorId));
     }
+
+    // SuperAdmin has no single branch/hospital of their own, so the branch-scoped summary above (which
+    // would silently default to branch/hospital #1) doesn't apply - this is their platform-wide view.
+    [HttpGet("platform-summary")]
+    [Authorize(Roles = RoleNames.SuperAdminOnly)]
+    public async Task<ActionResult<PlatformSummaryDto>> GetPlatformSummary() => Ok(await _dashboardService.GetPlatformSummaryAsync());
 }

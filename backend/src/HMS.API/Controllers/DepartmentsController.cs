@@ -87,6 +87,13 @@ public class OrganizationController : ApiControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<IReadOnlyList<BranchDto>>> GetBranches([FromQuery] int? hospitalId) => Ok(await _organizationService.GetBranchesAsync(hospitalId));
 
+    // Cosmetic-only (Id + ThemeColor, not the full HospitalDto) - every signed-in session, any role, fetches
+    // this on load to paint the app in its own hospital's colors, without needing the Administrator-only
+    // GetHospitals above.
+    [HttpGet("hospitals/{id:int}/theme-color")]
+    [AllowAnonymous]
+    public async Task<ActionResult<HospitalThemeDto>> GetHospitalTheme(int id) => Ok(await _organizationService.GetHospitalThemeAsync(id));
+
     [HttpPost("branches")]
     [Authorize(Roles = RoleNames.SuperAdminOnly)]
     public async Task<ActionResult<BranchDto>> CreateBranch(UpsertBranchRequest request) => Ok(await _organizationService.CreateBranchAsync(request));
