@@ -16,8 +16,9 @@ public class DoctorsController : ApiControllerBase
     // Server-derived only, never client-supplied: a signed-in user with a real branchId claim (Doctor,
     // Nurse, Administrator...) is always forced to their own branch here regardless of what a raw API call
     // might pass, closing off the "just omit the query param" bypass. A genuinely anonymous pre-login
-    // request, or SuperAdmin (no single branch), falls through to the unscoped, every-branch view.
-    public async Task<ActionResult<PagedResult<DoctorDto>>> Search([FromQuery] PagedRequest request) => Ok(await _doctorService.SearchAsync(request, CurrentBranchIdOrNull));
+    // request falls through to the unscoped, every-branch view; SuperAdmin (no single branch) may narrow
+    // that down with an explicit branchId, e.g. when provisioning a new branch's doctor logins.
+    public async Task<ActionResult<PagedResult<DoctorDto>>> Search([FromQuery] PagedRequest request, [FromQuery] int? branchId) => Ok(await _doctorService.SearchAsync(request, CurrentBranchIdOrNull ?? branchId));
 
     [HttpGet("by-department/{departmentId:int}")]
     [AllowAnonymous]

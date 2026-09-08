@@ -10,12 +10,12 @@ public class DepartmentsController : ApiControllerBase
 
     public DepartmentsController(IDepartmentService departmentService) => _departmentService = departmentService;
 
-    // No page in this app browses departments pre-login (unlike Doctors' anonymous booking-browse), so this
-    // is always an authenticated staff call - server-enforce the caller's own branch rather than trusting an
-    // optional client-supplied query param, which a raw API call could simply omit to see every hospital's
-    // departments.
+    // Always an authenticated staff call - a branch-bound caller is server-enforced to their own branch
+    // regardless of what a raw API call might pass. SuperAdmin has no single branch of their own, so (and
+    // only so) an explicit branchId is honored, e.g. when provisioning a new branch's staff from the
+    // Hospitals admin page.
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<DepartmentDto>>> GetAll() => Ok(await _departmentService.GetAllAsync(CurrentBranchId));
+    public async Task<ActionResult<IReadOnlyList<DepartmentDto>>> GetAll([FromQuery] int? branchId) => Ok(await _departmentService.GetAllAsync(CurrentBranchIdOrNull ?? branchId ?? 1));
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]

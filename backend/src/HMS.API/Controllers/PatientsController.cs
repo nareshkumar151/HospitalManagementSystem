@@ -19,14 +19,15 @@ public class PatientsController : ApiControllerBase
 
     [HttpGet]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Receptionist + "," + RoleNames.Doctor + "," + RoleNames.Nurse)]
-    public async Task<ActionResult<PagedResult<PatientDto>>> Search([FromQuery] PagedRequest request)
+    public async Task<ActionResult<PagedResult<PatientDto>>> Search([FromQuery] PagedRequest request, [FromQuery] int? hospitalId)
     {
         // A doctor sees only patients they have an appointment history with, not the hospital-wide roster.
         // Scoped to the whole hospital (not just this branch) - the same patient can already be registered
         // at a sister branch, and front desk here needs to find and reuse that record instead of
-        // re-registering them.
+        // re-registering them. SuperAdmin has no single hospital of their own, so (and only so) an explicit
+        // hospitalId is honored, e.g. when provisioning a new hospital's logins from the Hospitals admin page.
         var doctorId = User.IsInRole(RoleNames.Doctor) ? CurrentLinkedProfileId : null;
-        return Ok(await _patientService.SearchAsync(request, CurrentHospitalId, doctorId));
+        return Ok(await _patientService.SearchAsync(request, CurrentHospitalIdOrNull ?? hospitalId ?? 1, doctorId));
     }
 
     [HttpGet("{id:int}")]

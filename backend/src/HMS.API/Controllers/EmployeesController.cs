@@ -12,8 +12,11 @@ public class EmployeesController : ApiControllerBase
 
     public EmployeesController(IEmployeeService employeeService) => _employeeService = employeeService;
 
+    // A branch-bound caller (Administrator/HR) is server-enforced to their own branch; SuperAdmin (secondary
+    // Administrator claim, no single branch of their own) may pass an explicit branchId to inspect any
+    // branch's staff, e.g. when provisioning a new branch's logins from the Hospitals admin page.
     [HttpGet]
-    public async Task<ActionResult<PagedResult<EmployeeDto>>> Search([FromQuery] PagedRequest request) => Ok(await _employeeService.SearchAsync(request, CurrentBranchId));
+    public async Task<ActionResult<PagedResult<EmployeeDto>>> Search([FromQuery] PagedRequest request, [FromQuery] int? branchId) => Ok(await _employeeService.SearchAsync(request, CurrentBranchIdOrNull ?? branchId ?? 1));
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EmployeeDto>> GetById(int id)

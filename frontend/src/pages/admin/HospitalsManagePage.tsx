@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Building2, Hospital as HospitalIcon, Plus, Trash2 } from 'lucide-react'
+import { Building2, Hospital as HospitalIcon, KeyRound, Plus, Trash2 } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { createBranch, createHospital, deleteBranch, deleteHospital, fetchBranches, fetchHospitals } from '../../features/organization/organizationSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -9,6 +9,7 @@ import { Table, type Column } from '../../components/ui/Table'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
+import { CreateHospitalUserModal } from '../../components/admin/CreateHospitalUserModal'
 import { extractErrorMessage } from '../../api/client'
 import type { BranchDto, HospitalDto } from '../../types'
 
@@ -22,6 +23,7 @@ export function HospitalsManagePage() {
   const [branchModalOpen, setBranchModalOpen] = useState(false)
   const [selectedHospitalId, setSelectedHospitalId] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [loginTargetBranch, setLoginTargetBranch] = useState<BranchDto | null>(null)
 
   const [hospitalForm, setHospitalForm] = useState({ name: '', registrationNumber: '', address: '', contactNumber: '', email: '' })
   const [branchForm, setBranchForm] = useState({ name: '', address: '', city: '', contactNumber: '' })
@@ -109,9 +111,14 @@ export function HospitalsManagePage() {
     { key: 'contact', header: 'Contact', render: (b) => b.contactNumber },
     {
       key: 'actions', header: '', render: (b) => (
-        <button onClick={() => handleDeleteBranch(b)} className="flex items-center gap-1 text-xs font-medium text-danger-500 hover:underline">
-          <Trash2 size={12} /> Delete
-        </button>
+        <div className="flex gap-3">
+          <button onClick={() => setLoginTargetBranch(b)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+            <KeyRound size={12} /> Create Login
+          </button>
+          <button onClick={() => handleDeleteBranch(b)} className="flex items-center gap-1 text-xs font-medium text-danger-500 hover:underline">
+            <Trash2 size={12} /> Delete
+          </button>
+        </div>
       ),
     },
   ]
@@ -164,6 +171,15 @@ export function HospitalsManagePage() {
           </div>
         </div>
       </Modal>
+
+      {loginTargetBranch && (
+        <CreateHospitalUserModal
+          open={!!loginTargetBranch}
+          onClose={() => setLoginTargetBranch(null)}
+          branch={loginTargetBranch}
+          hospitalName={hospitals.find((h) => h.id === loginTargetBranch.hospitalId)?.name ?? `Hospital #${loginTargetBranch.hospitalId}`}
+        />
+      )}
     </div>
   )
 }
