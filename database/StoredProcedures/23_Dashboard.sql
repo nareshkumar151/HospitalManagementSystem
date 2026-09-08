@@ -18,8 +18,16 @@ BEGIN
 
     SELECT
         (SELECT COUNT(*) FROM Appointments WHERE BranchId = @BranchId AND AppointmentDate = @Today AND IsDeleted = 0) AS TodaysPatients,
+        -- Keyed off Payments.PaidAt (not Bills.BillDate) for every role, receptionist or not: a bill raised
+        -- on an earlier date but paid today must still count as today's revenue. The branch-wide figure
+        -- (NULL) sums every collector's payments; the receptionist figure narrows to their own.
         (CASE WHEN @ReceptionistUserId IS NULL
-            THEN (SELECT ISNULL(SUM(PaidAmount), 0) FROM Bills WHERE BranchId = @BranchId AND CAST(BillDate AS DATE) = @Today AND IsDeleted = 0)
+            THEN (
+                SELECT ISNULL(SUM(pay.Amount), 0)
+                FROM Payments pay
+                JOIN Bills b ON b.Id = pay.BillId
+                WHERE b.BranchId = @BranchId AND CAST(pay.PaidAt AS DATE) = @Today AND pay.IsRefund = 0 AND pay.IsDeleted = 0
+            )
             ELSE (
                 SELECT ISNULL(SUM(pay.Amount), 0)
                 FROM Payments pay
@@ -30,7 +38,12 @@ BEGIN
          END) AS TodaysRevenue,
         -- OPD/IPD split of the same figure above - a bill counts as IPD only when linked to an admission.
         (CASE WHEN @ReceptionistUserId IS NULL
-            THEN (SELECT ISNULL(SUM(PaidAmount), 0) FROM Bills WHERE BranchId = @BranchId AND CAST(BillDate AS DATE) = @Today AND IsDeleted = 0 AND IpdAdmissionId IS NULL)
+            THEN (
+                SELECT ISNULL(SUM(pay.Amount), 0)
+                FROM Payments pay
+                JOIN Bills b ON b.Id = pay.BillId
+                WHERE b.BranchId = @BranchId AND CAST(pay.PaidAt AS DATE) = @Today AND pay.IsRefund = 0 AND pay.IsDeleted = 0 AND b.IpdAdmissionId IS NULL
+            )
             ELSE (
                 SELECT ISNULL(SUM(pay.Amount), 0)
                 FROM Payments pay
@@ -40,7 +53,12 @@ BEGIN
             )
          END) AS TodaysOpdRevenue,
         (CASE WHEN @ReceptionistUserId IS NULL
-            THEN (SELECT ISNULL(SUM(PaidAmount), 0) FROM Bills WHERE BranchId = @BranchId AND CAST(BillDate AS DATE) = @Today AND IsDeleted = 0 AND IpdAdmissionId IS NOT NULL)
+            THEN (
+                SELECT ISNULL(SUM(pay.Amount), 0)
+                FROM Payments pay
+                JOIN Bills b ON b.Id = pay.BillId
+                WHERE b.BranchId = @BranchId AND CAST(pay.PaidAt AS DATE) = @Today AND pay.IsRefund = 0 AND pay.IsDeleted = 0 AND b.IpdAdmissionId IS NOT NULL
+            )
             ELSE (
                 SELECT ISNULL(SUM(pay.Amount), 0)
                 FROM Payments pay
