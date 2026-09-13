@@ -50,7 +50,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT a.Id, a.AdmissionNumber, a.PatientId, p.FullName AS PatientName, p.UHID, a.DoctorId, doc.FullName AS DoctorName,
-           dept.Name AS DepartmentName, p.InsuranceCompany,
+           dept.Name AS DepartmentName, p.InsuranceCompany, p.InsurancePolicyNumber,
            a.NurseUserId, nurse.Username AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
            a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId
     FROM IpdAdmissions a
@@ -72,7 +72,7 @@ BEGIN
     -- Always scoped to one hospital - the active-admissions roster (and the IPD billing picker built on
     -- top of it) must never blend across hospitals.
     SELECT a.Id, a.AdmissionNumber, a.PatientId, p.FullName AS PatientName, p.UHID, a.DoctorId, doc.FullName AS DoctorName,
-           dept.Name AS DepartmentName, p.InsuranceCompany,
+           dept.Name AS DepartmentName, p.InsuranceCompany, p.InsurancePolicyNumber,
            a.NurseUserId, nurse.Username AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
            a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId
     FROM IpdAdmissions a
@@ -97,7 +97,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT a.Id, a.AdmissionNumber, a.PatientId, p.FullName AS PatientName, p.UHID, a.DoctorId, doc.FullName AS DoctorName,
-           dept.Name AS DepartmentName, p.InsuranceCompany,
+           dept.Name AS DepartmentName, p.InsuranceCompany, p.InsurancePolicyNumber,
            a.NurseUserId, nurse.Username AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
            a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId
     FROM IpdAdmissions a
@@ -137,7 +137,7 @@ BEGIN
     -- admissions screen); pass @HospitalId instead for the patient-360 history view, which should show
     -- every admission across every branch of the hospital, not just the branch currently viewing it.
     SELECT a.Id, a.AdmissionNumber, a.PatientId, p.FullName AS PatientName, p.UHID, a.DoctorId, doc.FullName AS DoctorName,
-           dept.Name AS DepartmentName, p.InsuranceCompany,
+           dept.Name AS DepartmentName, p.InsuranceCompany, p.InsurancePolicyNumber,
            a.NurseUserId, nurse.Username AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
            a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId
     FROM IpdAdmissions a
@@ -186,6 +186,19 @@ BEGIN
     UPDATE Beds SET Status = 'Occupied' WHERE Id = @NewBedId;
 
     COMMIT TRANSACTION;
+END
+GO
+
+-- A currently-admitted patient shouldn't also be booked for a new OPD appointment - they're already under
+-- inpatient care and seen on ward rounds, not via the OPD token queue. Used by AppointmentService.BookAsync.
+CREATE OR ALTER PROCEDURE sp_IpdAdmission_HasActive
+    @PatientId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM IpdAdmissions WHERE PatientId = @PatientId AND Status = 'Admitted' AND IsDeleted = 0
+    ) THEN 1 ELSE 0 END;
 END
 GO
 

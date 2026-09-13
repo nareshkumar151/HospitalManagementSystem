@@ -64,6 +64,12 @@ public class AppointmentService : IAppointmentService
         if (IsSlotInThePast(request.AppointmentDate, request.TimeSlot))
             throw new ValidationAppException("This time slot has already passed today - pick a later slot.");
 
+        // A currently-admitted patient is already under inpatient care - seen on ward rounds, not through a
+        // new OPD token - so a fresh OPD appointment for them doesn't make sense while that admission is open.
+        var isAdmitted = await _db.ExecuteScalarAsync<int>("sp_IpdAdmission_HasActive", new { request.PatientId });
+        if (isAdmitted > 0)
+            throw new ValidationAppException("This patient is currently admitted (IPD) - they can't be booked for a new OPD appointment while admitted.");
+
         var slotTaken = await _db.ExecuteScalarAsync<int>("sp_Appointment_CheckSlotTaken", new
         {
             request.DoctorId,

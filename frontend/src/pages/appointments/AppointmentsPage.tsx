@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Plus, Search, Send, X } from 'lucide-react'
+import { AlertTriangle, Plus, Search, Send, X } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import {
   bookAppointment, cancelAppointment, fetchAppointments, fetchDoctorSlots,
@@ -9,6 +9,7 @@ import {
 } from '../../features/appointments/appointmentsSlice'
 import { fetchDoctors, fetchDepartments } from '../../features/doctors/doctorsSlice'
 import { fetchPatients } from '../../features/patients/patientsSlice'
+import { fetchActiveAdmissions } from '../../features/ipd/ipdSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Table, type Column } from '../../components/ui/Table'
@@ -16,6 +17,7 @@ import { Button } from '../../components/ui/Button'
 import { Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { SearchBox } from '../../components/ui/ListToolbar'
 import { extractErrorMessage } from '../../api/client'
 import type { AppointmentDto } from '../../types'
 
@@ -28,6 +30,7 @@ export function AppointmentsPage() {
   const { list, slots, pendingRequests } = useAppSelector((state) => state.appointments)
   const { list: patients } = useAppSelector((state) => state.patients)
   const { list: doctors, departments } = useAppSelector((state) => state.doctors)
+  const { active: activeAdmissions } = useAppSelector((state) => state.ipd)
   const isDoctor = user?.role === 'Doctor'
   const canResolveRequests = user?.role === 'SuperAdmin' || user?.role === 'Administrator' || user?.role === 'Receptionist'
 
@@ -35,6 +38,10 @@ export function AppointmentsPage() {
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(!!guidedPatientId)
   const [patientId, setPatientId] = useState<number | null>(guidedPatientId ?? null)
+  // Search-driven picker instead of a plain dropdown - shows name + UHID (the way front desk actually
+  // identifies a patient), not the mobile number.
+  const [patientSearch, setPatientSearch] = useState('')
+  const [selectedPatient, setSelectedPatient] = useState<{ id: number; fullName: string; uhid: string } | null>(null)
   const [departmentId, setDepartmentId] = useState<number | null>(null)
   const [doctorId, setDoctorId] = useState<number | null>(null)
   const [bookDate, setBookDate] = useState(new Date().toISOString().slice(0, 10))
@@ -55,8 +62,18 @@ export function AppointmentsPage() {
     dispatch(fetchDoctors())
     dispatch(fetchDepartments())
     dispatch(fetchPatients({ pageSize: 100 }))
+    dispatch(fetchActiveAdmissions())
     if (canResolveRequests) dispatch(fetchPendingAppointmentRequests())
   }, [dispatch, canResolveRequests])
+
+  // Patient search - typing 2+ characters re-queries by name/UHID/mobile (same pattern as ER/IPD's own
+  // patient pickers), instead of only searching the first 100 patients loaded above.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (patientSearch.trim().length >= 2) dispatch(fetchPatients({ pageNumber: 1, pageSize: 6, search: patientSearch }))
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [dispatch, patientSearch])
 
   // A patient should already be selected when the booking form opens, not force picking one from a blank
   // dropdown every time - defaults to the first patient on file until the receptionist picks a different one.
@@ -64,14 +81,33 @@ export function AppointmentsPage() {
     if (!patientId && patients?.items.length) setPatientId(patients.items[0].id)
   }, [patients, patientId])
 
+  // Keeps the visible "Selected: <name> · <UHID>" panel in sync with patientId, whether it came from the
+  // default-selection above or a guided hand-off (which only carries the id, not the patient's name/UHID).
+  useEffect(() => {
+    if (patientId && (!selectedPatient || selectedPatient.id !== patientId)) {
+      const found = patients?.items.find((p) => p.id === patientId)
+      if (found) setSelectedPatient({ id: found.id, fullName: found.fullName, uhid: found.uhid })
+    }
+  }, [patientId, patients, selectedPatient])
+
   useEffect(() => {
     if (doctorId && bookDate) dispatch(fetchDoctorSlots(doctorId, bookDate))
   }, [dispatch, doctorId, bookDate])
 
   const doctorsInDept = doctors?.items.filter((d) => !departmentId || d.departmentId === departmentId) ?? []
 
+  // A currently-admitted patient is already under inpatient care - blocked client-side here (the backend
+  // refuses it too, for anyone bypassing this form) rather than letting an OPD appointment get booked for
+  // someone who's already on a ward.
+  const selectedPatientIsAdmitted = !!patientId && activeAdmissions.some((a) => a.patientId === patientId)
+
+  const resetBookingForm = () => {
+    setPatientId(null); setSelectedPatient(null); setPatientSearch('')
+    setDepartmentId(null); setDoctorId(null); setSlot('')
+  }
+
   const handleBook = async () => {
-    if (!patientId || !doctorId || !departmentId || !slot) return
+    if (!patientId || !doctorId || !departmentId || !slot || selectedPatientIsAdmitted) return
     setSubmitting(true)
     try {
       await dispatch(bookAppointment({ patientId, doctorId, departmentId, appointmentDate: bookDate, timeSlot: slot, type: 'WalkIn', branchId: user?.branchId ?? 1 }))
@@ -209,12 +245,36 @@ export function AppointmentsPage() {
         </Card>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Book Appointment">
+      <Modal open={modalOpen} onClose={() => { setModalOpen(false); resetBookingForm() }} title="Book Appointment">
         <div className="space-y-4">
-          <Select label="Patient" value={patientId ?? ''} onChange={(e) => setPatientId(Number(e.target.value) || null)}>
-            <option value="" disabled>Select a patient</option>
-            {patients?.items.map((p) => <option key={p.id} value={p.id}>{p.fullName} · {p.mobile}</option>)}
-          </Select>
+          <div>
+            <SearchBox value={patientSearch} onChange={setPatientSearch} placeholder="Search patient by name or UHID…" className="w-full" />
+            {patientSearch.trim().length >= 2 && (
+              <div className="mt-1 space-y-1">
+                {(patients?.items ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { setPatientId(p.id); setSelectedPatient({ id: p.id, fullName: p.fullName, uhid: p.uhid }); setPatientSearch('') }}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-muted"
+                  >
+                    {p.fullName} <span className="text-xs text-ink-500">· {p.uhid}</span>
+                  </button>
+                ))}
+                {patients?.items.length === 0 && <p className="px-3 py-2 text-sm text-ink-500">No matching patients.</p>}
+              </div>
+            )}
+            {selectedPatient && (
+              <div className="mt-2 rounded-lg bg-brand-50 p-3 text-sm text-brand-700">
+                Selected: <strong>{selectedPatient.fullName}</strong> <span className="text-xs">· {selectedPatient.uhid}</span>
+                <button className="ml-2 text-xs underline" onClick={() => { setSelectedPatient(null); setPatientId(null) }}>change</button>
+              </div>
+            )}
+            {selectedPatientIsAdmitted && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-danger-500">
+                <AlertTriangle size={13} /> This patient is currently admitted (IPD) - book their consultation through the admission, not a new OPD appointment.
+              </p>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Select label="Department" value={departmentId ?? ''} onChange={(e) => { setDepartmentId(Number(e.target.value) || null); setDoctorId(null) }}>
               <option value="" disabled>Select department</option>
@@ -238,7 +298,7 @@ export function AppointmentsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleBook} loading={submitting} disabled={!patientId || !doctorId || !slot}>Confirm Booking</Button>
+            <Button onClick={handleBook} loading={submitting} disabled={!patientId || !doctorId || !slot || selectedPatientIsAdmitted}>Confirm Booking</Button>
           </div>
         </div>
       </Modal>
