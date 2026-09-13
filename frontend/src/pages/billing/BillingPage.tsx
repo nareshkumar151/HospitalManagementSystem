@@ -45,6 +45,11 @@ export function BillingPage() {
   const [items, setItems] = useState<LineItem[]>([{ description: '', quantity: 1, unitPrice: 0 }])
   const [discount, setDiscount] = useState(0)
   const [gst, setGst] = useState(5)
+  // Mode of payment, chosen right on the Generate Bill form alongside the charges - Cash/Card/UPI/Insurance
+  // collects the full amount the moment the bill is generated, in one action instead of two; "Decide later"
+  // preserves the old flow (auto-opens Collect Payment, Razorpay included) for whoever isn't paying on the
+  // spot - see handleCreateBill.
+  const [createPayMode, setCreatePayMode] = useState('Cash')
   const [payAmount, setPayAmount] = useState(0)
   const [payMode, setPayMode] = useState('Cash')
   const [submitting, setSubmitting] = useState(false)
@@ -64,6 +69,12 @@ export function BillingPage() {
   useEffect(() => { dispatch(fetchPendingBills(categoryFilter || undefined)) }, [dispatch, categoryFilter])
   useEffect(() => { dispatch(fetchPatients({ pageSize: 100 })) }, [dispatch])
   useEffect(() => { dispatch(fetchActiveAdmissions()) }, [dispatch])
+
+  // A patient should already be selected when the form opens, not force picking one from a blank dropdown
+  // every time - defaults to the first patient on file until the receptionist picks a different one.
+  useEffect(() => {
+    if (!patientId && patients?.items.length) setPatientId(patients.items[0].id)
+  }, [patients, patientId])
 
   const refreshPaymentHistory = () =>
     dispatch(fetchPaymentHistory({ pageNumber: paymentPage, pageSize: 10, search: paymentSearch, fromDate: paymentFromDate, toDate: paymentToDate }))
@@ -95,16 +106,30 @@ export function BillingPage() {
         gstPercent: gst,
         branchId: user?.branchId ?? 1,
       }))
-      toast.success(`Bill ${bill.billNumber} created for ₹${bill.totalAmount}`)
+      toast.success(`Bill ${bill.billNumber} generated for ₹${bill.totalAmount}`)
       setCreateOpen(false)
       setItems([{ description: '', quantity: 1, unitPrice: 0 }]); setPatientId(''); setDiscount(0)
       setBillCategory('OPD'); setIpdAdmissionId('')
       dispatch(fetchPendingBills(categoryFilter || undefined))
-      // A freshly-created bill is almost always paid on the spot - open Collect Payment for it immediately
-      // instead of leaving the receptionist to find it in the pending list.
-      setJustCreatedFlow(true)
-      setPayTarget(bill)
-      setPayAmount(bill.totalAmount - bill.paidAmount)
+
+      if (createPayMode === 'PayLater') {
+        // Not paying on the spot - fall back to the existing Collect Payment step (manual or Razorpay).
+        setJustCreatedFlow(true)
+        setPayTarget(bill)
+        setPayAmount(bill.totalAmount - bill.paidAmount)
+      } else {
+        // Mode of payment was already chosen alongside the charges - collect the full amount right now
+        // instead of making the receptionist open a second modal to say what they just said.
+        const balance = bill.totalAmount - bill.paidAmount
+        await dispatch(collectPayment({ billId: bill.id, amount: balance, mode: createPayMode }))
+        toast.success(`Payment of ₹${balance} collected via ${createPayMode}.`)
+        dispatch(fetchPendingBills(categoryFilter || undefined))
+        refreshPaymentHistory()
+        // Closes the registration -> appointment -> bill -> payment loop by landing back on the dashboard,
+        // where Today's Revenue now reflects what was just collected (same landing spot Collect Payment
+        // itself uses below for this flow).
+        navigate('/app/dashboard')
+      }
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -219,7 +244,7 @@ export function BillingPage() {
       <PageHeader
         title="Billing"
         subtitle="Generate bills and collect payments for consultations, admissions, labs, and pharmacy."
-        actions={<Button icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>Create Bill</Button>}
+        actions={<Button icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>Generate Bill</Button>}
       />
 
       <Card padded={false}>
@@ -284,7 +309,7 @@ export function BillingPage() {
         )}
       </Card>
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Bill" widthClassName="max-w-2xl">
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Generate Bill" widthClassName="max-w-2xl">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Select label="Patient" value={patientId} onChange={(e) => { setPatientId(Number(e.target.value) || ''); setIpdAdmissionId('') }}>
@@ -338,9 +363,16 @@ export function BillingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Input label="Discount (₹)" type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} />
             <Input label="GST (%)" type="number" value={gst} onChange={(e) => setGst(Number(e.target.value))} />
+            <Select
+              label="Mode of payment" value={createPayMode} onChange={(e) => setCreatePayMode(e.target.value)}
+              hint={createPayMode === 'PayLater' ? undefined : 'Collected in full as soon as the bill is generated.'}
+            >
+              {['Cash', 'Card', 'UPI', 'Insurance'].map((m) => <option key={m} value={m}>{m}</option>)}
+              <option value="PayLater">Decide later / Pay online</option>
+            </Select>
           </div>
 
           <div className="rounded-lg bg-surface-muted p-3 text-sm text-ink-700">
@@ -350,7 +382,7 @@ export function BillingPage() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button loading={submitting} disabled={!patientId || (billCategory === 'IPD' && !ipdAdmissionId)} onClick={handleCreateBill}>Create Bill</Button>
+            <Button loading={submitting} disabled={!patientId || (billCategory === 'IPD' && !ipdAdmissionId)} onClick={handleCreateBill}>Generate Bill</Button>
           </div>
         </div>
       </Modal>

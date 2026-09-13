@@ -58,6 +58,12 @@ export function AppointmentsPage() {
     if (canResolveRequests) dispatch(fetchPendingAppointmentRequests())
   }, [dispatch, canResolveRequests])
 
+  // A patient should already be selected when the booking form opens, not force picking one from a blank
+  // dropdown every time - defaults to the first patient on file until the receptionist picks a different one.
+  useEffect(() => {
+    if (!patientId && patients?.items.length) setPatientId(patients.items[0].id)
+  }, [patients, patientId])
+
   useEffect(() => {
     if (doctorId && bookDate) dispatch(fetchDoctorSlots(doctorId, bookDate))
   }, [dispatch, doctorId, bookDate])
