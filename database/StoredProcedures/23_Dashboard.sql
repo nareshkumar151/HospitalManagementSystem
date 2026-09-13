@@ -67,6 +67,9 @@ BEGIN
                   AND CAST(pay.PaidAt AS DATE) = @Today AND pay.IsRefund = 0 AND pay.IsDeleted = 0 AND b.IpdAdmissionId IS NOT NULL
             )
          END) AS TodaysIpdRevenue,
+        -- Branch-wide count of currently-admitted patients - Reception/Administrator's own "IPD Patients"
+        -- tile, unlike DoctorIpPatientsCount below which is scoped to one doctor.
+        (SELECT COUNT(*) FROM IpdAdmissions WHERE BranchId = @BranchId AND Status = 'Admitted' AND IsDeleted = 0) AS IpdPatientsCount,
         (SELECT CASE WHEN COUNT(*) = 0 THEN 0 ELSE CAST(SUM(CASE WHEN b.Status='Occupied' THEN 1 ELSE 0 END) AS DECIMAL(5,2)) / COUNT(*) * 100 END
          FROM Beds b JOIN Rooms r ON r.Id = b.RoomId JOIN Wards w ON w.Id = r.WardId WHERE w.BranchId = @BranchId AND b.IsDeleted = 0) AS BedOccupancyPercent,
         (SELECT COUNT(*) FROM Bills WHERE BranchId = @BranchId AND Status IN ('Pending','PartiallyPaid') AND IsDeleted = 0) AS PendingBillsCount,

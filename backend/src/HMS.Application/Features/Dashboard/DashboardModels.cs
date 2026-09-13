@@ -8,6 +8,10 @@ public record DashboardSummaryDto(
     decimal TodaysOpdRevenue,
     /// <summary> Of TodaysRevenue, the portion collected on IPD bills (linked to an IPD admission). </summary>
     decimal TodaysIpdRevenue,
+    /// <summary> Branch-wide count of currently-admitted (Status = 'Admitted') IPD patients - unlike
+    /// DoctorIpPatientsCount below, not scoped to any one doctor. Reception/Administrator's own IPD Patients
+    /// tile. </summary>
+    int IpdPatientsCount,
     int BedOccupancyPercent,
     int PendingBillsCount,
     int AvailableDoctorsCount,

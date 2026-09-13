@@ -549,6 +549,7 @@ export interface DashboardSummaryDto {
   todaysRevenue: number
   todaysOpdRevenue: number
   todaysIpdRevenue: number
+  ipdPatientsCount: number
   bedOccupancyPercent: number
   pendingBillsCount: number
   availableDoctorsCount: number

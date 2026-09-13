@@ -101,6 +101,7 @@ export function DashboardPage() {
             tone="warning"
             hint="Admission-linked bills"
           />
+          <StatCard label="IPD Patients" value={summary?.ipdPatientsCount ?? 0} icon={Users} tone="brand" hint="Currently admitted" />
           <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
           <StatCard label="Pending Bills" value={summary?.pendingBillsCount ?? 0} icon={Receipt} tone="danger" />
           <StatCard label="Available Doctors" value={summary?.availableDoctorsCount ?? 0} icon={Stethoscope} tone="brand" />
