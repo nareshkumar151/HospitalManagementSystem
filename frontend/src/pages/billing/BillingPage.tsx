@@ -44,6 +44,10 @@ export function BillingPage() {
   const [createOpen, setCreateOpen] = useState(!!guidedPatientId)
   const [payTarget, setPayTarget] = useState<BillDto | null>(null)
   const [patientId, setPatientId] = useState<number | ''>(guidedPatientId ?? '')
+  // Search-driven picker instead of a plain dropdown - shows name + UHID, same pattern as Book Appointment's
+  // own patient picker.
+  const [patientSearch, setPatientSearch] = useState('')
+  const [selectedPatient, setSelectedPatient] = useState<{ id: number; fullName: string; uhid: string } | null>(null)
   const [billType, setBillType] = useState(guidedIpdAdmissionId ? 'Admission' : 'Consultation')
   const [ipdAdmissionId, setIpdAdmissionId] = useState<number | ''>(guidedIpdAdmissionId ?? '')
   const [items, setItems] = useState<LineItem[]>([{ description: '', quantity: 1, unitPrice: 0 }])
@@ -78,6 +82,24 @@ export function BillingPage() {
   useEffect(() => {
     if (!patientId && patients?.items.length) setPatientId(patients.items[0].id)
   }, [patients, patientId])
+
+  // Patient search - typing 2+ characters re-queries by name/UHID/mobile instead of only searching the
+  // first 100 patients loaded above.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (patientSearch.trim().length >= 2) dispatch(fetchPatients({ pageNumber: 1, pageSize: 6, search: patientSearch }))
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [dispatch, patientSearch])
+
+  // Keeps the visible "Selected: <name> · <UHID>" panel in sync with patientId, whether it came from the
+  // default-selection above, a guided hand-off (only carries the id), or a search result click.
+  useEffect(() => {
+    if (patientId && (!selectedPatient || selectedPatient.id !== patientId)) {
+      const found = patients?.items.find((p) => p.id === patientId)
+      if (found) setSelectedPatient({ id: found.id, fullName: found.fullName, uhid: found.uhid })
+    }
+  }, [patientId, patients, selectedPatient])
 
   const refreshPaymentHistory = () =>
     dispatch(fetchPaymentHistory({ pageNumber: paymentPage, pageSize: 10, search: paymentSearch, fromDate: paymentFromDate, toDate: paymentToDate, category: activeTab }))
@@ -117,7 +139,7 @@ export function BillingPage() {
       }))
       toast.success(`Bill ${bill.billNumber} generated for ₹${bill.totalAmount}`)
       setCreateOpen(false)
-      setItems([{ description: '', quantity: 1, unitPrice: 0 }]); setPatientId(''); setDiscount(0); setIpdAdmissionId('')
+      setItems([{ description: '', quantity: 1, unitPrice: 0 }]); setPatientId(''); setSelectedPatient(null); setPatientSearch(''); setDiscount(0); setIpdAdmissionId('')
       dispatch(fetchPendingBills(activeTab))
 
       if (createPayMode === 'PayLater') {
@@ -337,15 +359,33 @@ export function BillingPage() {
             {activeTab === 'OPD' ? 'Outpatient charge - not linked to any admission.' : 'Charged against one of this patient\'s active admissions.'}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Select label="Patient" value={patientId} onChange={(e) => { setPatientId(Number(e.target.value) || ''); setIpdAdmissionId('') }}>
-              <option value="">Select patient</option>
-              {patients?.items.map((p) => <option key={p.id} value={p.id}>{p.fullName}</option>)}
-            </Select>
-            <Select label="Bill type" value={billType} onChange={(e) => setBillType(e.target.value)}>
-              {['Consultation', 'Admission', 'Lab', 'Pharmacy', 'Operation', 'Room', 'Nursing'].map((t) => <option key={t} value={t}>{t}</option>)}
-            </Select>
+          <div>
+            <SearchBox value={patientSearch} onChange={setPatientSearch} placeholder="Search patient by name or UHID…" className="w-full" />
+            {patientSearch.trim().length >= 2 && (
+              <div className="mt-1 space-y-1">
+                {(patients?.items ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { setPatientId(p.id); setSelectedPatient({ id: p.id, fullName: p.fullName, uhid: p.uhid }); setPatientSearch(''); setIpdAdmissionId('') }}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-muted"
+                  >
+                    {p.fullName} <span className="text-xs text-ink-500">· {p.uhid}</span>
+                  </button>
+                ))}
+                {patients?.items.length === 0 && <p className="px-3 py-2 text-sm text-ink-500">No matching patients.</p>}
+              </div>
+            )}
+            {selectedPatient && (
+              <div className="mt-2 rounded-lg bg-brand-50 p-3 text-sm text-brand-700">
+                Selected: <strong>{selectedPatient.fullName}</strong> <span className="text-xs">· {selectedPatient.uhid}</span>
+                <button className="ml-2 text-xs underline" onClick={() => { setSelectedPatient(null); setPatientId(''); setIpdAdmissionId('') }}>change</button>
+              </div>
+            )}
           </div>
+
+          <Select label="Bill type" value={billType} onChange={(e) => setBillType(e.target.value)}>
+            {['Consultation', 'Admission', 'Lab', 'Pharmacy', 'Operation', 'Room', 'Nursing'].map((t) => <option key={t} value={t}>{t}</option>)}
+          </Select>
 
           {activeTab === 'IPD' && (
             <div className="grid grid-cols-2 gap-3">
