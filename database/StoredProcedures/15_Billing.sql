@@ -39,6 +39,30 @@ BEGIN
 END
 GO
 
+-- Edit Bill (IPD/Admissions page and Billing) - only ever called on a bill still in 'Pending' status
+-- (enforced by BillingService.UpdateBillAsync, not here), so there's never a payment already reconciled
+-- against the totals this overwrites.
+CREATE OR ALTER PROCEDURE sp_Bill_Update
+    @Id INT, @SubTotal DECIMAL(12,2), @GstAmount DECIMAL(12,2), @DiscountAmount DECIMAL(12,2), @TotalAmount DECIMAL(12,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Bills SET SubTotal = @SubTotal, GstAmount = @GstAmount, DiscountAmount = @DiscountAmount, TotalAmount = @TotalAmount
+    WHERE Id = @Id;
+END
+GO
+
+-- BillItems has no soft-delete column (see 01_Schema.sql) - a hard delete-and-reinsert is this table's own
+-- normal pattern, same as how sp_BillItem_Insert already builds a bill's items one row at a time.
+CREATE OR ALTER PROCEDURE sp_BillItem_DeleteByBill
+    @BillId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE FROM BillItems WHERE BillId = @BillId;
+END
+GO
+
 CREATE OR ALTER PROCEDURE sp_Bill_GetById
     @Id INT
 AS

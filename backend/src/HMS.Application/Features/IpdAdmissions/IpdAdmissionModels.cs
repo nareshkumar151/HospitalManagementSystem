@@ -5,7 +5,7 @@ namespace HMS.Application.Features.IpdAdmissions;
 
 public record IpdAdmissionDto(
     int Id, string AdmissionNumber, int PatientId, string PatientName, string UHID, int DoctorId, string DoctorName,
-    string DepartmentName, string? InsuranceCompany,
+    string DepartmentName, string? InsuranceCompany, string? InsurancePolicyNumber,
     int? NurseUserId, string? NurseName, int BedId, string BedNumber, string RoomNumber, RoomType RoomType,
     DateTime AdmissionDate, AdmissionType AdmissionType, AdmissionStatus Status, string? ReasonForAdmission,
     DateTime? DischargeDate, int BranchId);

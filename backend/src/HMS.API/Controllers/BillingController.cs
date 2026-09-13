@@ -43,6 +43,17 @@ public class BillingController : ApiControllerBase
         return Ok(bill);
     }
 
+    /// <summary> Edit Bill - Billing's own Pending Bills queue and IPD/Admissions both use this to correct a
+    /// bill's charges before any payment is collected against it. </summary>
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = RoleNames.FrontDesk)]
+    public async Task<ActionResult<BillDto>> Update(int id, UpdateBillRequest request)
+    {
+        var bill = await _billingService.GetByIdAsync(id);
+        if (CurrentBranchIdOrNull is { } branchId && bill.BranchId != branchId) return Forbid();
+        return Ok(await _billingService.UpdateBillAsync(id, request));
+    }
+
     [HttpGet]
     [Authorize(Roles = RoleNames.FrontDesk)]
     public async Task<ActionResult<PagedResult<BillDto>>> Search([FromQuery] PagedRequest request, [FromQuery] BillStatus? status, [FromQuery] BillCategory? category)

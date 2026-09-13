@@ -1,23 +1,26 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BedDouble, Download, LogOut, Plus } from 'lucide-react'
+import { BedDouble, Download, LogOut, Pencil, Plus, ShieldCheck } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { admitPatient, dischargePatient, fetchActiveAdmissions, searchAdmissions } from '../../features/ipd/ipdSlice'
 import { fetchBeds } from '../../features/beds/bedsSlice'
 import { fetchPatients } from '../../features/patients/patientsSlice'
 import { fetchDoctors } from '../../features/doctors/doctorsSlice'
+import { fetchBillById, fetchPendingBills, updateBill } from '../../features/billing/billingSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Table, type Column } from '../../components/ui/Table'
 import { Button } from '../../components/ui/Button'
-import { Select } from '../../components/ui/Input'
+import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
 import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import { downloadFile, extractErrorMessage } from '../../api/client'
-import type { IpdAdmissionDto } from '../../types'
+import type { BillDto, IpdAdmissionDto } from '../../types'
 import { ADMISSION_TYPES, admissionTypeLabel } from '../../utils/admissionTypes'
+
+interface EditableLineItem { description: string; quantity: number; unitPrice: number }
 
 export function IpdPage() {
   const dispatch = useAppDispatch()
@@ -31,6 +34,7 @@ export function IpdPage() {
   const { beds } = useAppSelector((state) => state.beds)
   const { list: patients } = useAppSelector((state) => state.patients)
   const { list: doctors } = useAppSelector((state) => state.doctors)
+  const { pending: pendingIpdBills } = useAppSelector((state) => state.billing)
   const admissions = list?.items ?? []
 
   const [admitOpen, setAdmitOpen] = useState(!!guidedPatientId)
@@ -45,6 +49,13 @@ export function IpdPage() {
   const [dischargeDiagnosis, setDischargeDiagnosis] = useState('')
   const [dischargeCondition, setDischargeCondition] = useState('')
 
+  // Edit Bill - only ever available while the admission has a bill that hasn't collected any payment yet
+  // (see pendingIpdBills below and BillingService.UpdateBillAsync's own server-side check).
+  const [editBillTarget, setEditBillTarget] = useState<BillDto | null>(null)
+  const [editItems, setEditItems] = useState<EditableLineItem[]>([])
+  const [editDiscount, setEditDiscount] = useState(0)
+  const [editGst, setEditGst] = useState(0)
+
   // List-screen filters: defaults to "Admitted" so the page still opens on today's active roster, same as
   // before - search and the date range broaden that to the full admission history when used.
   const [search, setSearch] = useState('')
@@ -58,12 +69,55 @@ export function IpdPage() {
     dispatch(fetchBeds({ status: 'Available' }))
     dispatch(fetchPatients({ pageSize: 100 }))
     dispatch(fetchDoctors())
+    dispatch(fetchPendingBills('IPD')) // which admissions currently have an editable (unpaid) bill
   }, [dispatch])
 
   useEffect(() => {
     const timeout = setTimeout(() => dispatch(searchAdmissions({ pageNumber: page, pageSize: 10, search, fromDate, toDate, status: statusFilter })), 300)
     return () => clearTimeout(timeout)
   }, [dispatch, page, search, fromDate, toDate, statusFilter])
+
+  // The patient currently selected in the Admit modal, so their insurance on file can be shown right there.
+  const admitTargetPatient = patients?.items.find((p) => p.id === patientId)
+
+  const billForAdmission = (admissionId: number) => pendingIpdBills.find((b) => b.ipdAdmissionId === admissionId)
+
+  const openEditBill = async (bill: BillDto) => {
+    try {
+      const full = await dispatch(fetchBillById(bill.id))
+      setEditItems(full.items.map((i) => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice })))
+      setEditDiscount(full.discountAmount)
+      setEditGst(full.subTotal > 0 ? Math.round((full.gstAmount / full.subTotal) * 100) : 0)
+      setEditBillTarget(full)
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Could not load this bill.'))
+    }
+  }
+
+  const editSubTotal = editItems.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0)
+  const addEditItem = () => setEditItems((i) => [...i, { description: '', quantity: 1, unitPrice: 0 }])
+  const updateEditItem = (index: number, patch: Partial<EditableLineItem>) =>
+    setEditItems((i) => i.map((line, idx) => (idx === index ? { ...line, ...patch } : line)))
+  const removeEditItem = (index: number) => setEditItems((i) => i.filter((_, idx) => idx !== index))
+
+  const handleSaveBill = async () => {
+    if (!editBillTarget || editItems.every((i) => !i.description)) return
+    setSubmitting(true)
+    try {
+      await dispatch(updateBill(editBillTarget.id, {
+        items: editItems.filter((i) => i.description),
+        discountAmount: editDiscount,
+        gstPercent: editGst,
+      }))
+      toast.success('Bill updated.')
+      setEditBillTarget(null)
+      dispatch(fetchPendingBills('IPD'))
+    } catch (error) {
+      toast.error(extractErrorMessage(error))
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleAdmit = async () => {
     if (!patientId || !doctorId || !bedId) return
@@ -138,14 +192,26 @@ export function IpdPage() {
     { key: 'department', header: 'Department', render: (a) => a.departmentName },
     { key: 'bed', header: 'Bed', render: (a) => `${a.roomNumber} · ${a.bedNumber}` },
     { key: 'type', header: 'Type', render: (a) => <Badge tone="neutral">{admissionTypeLabel(a.admissionType)}</Badge> },
-    { key: 'insurance', header: 'Insurance', render: (a) => a.insuranceCompany ?? <span className="text-ink-400">—</span> },
+    {
+      key: 'insurance', header: 'Insurance', render: (a) => a.insuranceCompany ? (
+        <>
+          {a.insuranceCompany}
+          {a.insurancePolicyNumber && <span className="block text-xs text-ink-500">Policy: {a.insurancePolicyNumber}</span>}
+        </>
+      ) : <span className="text-ink-400">—</span>,
+    },
     { key: 'status', header: 'Status', render: (a) => <Badge>{a.status}</Badge> },
     {
       key: 'actions', header: '', render: (a) => (
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {a.status === 'Admitted' && (
             <button onClick={() => setDischargeTarget(a)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
               <LogOut size={13} /> Discharge
+            </button>
+          )}
+          {billForAdmission(a.id) && (
+            <button onClick={() => openEditBill(billForAdmission(a.id)!)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+              <Pencil size={13} /> Edit Bill
             </button>
           )}
           <button onClick={() => handleDownloadAdmissionPdf(a)} className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:underline">
@@ -208,6 +274,14 @@ export function IpdPage() {
             <option value="">Select patient</option>
             {patients?.items.map((p) => <option key={p.id} value={p.id}>{p.fullName} · {p.uhid}</option>)}
           </Select>
+          {admitTargetPatient && (
+            <div className="flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-2 text-sm text-ink-700">
+              <ShieldCheck size={15} className={admitTargetPatient.insuranceCompany ? 'text-success-500' : 'text-ink-400'} />
+              {admitTargetPatient.insuranceCompany
+                ? <>Insured: <strong>{admitTargetPatient.insuranceCompany}</strong>{admitTargetPatient.insurancePolicyNumber && ` · Policy ${admitTargetPatient.insurancePolicyNumber}`}</>
+                : 'No insurance on file for this patient.'}
+            </div>
+          )}
           <Select label="Attending doctor" value={doctorId} onChange={(e) => setDoctorId(Number(e.target.value) || '')}>
             <option value="">Select doctor</option>
             {doctors?.items.map((d) => <option key={d.id} value={d.id}>{d.fullName}</option>)}
@@ -252,6 +326,44 @@ export function IpdPage() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => setDischargeTarget(null)}>Cancel</Button>
               <Button variant="success" loading={submitting} disabled={!dischargeDiagnosis || !dischargeCondition} onClick={handleDischarge}>Confirm Discharge</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!editBillTarget} onClose={() => setEditBillTarget(null)} title="Edit Bill" widthClassName="max-w-2xl">
+        {editBillTarget && (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-surface-muted p-3 text-sm text-ink-700">
+              {editBillTarget.billNumber} · {editBillTarget.patientName}
+            </div>
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-medium text-ink-700">Line items</span>
+                <Button size="sm" variant="secondary" onClick={addEditItem}>+ Add line</Button>
+              </div>
+              <div className="space-y-2">
+                {editItems.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2">
+                    <input className="col-span-6 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateEditItem(index, { description: e.target.value })} />
+                    <input type="number" min={1} className="col-span-2 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateEditItem(index, { quantity: Number(e.target.value) })} />
+                    <input type="number" min={0} className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Unit price" value={item.unitPrice} onChange={(e) => updateEditItem(index, { unitPrice: Number(e.target.value) })} />
+                    <button onClick={() => removeEditItem(index)} className="col-span-1 text-danger-500">✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Discount (₹)" type="number" value={editDiscount} onChange={(e) => setEditDiscount(Number(e.target.value))} />
+              <Input label="GST (%)" type="number" value={editGst} onChange={(e) => setEditGst(Number(e.target.value))} />
+            </div>
+            <div className="rounded-lg bg-surface-muted p-3 text-sm text-ink-700">
+              Subtotal ₹{editSubTotal.toFixed(2)} + GST {editGst}% − Discount ₹{editDiscount} ={' '}
+              <span className="font-semibold text-ink-900">₹{(editSubTotal + editSubTotal * editGst / 100 - editDiscount).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setEditBillTarget(null)}>Cancel</Button>
+              <Button loading={submitting} disabled={editItems.every((i) => !i.description)} onClick={handleSaveBill}>Save Changes</Button>
             </div>
           </div>
         )}

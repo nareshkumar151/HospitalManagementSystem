@@ -75,6 +75,32 @@ export const createBill = (payload: {
   }
 }
 
+/** Edit Bill - refused by the backend once any payment has been collected against the bill. */
+export const updateBill = (id: number, payload: {
+  items: { description: string; quantity: number; unitPrice: number }[]
+  discountAmount: number; gstPercent: number
+}): AppThunk<Promise<BillDto>> => async (dispatch) => {
+  try {
+    const { data } = await apiClient.put<BillDto>(`/billing/${id}`, payload)
+    dispatch({ type: ONE_SUCCESS, payload: data })
+    return data
+  } catch (error) {
+    dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+    throw error
+  }
+}
+
+export const fetchBillById = (id: number): AppThunk<Promise<BillDto>> => async (dispatch) => {
+  try {
+    const { data } = await apiClient.get<BillDto>(`/billing/${id}`)
+    dispatch({ type: ONE_SUCCESS, payload: data })
+    return data
+  } catch (error) {
+    dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+    throw error
+  }
+}
+
 export const collectPayment = (payload: { billId: number; amount: number; mode: string; transactionReference?: string }): AppThunk<Promise<void>> =>
   async (dispatch) => {
     try {

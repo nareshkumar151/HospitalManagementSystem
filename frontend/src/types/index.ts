@@ -308,6 +308,7 @@ export interface IpdAdmissionDto {
   doctorName: string
   departmentName: string
   insuranceCompany: string | null
+  insurancePolicyNumber: string | null
   nurseUserId: number | null
   nurseName: string | null
   bedId: number

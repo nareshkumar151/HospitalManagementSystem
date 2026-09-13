@@ -61,6 +61,37 @@ public class BillingService : IBillingService
         return await GetByIdAsync(billId);
     }
 
+    public async Task<BillDto> UpdateBillAsync(int id, UpdateBillRequest request)
+    {
+        if (request.Items.Count == 0)
+            throw new ValidationAppException("A bill must contain at least one line item.");
+
+        var existing = await GetByIdAsync(id);
+        if (existing.Status != BillStatus.Pending)
+            throw new ValidationAppException("This bill already has a payment collected against it and can no longer be edited.");
+
+        var subTotal = request.Items.Sum(i => i.Quantity * i.UnitPrice);
+        var gstAmount = Math.Round(subTotal * request.GstPercent / 100m, 2);
+        var totalAmount = subTotal + gstAmount - request.DiscountAmount;
+
+        await _db.ExecuteAsync("sp_Bill_Update", new { Id = id, SubTotal = subTotal, GstAmount = gstAmount, request.DiscountAmount, TotalAmount = totalAmount });
+        await _db.ExecuteAsync("sp_BillItem_DeleteByBill", new { BillId = id });
+        foreach (var item in request.Items)
+        {
+            await _db.ExecuteAsync("sp_BillItem_Insert", new
+            {
+                BillId = id,
+                item.Description,
+                item.Quantity,
+                item.UnitPrice,
+                LineTotal = item.Quantity * item.UnitPrice
+            });
+        }
+
+        await _auditService.LogAsync("BillUpdated", "Bill", id.ToString(), existing.BillNumber);
+        return await GetByIdAsync(id);
+    }
+
     public async Task<BillDto> GetByIdAsync(int id)
     {
         var (headers, items) = await _db.QueryMultipleAsync<BillHeaderRow, BillItemDto>("sp_Bill_GetById", new { Id = id });

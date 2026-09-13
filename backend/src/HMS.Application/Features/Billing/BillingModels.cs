@@ -17,6 +17,10 @@ public record CreateBillRequest(
     int PatientId, int? OpdVisitId, int? IpdAdmissionId, BillType Type,
     IReadOnlyList<BillItemRequest> Items, decimal DiscountAmount, decimal GstPercent, int BranchId);
 
+/// <summary> Edit Bill - only the charges (line items, discount, GST) can change; patient, category, and
+/// bill type are fixed once generated. Refused (see UpdateBillAsync) once any payment has been collected. </summary>
+public record UpdateBillRequest(IReadOnlyList<BillItemRequest> Items, decimal DiscountAmount, decimal GstPercent);
+
 public record CollectPaymentRequest(int BillId, decimal Amount, PaymentMode Mode, string? TransactionReference);
 public record RefundPaymentRequest(int BillId, decimal Amount, string Reason);
 
@@ -37,6 +41,9 @@ public record VerifyRazorpayPaymentRequest(int BillId, string RazorpayOrderId, s
 public interface IBillingService
 {
     Task<BillDto> CreateBillAsync(CreateBillRequest request, int userId);
+    /// <summary> Edit Bill - refuses (ValidationAppException) once the bill has collected any payment, so an
+    /// already-reconciled amount can never silently disagree with the charges backing it. </summary>
+    Task<BillDto> UpdateBillAsync(int id, UpdateBillRequest request);
     Task<BillDto> GetByIdAsync(int id);
     Task<PagedResult<BillDto>> SearchAsync(PagedRequest request, int branchId, BillStatus? status = null, BillCategory? category = null);
     /// <summary> Pass `branchId` to scope to one branch's bills for this patient (front-desk/staff use);
