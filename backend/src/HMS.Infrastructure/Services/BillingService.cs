@@ -188,13 +188,14 @@ public class BillingService : IBillingService
         return new PaymentDto(paymentId, request.BillId, amount, PaymentMode.Card, request.RazorpayPaymentId, false, DateTime.UtcNow);
     }
 
-    public async Task<PagedResult<PaymentHistoryDto>> GetPaymentHistoryAsync(int branchId, PagedRequest request, DateTime? fromDate = null, DateTime? toDate = null)
+    public async Task<PagedResult<PaymentHistoryDto>> GetPaymentHistoryAsync(int branchId, PagedRequest request, DateTime? fromDate = null, DateTime? toDate = null, BillCategory? category = null)
     {
         var (rows, counts) = await _db.QueryMultipleAsync<PaymentHistoryRow, int>("sp_Payment_GetHistory", new
         {
             BranchId = branchId,
             FromDate = fromDate,
             ToDate = toDate,
+            Category = category?.ToString(),
             request.PageNumber,
             request.PageSize,
             request.Search

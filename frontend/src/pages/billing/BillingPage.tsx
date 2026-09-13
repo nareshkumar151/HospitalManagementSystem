@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { CreditCard, Download, History, IndianRupee, Plus, Receipt } from 'lucide-react'
+import { BedDouble, CreditCard, Download, History, IndianRupee, Plus, Receipt, Stethoscope } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { collectPayment, createBill, createRazorpayOrder, fetchPaymentHistory, fetchPendingBills, verifyRazorpayPayment } from '../../features/billing/billingSlice'
 import { fetchPatients } from '../../features/patients/patientsSlice'
@@ -27,20 +27,24 @@ export function BillingPage() {
   const location = useLocation()
   const guidedState = location.state as { guidedPatientId?: number; guidedIpdAdmissionId?: number } | null
   const guidedPatientId = guidedState?.guidedPatientId
-  // Set when arriving here right after IPD/Admissions -> Admit Patient, so Create Bill opens pre-filled
-  // for "Bill for: IPD" against the admission that was just created, instead of the receptionist having
-  // to switch it over and find the admission themselves.
+  // Set when arriving here right after IPD/Admissions -> Admit Patient, so this opens straight on the IPD
+  // Billing tab with Generate Bill pre-filled against the admission that was just created, instead of the
+  // receptionist having to switch tabs and find the admission themselves.
   const guidedIpdAdmissionId = guidedState?.guidedIpdAdmissionId
   const user = useAppSelector((state) => state.auth.user)
   const { pending, paymentHistory, status } = useAppSelector((state) => state.billing)
   const { list: patients } = useAppSelector((state) => state.patients)
   const { active: activeAdmissions } = useAppSelector((state) => state.ipd)
 
+  // OPD and IPD are kept fully separate here - their own tab, their own Pending Bills list, their own
+  // Payment History, their own Generate Bill flow (no "Bill for OPD/IPD" toggle - the active tab already
+  // says which one) - rather than one merged view filtered after the fact. Defaults to whichever the
+  // guided hand-off is actually for (IPD straight after IPD/Admissions -> Admit Patient; OPD otherwise).
+  const [activeTab, setActiveTab] = useState<BillCategory>(guidedIpdAdmissionId ? 'IPD' : 'OPD')
   const [createOpen, setCreateOpen] = useState(!!guidedPatientId)
   const [payTarget, setPayTarget] = useState<BillDto | null>(null)
   const [patientId, setPatientId] = useState<number | ''>(guidedPatientId ?? '')
   const [billType, setBillType] = useState(guidedIpdAdmissionId ? 'Admission' : 'Consultation')
-  const [billCategory, setBillCategory] = useState<BillCategory>(guidedIpdAdmissionId ? 'IPD' : 'OPD')
   const [ipdAdmissionId, setIpdAdmissionId] = useState<number | ''>(guidedIpdAdmissionId ?? '')
   const [items, setItems] = useState<LineItem[]>([{ description: '', quantity: 1, unitPrice: 0 }])
   const [discount, setDiscount] = useState(0)
@@ -54,7 +58,6 @@ export function BillingPage() {
   const [payMode, setPayMode] = useState('Cash')
   const [submitting, setSubmitting] = useState(false)
   const [payingOnline, setPayingOnline] = useState(false)
-  const [categoryFilter, setCategoryFilter] = useState<'' | BillCategory>('')
   // Set only when Collect Payment was auto-opened right after creating a bill (the guided registration ->
   // appointment -> bill -> payment flow) - NOT when collecting on an existing row from the pending-bills
   // queue below, so working through that queue doesn't get interrupted by a redirect after every payment.
@@ -66,7 +69,7 @@ export function BillingPage() {
   const [paymentToDate, setPaymentToDate] = useState('')
   const [paymentPage, setPaymentPage] = useState(1)
 
-  useEffect(() => { dispatch(fetchPendingBills(categoryFilter || undefined)) }, [dispatch, categoryFilter])
+  useEffect(() => { dispatch(fetchPendingBills(activeTab)) }, [dispatch, activeTab])
   useEffect(() => { dispatch(fetchPatients({ pageSize: 100 })) }, [dispatch])
   useEffect(() => { dispatch(fetchActiveAdmissions()) }, [dispatch])
 
@@ -77,12 +80,18 @@ export function BillingPage() {
   }, [patients, patientId])
 
   const refreshPaymentHistory = () =>
-    dispatch(fetchPaymentHistory({ pageNumber: paymentPage, pageSize: 10, search: paymentSearch, fromDate: paymentFromDate, toDate: paymentToDate }))
+    dispatch(fetchPaymentHistory({ pageNumber: paymentPage, pageSize: 10, search: paymentSearch, fromDate: paymentFromDate, toDate: paymentToDate, category: activeTab }))
 
   useEffect(() => {
-    const timeout = setTimeout(() => dispatch(fetchPaymentHistory({ pageNumber: paymentPage, pageSize: 10, search: paymentSearch, fromDate: paymentFromDate, toDate: paymentToDate })), 300)
+    const timeout = setTimeout(() => dispatch(fetchPaymentHistory({ pageNumber: paymentPage, pageSize: 10, search: paymentSearch, fromDate: paymentFromDate, toDate: paymentToDate, category: activeTab })), 300)
     return () => clearTimeout(timeout)
-  }, [dispatch, paymentPage, paymentSearch, paymentFromDate, paymentToDate])
+  }, [dispatch, paymentPage, paymentSearch, paymentFromDate, paymentToDate, activeTab])
+
+  // Switching tabs starts each list fresh rather than showing a stale page number from the other category.
+  const switchTab = (tab: BillCategory) => {
+    setActiveTab(tab)
+    setPaymentPage(1)
+  }
 
   // The patient's own currently-active admission(s), for the IPD admission picker below.
   const patientActiveAdmissions = activeAdmissions.filter((a) => a.patientId === patientId)
@@ -94,12 +103,12 @@ export function BillingPage() {
 
   const handleCreateBill = async () => {
     if (!patientId || items.every((i) => !i.description)) return
-    if (billCategory === 'IPD' && !ipdAdmissionId) return
+    if (activeTab === 'IPD' && !ipdAdmissionId) return
     setSubmitting(true)
     try {
       const bill = await dispatch(createBill({
         patientId,
-        ipdAdmissionId: billCategory === 'IPD' ? Number(ipdAdmissionId) : undefined,
+        ipdAdmissionId: activeTab === 'IPD' ? Number(ipdAdmissionId) : undefined,
         type: billType,
         items: items.filter((i) => i.description),
         discountAmount: discount,
@@ -108,9 +117,8 @@ export function BillingPage() {
       }))
       toast.success(`Bill ${bill.billNumber} generated for ₹${bill.totalAmount}`)
       setCreateOpen(false)
-      setItems([{ description: '', quantity: 1, unitPrice: 0 }]); setPatientId(''); setDiscount(0)
-      setBillCategory('OPD'); setIpdAdmissionId('')
-      dispatch(fetchPendingBills(categoryFilter || undefined))
+      setItems([{ description: '', quantity: 1, unitPrice: 0 }]); setPatientId(''); setDiscount(0); setIpdAdmissionId('')
+      dispatch(fetchPendingBills(activeTab))
 
       if (createPayMode === 'PayLater') {
         // Not paying on the spot - fall back to the existing Collect Payment step (manual or Razorpay).
@@ -123,7 +131,7 @@ export function BillingPage() {
         const balance = bill.totalAmount - bill.paidAmount
         await dispatch(collectPayment({ billId: bill.id, amount: balance, mode: createPayMode }))
         toast.success(`Payment of ₹${balance} collected via ${createPayMode}.`)
-        dispatch(fetchPendingBills(categoryFilter || undefined))
+        dispatch(fetchPendingBills(activeTab))
         refreshPaymentHistory()
         // Closes the registration -> appointment -> bill -> payment loop by landing back on the dashboard,
         // where Today's Revenue now reflects what was just collected (same landing spot Collect Payment
@@ -144,7 +152,7 @@ export function BillingPage() {
       await dispatch(collectPayment({ billId: payTarget.id, amount: payAmount, mode: payMode }))
       toast.success('Payment collected.')
       setPayTarget(null); setPayAmount(0)
-      dispatch(fetchPendingBills(categoryFilter || undefined))
+      dispatch(fetchPendingBills(activeTab))
       refreshPaymentHistory()
       if (justCreatedFlow) {
         setJustCreatedFlow(false)
@@ -179,7 +187,7 @@ export function BillingPage() {
       }))
       toast.success('Payment received via Razorpay.')
       setPayTarget(null)
-      dispatch(fetchPendingBills(categoryFilter || undefined))
+      dispatch(fetchPendingBills(activeTab))
       refreshPaymentHistory()
       if (justCreatedFlow) {
         setJustCreatedFlow(false)
@@ -203,7 +211,6 @@ export function BillingPage() {
   const columns: Column<BillDto>[] = [
     { key: 'number', header: 'Bill #', render: (b) => <span className="font-mono text-xs">{b.billNumber}</span> },
     { key: 'patient', header: 'Patient', render: (b) => b.patientName },
-    { key: 'category', header: 'OPD/IPD', render: (b) => <Badge tone={b.category === 'IPD' ? 'warning' : 'brand'}>{b.category}</Badge> },
     { key: 'type', header: 'Type', render: (b) => <Badge tone="neutral">{b.type}</Badge> },
     { key: 'total', header: 'Total', render: (b) => `₹${b.totalAmount.toLocaleString('en-IN')}` },
     { key: 'paid', header: 'Paid', render: (b) => `₹${b.paidAmount.toLocaleString('en-IN')}` },
@@ -243,20 +250,34 @@ export function BillingPage() {
     <div>
       <PageHeader
         title="Billing"
-        subtitle="Generate bills and collect payments for consultations, admissions, labs, and pharmacy."
+        subtitle={activeTab === 'OPD'
+          ? 'Generate bills and collect payments for outpatient consultations, labs, and pharmacy.'
+          : 'Generate bills and collect payments against an active admission.'}
         actions={<Button icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>Generate Bill</Button>}
       />
+
+      {/* OPD and IPD are separate tabs, not a filter over one merged list - everything below (Pending
+          Bills, Payment History, Generate Bill) is scoped to whichever is active. */}
+      <div className="mb-4 flex gap-2">
+        <button
+          onClick={() => switchTab('OPD')}
+          className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'OPD' ? 'border-brand-500 bg-brand-500 text-white' : 'border-ink-100 bg-surface text-ink-700 hover:bg-surface-muted'}`}
+        >
+          <Stethoscope size={14} /> OPD Billing
+        </button>
+        <button
+          onClick={() => switchTab('IPD')}
+          className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'IPD' ? 'border-brand-500 bg-brand-500 text-white' : 'border-ink-100 bg-surface text-ink-700 hover:bg-surface-muted'}`}
+        >
+          <BedDouble size={14} /> IPD Billing
+        </button>
+      </div>
 
       <Card padded={false}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-ink-700">
-            <Receipt size={16} /> Pending &amp; Partially Paid Bills
+            <Receipt size={16} /> {activeTab} Pending &amp; Partially Paid Bills
           </div>
-          <Select label="" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as '' | BillCategory)} className="w-40">
-            <option value="">All (OPD + IPD)</option>
-            <option value="OPD">OPD only</option>
-            <option value="IPD">IPD only</option>
-          </Select>
         </div>
         <div className="p-4">
           <Table columns={columns} rows={pending} keyField={(b) => b.id} loading={status === 'loading'} emptyMessage="No pending bills." />
@@ -266,7 +287,7 @@ export function BillingPage() {
       <Card className="mt-4" padded={false}>
         <div className="flex flex-wrap items-end gap-3 border-b border-ink-100 p-4">
           <div className="mr-auto flex items-center gap-2 text-sm font-medium text-ink-700">
-            <History size={16} /> Payment History
+            <History size={16} /> {activeTab} Payment History
           </div>
           <SearchBox
             value={paymentSearch}
@@ -309,8 +330,13 @@ export function BillingPage() {
         )}
       </Card>
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Generate Bill" widthClassName="max-w-2xl">
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={`Generate Bill · ${activeTab}`} widthClassName="max-w-2xl">
         <div className="space-y-4">
+          <div className={`flex items-center gap-2 rounded-lg p-3 text-sm ${activeTab === 'OPD' ? 'bg-brand-50 text-brand-700' : 'bg-warning-500/10 text-warning-600'}`}>
+            {activeTab === 'OPD' ? <Stethoscope size={16} /> : <BedDouble size={16} />}
+            {activeTab === 'OPD' ? 'Outpatient charge - not linked to any admission.' : 'Charged against one of this patient\'s active admissions.'}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <Select label="Patient" value={patientId} onChange={(e) => { setPatientId(Number(e.target.value) || ''); setIpdAdmissionId('') }}>
               <option value="">Select patient</option>
@@ -321,17 +347,8 @@ export function BillingPage() {
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Select
-              label="Bill for"
-              hint="OPD = outpatient/walk-in charge. IPD = charged against an active admission."
-              value={billCategory}
-              onChange={(e) => { setBillCategory(e.target.value as BillCategory); setIpdAdmissionId('') }}
-            >
-              <option value="OPD">OPD (Outpatient)</option>
-              <option value="IPD">IPD (Inpatient / Admission)</option>
-            </Select>
-            {billCategory === 'IPD' && (
+          {activeTab === 'IPD' && (
+            <div className="grid grid-cols-2 gap-3">
               <Select
                 label="IPD admission"
                 value={ipdAdmissionId}
@@ -343,8 +360,8 @@ export function BillingPage() {
                   <option key={a.id} value={a.id}>{a.admissionNumber} · Bed {a.bedNumber} · {admissionTypeLabel(a.admissionType)}</option>
                 ))}
               </Select>
-            )}
-          </div>
+            </div>
+          )}
 
           <div>
             <div className="mb-2 flex items-center justify-between">
@@ -382,7 +399,7 @@ export function BillingPage() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button loading={submitting} disabled={!patientId || (billCategory === 'IPD' && !ipdAdmissionId)} onClick={handleCreateBill}>Generate Bill</Button>
+            <Button loading={submitting} disabled={!patientId || (activeTab === 'IPD' && !ipdAdmissionId)} onClick={handleCreateBill}>Generate Bill</Button>
           </div>
         </div>
       </Modal>

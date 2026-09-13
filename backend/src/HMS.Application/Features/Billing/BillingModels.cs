@@ -53,7 +53,7 @@ public interface IBillingService
     Task<PaymentDto> VerifyAndCollectRazorpayPaymentAsync(VerifyRazorpayPaymentRequest request, int userId);
 
     /// <summary> Billing section's Payment History - every payment/refund collected in this branch, keyed
-    /// off the payment's own date (not the bill's), optionally narrowed to a date range and/or search text
-    /// (patient name, UHID, or bill number). </summary>
-    Task<PagedResult<PaymentHistoryDto>> GetPaymentHistoryAsync(int branchId, PagedRequest request, DateTime? fromDate = null, DateTime? toDate = null);
+    /// off the payment's own date (not the bill's), optionally narrowed to a date range, OPD/IPD category
+    /// (via the underlying bill), and/or search text (patient name, UHID, or bill number). </summary>
+    Task<PagedResult<PaymentHistoryDto>> GetPaymentHistoryAsync(int branchId, PagedRequest request, DateTime? fromDate = null, DateTime? toDate = null, BillCategory? category = null);
 }

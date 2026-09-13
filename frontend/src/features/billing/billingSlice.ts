@@ -1,6 +1,6 @@
 import { apiClient, extractErrorMessage } from '../../api/client'
 import type { AppThunk } from '../../app/store'
-import type { BillDto, PagedResult, PaymentHistoryDto, RazorpayOrderResponseDto } from '../../types'
+import type { BillCategory, BillDto, PagedResult, PaymentHistoryDto, RazorpayOrderResponseDto } from '../../types'
 
 export interface BillingState {
   pending: BillDto[]
@@ -108,7 +108,7 @@ export const verifyRazorpayPayment = (payload: {
 }
 
 export const fetchPaymentHistory = (params: {
-  pageNumber?: number; pageSize?: number; search?: string; fromDate?: string; toDate?: string
+  pageNumber?: number; pageSize?: number; search?: string; fromDate?: string; toDate?: string; category?: BillCategory
 } = {}): AppThunk<Promise<void>> => async (dispatch) => {
   dispatch({ type: START })
   try {
@@ -116,6 +116,7 @@ export const fetchPaymentHistory = (params: {
       params: {
         pageNumber: params.pageNumber ?? 1, pageSize: params.pageSize ?? 10,
         search: params.search || undefined, fromDate: params.fromDate || undefined, toDate: params.toDate || undefined,
+        category: params.category,
       },
     })
     dispatch({ type: PAYMENT_HISTORY_SUCCESS, payload: data })

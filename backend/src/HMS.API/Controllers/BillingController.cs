@@ -66,8 +66,8 @@ public class BillingController : ApiControllerBase
     [HttpGet("payments/history")]
     [Authorize(Roles = RoleNames.FrontDesk)]
     public async Task<ActionResult<PagedResult<PaymentHistoryDto>>> GetPaymentHistory(
-        [FromQuery] PagedRequest request, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
-        => Ok(await _billingService.GetPaymentHistoryAsync(CurrentBranchId, request, fromDate, toDate));
+        [FromQuery] PagedRequest request, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] BillCategory? category)
+        => Ok(await _billingService.GetPaymentHistoryAsync(CurrentBranchId, request, fromDate, toDate, category));
 
     /// <summary> Manually-recorded payment - Cash, or Card/UPI/Insurance settled outside the online gateway. </summary>
     [HttpPost("payments")]
