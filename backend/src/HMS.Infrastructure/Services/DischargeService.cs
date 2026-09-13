@@ -1,6 +1,7 @@
 using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
 using HMS.Application.Features.Discharge;
+using HMS.Application.Features.IpdAdmissions;
 
 namespace HMS.Infrastructure.Services;
 
@@ -8,19 +9,25 @@ public class DischargeService : IDischargeService
 {
     private readonly ISqlDataAccess _db;
     private readonly IAuditService _auditService;
+    private readonly IIpdAdmissionService _ipdAdmissionService;
 
-    public DischargeService(ISqlDataAccess db, IAuditService auditService)
+    public DischargeService(ISqlDataAccess db, IAuditService auditService, IIpdAdmissionService ipdAdmissionService)
     {
         _db = db;
         _auditService = auditService;
+        _ipdAdmissionService = ipdAdmissionService;
     }
 
-    public async Task<DischargeSummaryDto> DischargeAsync(int admissionId, CreateDischargeSummaryRequest request, int doctorId)
+    public async Task<DischargeSummaryDto> DischargeAsync(int admissionId, CreateDischargeSummaryRequest request)
     {
+        // The treating doctor is always this admission's own attending doctor - not whoever happens to be
+        // filing the discharge (front desk/nursing routinely process it on the attending doctor's behalf).
+        var admission = await _ipdAdmissionService.GetByIdAsync(admissionId);
+
         await _db.QuerySingleAsync<int>("sp_DischargeSummary_Create", new
         {
             IpdAdmissionId = admissionId,
-            TreatingDoctorId = doctorId,
+            TreatingDoctorId = admission.DoctorId,
             request.Diagnosis,
             request.ChiefComplaint,
             request.PastHistory,

@@ -19,10 +19,14 @@ public class DischargeController : ApiControllerBase
         _bundleService = bundleService;
     }
 
+    // Matches who can actually see/act on an admission on the IPD/Admissions page (Administrator,
+    // Receptionist, Nurse, Doctor) - discharge is routinely processed by front desk/nursing, not only by
+    // the attending doctor logging in themselves; see DischargeService.DischargeAsync for how the treating
+    // doctor still always ends up correct on the summary regardless of who files it.
     [HttpPost("admissions/{admissionId:int}")]
-    [Authorize(Roles = RoleNames.Doctor)]
+    [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Doctor + "," + RoleNames.Nurse + "," + RoleNames.Receptionist)]
     public async Task<ActionResult<DischargeSummaryDto>> Discharge(int admissionId, CreateDischargeSummaryRequest request)
-        => Ok(await _dischargeService.DischargeAsync(admissionId, request, CurrentLinkedProfileId!.Value));
+        => Ok(await _dischargeService.DischargeAsync(admissionId, request));
 
     [HttpGet("admissions/{admissionId:int}")]
     [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Doctor + "," + RoleNames.Nurse + "," + RoleNames.Receptionist)]

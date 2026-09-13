@@ -14,7 +14,10 @@ public record CreateDischargeSummaryRequest(
 public interface IDischargeService
 {
     /// <summary> Creates the summary, sets admission Status=Discharged, frees the bed, and (if requested)
-    /// generates the final consolidated bill - mirrors the "Bill Settlement -> Discharge Summary" workflow diagram. </summary>
-    Task<DischargeSummaryDto> DischargeAsync(int admissionId, CreateDischargeSummaryRequest request, int doctorId);
+    /// generates the final consolidated bill - mirrors the "Bill Settlement -> Discharge Summary" workflow
+    /// diagram. The treating doctor recorded on the summary is always the admission's own attending doctor
+    /// (IpdAdmissions.DoctorId), never the caller's identity - discharge is routinely processed by front
+    /// desk/nursing on the attending doctor's behalf, not only by the doctor logging in themselves. </summary>
+    Task<DischargeSummaryDto> DischargeAsync(int admissionId, CreateDischargeSummaryRequest request);
     Task<DischargeSummaryDto> GetByAdmissionIdAsync(int admissionId);
 }
