@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { CalendarClock, Check, Clock, Users, UserCheck, UserX, ClipboardList, X } from 'lucide-react'
+import { CalendarClock, CalendarRange, Check, Clock, Users, UserCheck, UserX, ClipboardList, X } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { leaveRequestResource, type LeaveRequestRow } from '../../features/generic/resources'
-import { fetchAttendanceForMonth, fetchAttendanceHistory, fetchAttendanceSummary } from '../../features/attendance/attendanceSlice'
+import { fetchAttendanceForMonth, fetchAttendanceHistory, fetchAttendanceSummary, fetchLeaveBalances } from '../../features/attendance/attendanceSlice'
 import { fetchEmployees } from '../../features/employees/employeesSlice'
 import { apiClient, extractErrorMessage } from '../../api/client'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -26,12 +26,13 @@ export function AttendanceLeavePage() {
   const dispatch = useAppDispatch()
   const { list, status } = useAppSelector((state) => state.leaveRequests)
   const { list: employees } = useAppSelector((state) => state.employees)
-  const { history, monthMatrix, summary, status: attendanceStatus } = useAppSelector((state) => state.attendance)
+  const { history, monthMatrix, summary, leaveBalances, status: attendanceStatus } = useAppSelector((state) => state.attendance)
   const items = list?.items ?? []
   const [checkInEmployeeId, setCheckInEmployeeId] = useState<number | ''>('')
   const [selectedMonth, setSelectedMonth] = useState(currentMonthValue())
   const [leaveSearch, setLeaveSearch] = useState('')
   const [leavePage, setLeavePage] = useState(1)
+  const [balanceYear, setBalanceYear] = useState(new Date().getFullYear())
 
   // The month matrix needs every Approved leave request that could overlap the displayed month, not just
   // one page of the review queue below - fetched separately (status-filtered, generously sized) so it
@@ -65,6 +66,10 @@ export function AttendanceLeavePage() {
     if (checkInEmployeeId) dispatch(fetchAttendanceHistory(checkInEmployeeId))
   }, [dispatch, checkInEmployeeId])
 
+  useEffect(() => {
+    dispatch(fetchLeaveBalances(balanceYear))
+  }, [dispatch, balanceYear])
+
   const review = async (id: number, statusValue: 'Approved' | 'Rejected') => {
     try {
       await apiClient.put(`/attendance/leave-requests/${id}/review`, { status: statusValue })
@@ -72,6 +77,7 @@ export function AttendanceLeavePage() {
       refreshLeaveRequests()
       refreshMatrixLeave()
       dispatch(fetchAttendanceSummary())
+      dispatch(fetchLeaveBalances(balanceYear))
     } catch (error) {
       toast.error(extractErrorMessage(error))
     }
@@ -116,6 +122,13 @@ export function AttendanceLeavePage() {
         </div>
       ) : null,
     },
+  ]
+
+  const balanceColumns: Column<import('../../types').LeaveBalanceDto>[] = [
+    { key: 'employee', header: 'Employee', render: (b) => b.employeeName },
+    { key: 'entitled', header: 'Entitled', render: (b) => `${b.entitledDays} days` },
+    { key: 'used', header: 'Used', render: (b) => `${b.usedDays} days` },
+    { key: 'remaining', header: 'Remaining', render: (b) => <Badge tone={b.remainingDays > 0 ? 'success' : 'danger'}>{b.remainingDays} days</Badge> },
   ]
 
   const historyColumns: Column<AttendanceDto>[] = [
@@ -175,6 +188,19 @@ export function AttendanceLeavePage() {
             <Table columns={historyColumns} rows={history} keyField={(a) => a.id} loading={attendanceStatus === 'loading'} emptyMessage="No attendance recorded for this employee yet." />
           </div>
         )}
+      </Card>
+
+      <Card className="mb-4" padded={false}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 p-4">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><CalendarRange size={16} /> Leave Balances</h3>
+          <input
+            type="number" value={balanceYear} onChange={(e) => setBalanceYear(Number(e.target.value) || balanceYear)}
+            className="w-24 rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+          />
+        </div>
+        <div className="p-4">
+          <Table columns={balanceColumns} rows={leaveBalances} keyField={(b) => b.employeeId} loading={attendanceStatus === 'loading'} emptyMessage="No employees to show." />
+        </div>
       </Card>
 
       <Card padded={false}>

@@ -72,5 +72,18 @@ public class AttendanceController : ApiControllerBase
         return Ok(await _attendanceService.GetLeaveRequestsAsync(CurrentBranchId, request, status, ownEmployeeId));
     }
 
+    [HttpGet("leave-balance/{employeeId:int}")]
+    [Authorize(Roles = RoleNames.EmployeeSelfService)]
+    public async Task<ActionResult<LeaveBalanceDto>> GetLeaveBalance(int employeeId, [FromQuery] int? year)
+    {
+        if (!IsHrOrAdmin() && CurrentLinkedProfileId != employeeId) return Forbid();
+        return Ok(await _attendanceService.GetLeaveBalanceAsync(employeeId, year ?? DateTime.UtcNow.Year));
+    }
+
+    [HttpGet("leave-balances")]
+    [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.HR)]
+    public async Task<ActionResult<IReadOnlyList<LeaveBalanceDto>>> GetLeaveBalances([FromQuery] int? year)
+        => Ok(await _attendanceService.GetLeaveBalancesForBranchAsync(CurrentBranchId, year ?? DateTime.UtcNow.Year));
+
     private bool IsHrOrAdmin() => User.IsInRole(RoleNames.Administrator) || User.IsInRole(RoleNames.HR);
 }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { CalendarClock, CalendarPlus, Clock } from 'lucide-react'
+import { CalendarClock, CalendarPlus, CalendarRange, Clock } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { applyLeave, fetchAttendanceHistory, fetchMyLeaveRequests } from '../../features/attendance/attendanceSlice'
+import { applyLeave, fetchAttendanceHistory, fetchMyLeaveBalance, fetchMyLeaveRequests } from '../../features/attendance/attendanceSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
+import { StatCard } from '../../components/ui/StatCard'
 import { Table, type Column } from '../../components/ui/Table'
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
@@ -22,7 +23,7 @@ export function MyAttendancePage() {
   const dispatch = useAppDispatch()
   const user = useAppSelector((state) => state.auth.user)
   const employeeId = user?.linkedProfileId
-  const { history, myLeaveRequests, status } = useAppSelector((state) => state.attendance)
+  const { history, myLeaveRequests, myLeaveBalance, status } = useAppSelector((state) => state.attendance)
 
   const [applyOpen, setApplyOpen] = useState(false)
   const [fromDate, setFromDate] = useState('')
@@ -30,10 +31,18 @@ export function MyAttendancePage() {
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Days the form currently asks for, so the requester can see before submitting whether it fits within
+  // what's left - the backend is still the one that actually enforces this on submit.
+  const requestedDays = fromDate && toDate && toDate >= fromDate
+    ? Math.round((new Date(toDate).getTime() - new Date(fromDate).getTime()) / 86_400_000) + 1
+    : 0
+  const exceedsBalance = !!myLeaveBalance && requestedDays > myLeaveBalance.remainingDays
+
   const refresh = () => {
     if (!employeeId) return
     dispatch(fetchAttendanceHistory(employeeId))
     dispatch(fetchMyLeaveRequests())
+    dispatch(fetchMyLeaveBalance(employeeId))
   }
 
   useEffect(refresh, [dispatch, employeeId])
@@ -47,6 +56,7 @@ export function MyAttendancePage() {
       setApplyOpen(false)
       setFromDate(''); setToDate(''); setReason('')
       dispatch(fetchMyLeaveRequests())
+      dispatch(fetchMyLeaveBalance(employeeId))
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -76,6 +86,14 @@ export function MyAttendancePage() {
         subtitle="Your check-in/check-out history and leave requests."
         actions={<Button icon={<CalendarPlus size={16} />} onClick={() => setApplyOpen(true)}>Apply for Leave</Button>}
       />
+
+      {myLeaveBalance && (
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard label={`${myLeaveBalance.year} Leave Entitlement`} value={`${myLeaveBalance.entitledDays} days`} icon={CalendarRange} tone="brand" />
+          <StatCard label="Used" value={`${myLeaveBalance.usedDays} days`} icon={CalendarClock} tone="warning" />
+          <StatCard label="Remaining" value={`${myLeaveBalance.remainingDays} days`} icon={CalendarPlus} tone={myLeaveBalance.remainingDays > 0 ? 'success' : 'danger'} />
+        </div>
+      )}
 
       <Card padded={false} className="mb-4">
         <div className="flex items-center gap-2 border-b border-ink-100 p-4 text-sm font-medium text-ink-700">
@@ -114,9 +132,15 @@ export function MyAttendancePage() {
             <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)}
               className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
           </label>
+          {requestedDays > 0 && myLeaveBalance && (
+            <p className={`text-xs ${exceedsBalance ? 'font-medium text-danger-500' : 'text-ink-500'}`}>
+              {requestedDays} day{requestedDays === 1 ? '' : 's'} requested · {myLeaveBalance.remainingDays} remaining for {myLeaveBalance.year}
+              {exceedsBalance && ' - exceeds your remaining leave.'}
+            </p>
+          )}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setApplyOpen(false)}>Cancel</Button>
-            <Button loading={submitting} disabled={!fromDate || !toDate || !reason} onClick={handleApplyLeave}>Submit Request</Button>
+            <Button loading={submitting} disabled={!fromDate || !toDate || !reason || exceedsBalance} onClick={handleApplyLeave}>Submit Request</Button>
           </div>
         </div>
       </Modal>

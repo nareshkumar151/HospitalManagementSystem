@@ -63,7 +63,9 @@ BEGIN
     JOIN Patients p ON p.Id = s.PatientId
     JOIN Doctors doc ON doc.Id = s.SurgeonDoctorId
     JOIN IpdAdmissions a ON a.Id = s.IpdAdmissionId
-    WHERE CAST(s.ScheduledAt AS DATE) = CAST(SYSUTCDATETIME() AS DATE) AND s.IsDeleted = 0 AND a.BranchId = @BranchId
+    -- +330 minutes = IST (see 21_HR.sql's Attendance procs) - the raw UTC date stays on yesterday until
+    -- 5:30am IST, which would otherwise drop today's early-morning surgeries off this list until then.
+    WHERE CAST(s.ScheduledAt AS DATE) = CAST(DATEADD(MINUTE, 330, SYSUTCDATETIME()) AS DATE) AND s.IsDeleted = 0 AND a.BranchId = @BranchId
     ORDER BY s.ScheduledAt;
 END
 GO

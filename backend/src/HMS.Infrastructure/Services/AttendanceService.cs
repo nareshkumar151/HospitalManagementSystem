@@ -26,8 +26,23 @@ public class AttendanceService : IAttendanceService
     public Task<AttendanceSummaryDto> GetTodaySummaryAsync(int branchId)
         => _db.QuerySingleAsync<AttendanceSummaryDto>("sp_Attendance_GetTodaySummary", new { BranchId = branchId });
 
+    public Task<LeaveBalanceDto> GetLeaveBalanceAsync(int employeeId, int year)
+        => _db.QuerySingleAsync<LeaveBalanceDto>("sp_LeaveBalance_GetForEmployee", new { EmployeeId = employeeId, Year = year });
+
+    public Task<IReadOnlyList<LeaveBalanceDto>> GetLeaveBalancesForBranchAsync(int branchId, int year)
+        => _db.QueryAsync<LeaveBalanceDto>("sp_LeaveBalance_GetAllForBranch", new { BranchId = branchId, Year = year });
+
     public async Task<LeaveRequestDto> ApplyLeaveAsync(ApplyLeaveRequest request)
     {
+        if (request.ToDate.Date < request.FromDate.Date)
+            throw new ValidationAppException("To date must be on or after the from date.");
+
+        var requestedDays = (request.ToDate.Date - request.FromDate.Date).Days + 1;
+        var balance = await GetLeaveBalanceAsync(request.EmployeeId, request.FromDate.Year);
+        if (requestedDays > balance.RemainingDays)
+            throw new ValidationAppException(
+                $"Only {balance.RemainingDays} leave day(s) remaining for {balance.Year} - this request is for {requestedDays}.");
+
         var newId = await _db.QuerySingleAsync<int>("sp_LeaveRequest_Insert", request);
         return await GetLeaveRequestByIdAsync(newId);
     }

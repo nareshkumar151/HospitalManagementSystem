@@ -14,7 +14,10 @@ CREATE OR ALTER PROCEDURE sp_Dashboard_GetSummary
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    -- +330 minutes = IST (UTC+5:30, this hospital's own timezone) - the raw UTC date stays on yesterday
+    -- until 5:30am IST, which used to make every "Today's ..." tile quietly show yesterday's figures for
+    -- the first few hours of each day (see the same fix in 21_HR.sql's Attendance procs).
+    DECLARE @Today DATE = CAST(DATEADD(MINUTE, 330, SYSUTCDATETIME()) AS DATE);
 
     SELECT
         (SELECT COUNT(*) FROM Appointments WHERE BranchId = @BranchId AND AppointmentDate = @Today AND IsDeleted = 0) AS TodaysPatients,
@@ -100,7 +103,7 @@ CREATE OR ALTER PROCEDURE sp_Dashboard_GetPlatformSummary
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    DECLARE @Today DATE = CAST(DATEADD(MINUTE, 330, SYSUTCDATETIME()) AS DATE);
 
     SELECT
         (SELECT COUNT(*) FROM Hospitals WHERE IsDeleted = 0) AS TotalHospitals,

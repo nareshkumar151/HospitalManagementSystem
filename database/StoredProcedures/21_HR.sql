@@ -2,12 +2,17 @@ USE HMS_DB;
 GO
 
 /* ==================== Attendance ==================== */
+-- "Today" is IST (UTC+5:30, this hospital's own timezone, fixed offset - no DST in India), not the server's
+-- raw UTC date: SYSUTCDATETIME() alone stays on yesterday's date until 5:30am IST, which used to file a
+-- perfectly normal early-morning check-in under the wrong day (and made it look like it "didn't happen" -
+-- both the month matrix and Attendance/Leave's own "who's in today" numbers use the browser's local, IST
+-- calendar date, so a mismatched server-side cutoff never lined up with what staff actually saw on screen).
 CREATE OR ALTER PROCEDURE sp_Attendance_CheckIn
     @EmployeeId INT, @Shift NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    DECLARE @Today DATE = CAST(DATEADD(MINUTE, 330, SYSUTCDATETIME()) AS DATE);
     IF EXISTS (SELECT 1 FROM Attendances WHERE EmployeeId = @EmployeeId AND AttendanceDate = @Today)
     BEGIN
         UPDATE Attendances SET CheckIn = SYSUTCDATETIME(), Shift = @Shift
@@ -28,7 +33,7 @@ CREATE OR ALTER PROCEDURE sp_Attendance_CheckOut
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    DECLARE @Today DATE = CAST(DATEADD(MINUTE, 330, SYSUTCDATETIME()) AS DATE);
 
     IF NOT EXISTS (SELECT 1 FROM Attendances WHERE EmployeeId = @EmployeeId AND AttendanceDate = @Today)
     BEGIN
@@ -81,7 +86,7 @@ CREATE OR ALTER PROCEDURE sp_Attendance_GetTodaySummary
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    DECLARE @Today DATE = CAST(DATEADD(MINUTE, 330, SYSUTCDATETIME()) AS DATE);
     SELECT
         (SELECT COUNT(*) FROM Employees WHERE IsActive = 1 AND IsDeleted = 0 AND BranchId = @BranchId) AS TotalEmployees,
         (SELECT COUNT(*) FROM Attendances a JOIN Employees e ON e.Id = a.EmployeeId
@@ -200,5 +205,46 @@ BEGIN
     SELECT l.Id, l.EmployeeId, e.FullName AS EmployeeName, l.FromDate, l.ToDate, l.Reason, l.Status
     FROM LeaveRequests l JOIN Employees e ON e.Id = l.EmployeeId
     WHERE l.Id = @Id AND l.IsDeleted = 0;
+END
+GO
+
+/* ==================== Leave Balance (leave count) ==================== */
+-- Fixed hospital-wide annual entitlement, in days - no per-employee override table exists (nothing in this
+-- app yet varies it by seniority/employment type), so it's a single constant here rather than a full CRUD
+-- surface for a policy nobody has asked to customize per person yet. UsedDays is computed fresh from
+-- Approved leave requests overlapping @Year every time this is called, rather than tracked as a running
+-- counter that Insert/Review/Delete would all have to keep in perfect sync - it can never drift.
+CREATE OR ALTER PROCEDURE sp_LeaveBalance_GetForEmployee
+    @EmployeeId INT, @Year INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @EntitledDays INT = 24;
+    DECLARE @UsedDays INT = ISNULL((
+        SELECT SUM(DATEDIFF(DAY, l.FromDate, l.ToDate) + 1) FROM LeaveRequests l
+        WHERE l.EmployeeId = @EmployeeId AND l.Status = 'Approved' AND YEAR(l.FromDate) = @Year AND l.IsDeleted = 0
+    ), 0);
+    SELECT e.Id AS EmployeeId, e.FullName AS EmployeeName, @Year AS Year,
+           @EntitledDays AS EntitledDays, @UsedDays AS UsedDays, @EntitledDays - @UsedDays AS RemainingDays
+    FROM Employees e WHERE e.Id = @EmployeeId;
+END
+GO
+
+-- Same figures as above, for every active employee in a branch at once - HR/Admin's leave-count overview.
+CREATE OR ALTER PROCEDURE sp_LeaveBalance_GetAllForBranch
+    @BranchId INT, @Year INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @EntitledDays INT = 24;
+    SELECT e.Id AS EmployeeId, e.FullName AS EmployeeName, @Year AS Year, @EntitledDays AS EntitledDays,
+           ISNULL(u.UsedDays, 0) AS UsedDays, @EntitledDays - ISNULL(u.UsedDays, 0) AS RemainingDays
+    FROM Employees e
+    OUTER APPLY (
+        SELECT SUM(DATEDIFF(DAY, l.FromDate, l.ToDate) + 1) AS UsedDays
+        FROM LeaveRequests l WHERE l.EmployeeId = e.Id AND l.Status = 'Approved' AND YEAR(l.FromDate) = @Year AND l.IsDeleted = 0
+    ) u
+    WHERE e.BranchId = @BranchId AND e.IsActive = 1 AND e.IsDeleted = 0
+    ORDER BY e.FullName;
 END
 GO

@@ -51,6 +51,15 @@ export interface LeaveRequestDto {
   status: LeaveStatus
 }
 
+export interface LeaveBalanceDto {
+  employeeId: number
+  employeeName: string
+  year: number
+  entitledDays: number
+  usedDays: number
+  remainingDays: number
+}
+
 export interface PagedResult<T> {
   items: T[]
   totalCount: number
