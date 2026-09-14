@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BedDouble, Download, LogOut, Pencil, Plus, ShieldCheck } from 'lucide-react'
+import { BedDouble, Download, FileText, LogOut, NotebookPen, Pencil, Plus, ShieldCheck, Stethoscope } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { admitPatient, dischargePatient, fetchActiveAdmissions, searchAdmissions } from '../../features/ipd/ipdSlice'
+import { admitPatient, dischargePatient, fetchActiveAdmissions, searchAdmissions, updateDoctorNotes } from '../../features/ipd/ipdSlice'
 import { fetchBeds } from '../../features/beds/bedsSlice'
 import { fetchPatients } from '../../features/patients/patientsSlice'
 import { fetchDoctors } from '../../features/doctors/doctorsSlice'
 import { fetchBillById, fetchPendingBills, updateBill } from '../../features/billing/billingSlice'
+import { fetchNursingChart } from '../../features/nursing/nursingSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Table, type Column } from '../../components/ui/Table'
@@ -16,9 +17,12 @@ import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
 import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
-import { downloadFile, extractErrorMessage } from '../../api/client'
+import { HandwritingField, isHandwritingCapture } from '../../components/clinical/HandwritingField'
+import { apiClient, downloadFile, extractErrorMessage } from '../../api/client'
 import type { BillDto, IpdAdmissionDto } from '../../types'
 import { ADMISSION_TYPES, admissionTypeLabel } from '../../utils/admissionTypes'
+
+interface PatientReportRow { id: number; testOrScan: string; status: string; reportFileUrl: string | null }
 
 interface EditableLineItem { description: string; quantity: number; unitPrice: number }
 
@@ -35,7 +39,9 @@ export function IpdPage() {
   const { list: patients } = useAppSelector((state) => state.patients)
   const { list: doctors } = useAppSelector((state) => state.doctors)
   const { pending: pendingIpdBills } = useAppSelector((state) => state.billing)
+  const { chart: nursingChart } = useAppSelector((state) => state.nursing)
   const admissions = list?.items ?? []
+  const canEditDoctorNotes = user?.role === 'Doctor' || user?.role === 'Administrator'
 
   const [admitOpen, setAdmitOpen] = useState(!!guidedPatientId)
   const [dischargeTarget, setDischargeTarget] = useState<IpdAdmissionDto | null>(null)
@@ -55,6 +61,22 @@ export function IpdPage() {
   const [editItems, setEditItems] = useState<EditableLineItem[]>([])
   const [editDiscount, setEditDiscount] = useState(0)
   const [editGst, setEditGst] = useState(0)
+
+  // "View Reports" widget - lab + radiology reports on file for this admission's patient.
+  const [reportsTarget, setReportsTarget] = useState<IpdAdmissionDto | null>(null)
+  const [reportRows, setReportRows] = useState<PatientReportRow[]>([])
+  const [reportsLoading, setReportsLoading] = useState(false)
+
+  // "Vitals / Nursing Notes" widget - read-only view of this admission's nursing chart (recorded from the
+  // Nursing page - see NursingPage.tsx).
+  const [vitalsTarget, setVitalsTarget] = useState<IpdAdmissionDto | null>(null)
+
+  // "Doctor Notes" widget - a single editable note against the admission (see ipdSlice.updateDoctorNotes),
+  // stylus-capable. Doctor/Administrator can edit; everyone else on this page sees it read-only.
+  const [doctorNotesTarget, setDoctorNotesTarget] = useState<IpdAdmissionDto | null>(null)
+  const [doctorNotesDraft, setDoctorNotesDraft] = useState('')
+  const [doctorNotesFieldKey, setDoctorNotesFieldKey] = useState(0)
+  const [doctorNotesSubmitting, setDoctorNotesSubmitting] = useState(false)
 
   // List-screen filters: defaults to "Admitted" so the page still opens on today's active roster, same as
   // before - search and the date range broaden that to the full admission history when used.
@@ -184,6 +206,52 @@ export function IpdPage() {
     }
   }
 
+  const openReports = async (a: IpdAdmissionDto) => {
+    setReportsTarget(a)
+    setReportsLoading(true)
+    setReportRows([])
+    try {
+      const [labRes, radRes] = await Promise.all([
+        apiClient.get<{ id: number; testName: string; status: string; report?: { reportFileUrl: string | null } | null }[]>(`/laboratory/orders/patient/${a.patientId}`),
+        apiClient.get<{ id: number; scanType: string; status: string; reportFileUrl: string | null }[]>(`/radiology/orders/patient/${a.patientId}`),
+      ])
+      setReportRows([
+        ...labRes.data.map((r) => ({ id: r.id, testOrScan: `Lab: ${r.testName}`, status: r.status, reportFileUrl: r.report?.reportFileUrl ?? null })),
+        ...radRes.data.map((r) => ({ id: r.id, testOrScan: `Radiology: ${r.scanType}`, status: r.status, reportFileUrl: r.reportFileUrl })),
+      ])
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Could not load reports.'))
+    } finally {
+      setReportsLoading(false)
+    }
+  }
+
+  const openVitals = (a: IpdAdmissionDto) => {
+    setVitalsTarget(a)
+    dispatch(fetchNursingChart(a.id))
+  }
+
+  const openDoctorNotes = (a: IpdAdmissionDto) => {
+    setDoctorNotesTarget(a)
+    setDoctorNotesDraft(a.doctorNotes ?? '')
+    setDoctorNotesFieldKey((k) => k + 1)
+  }
+
+  const handleSaveDoctorNotes = async () => {
+    if (!doctorNotesTarget) return
+    setDoctorNotesSubmitting(true)
+    try {
+      await dispatch(updateDoctorNotes(doctorNotesTarget.id, doctorNotesDraft))
+      toast.success('Doctor notes saved.')
+      setDoctorNotesTarget(null)
+      dispatch(searchAdmissions({ pageNumber: page, pageSize: 10, search, fromDate, toDate, status: statusFilter }))
+    } catch (error) {
+      toast.error(extractErrorMessage(error))
+    } finally {
+      setDoctorNotesSubmitting(false)
+    }
+  }
+
   const columns: Column<IpdAdmissionDto>[] = [
     { key: 'number', header: 'Admission #', render: (a) => <span className="font-mono text-xs">{a.admissionNumber}</span> },
     { key: 'patient', header: 'Patient', render: (a) => a.patientName },
@@ -201,6 +269,27 @@ export function IpdPage() {
       ) : <span className="text-ink-400">—</span>,
     },
     { key: 'status', header: 'Status', render: (a) => <Badge>{a.status}</Badge> },
+    {
+      key: 'reports', header: 'View Reports', render: (a) => (
+        <button onClick={() => openReports(a)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+          <FileText size={13} /> Reports
+        </button>
+      ),
+    },
+    {
+      key: 'vitals', header: 'Vitals / Nursing Notes', render: (a) => (
+        <button onClick={() => openVitals(a)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+          <Stethoscope size={13} /> Notes
+        </button>
+      ),
+    },
+    {
+      key: 'doctorNotes', header: 'Doctor Notes', render: (a) => (
+        <button onClick={() => openDoctorNotes(a)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+          <NotebookPen size={13} /> {a.doctorNotes ? 'View / Edit' : canEditDoctorNotes ? 'Add' : 'None'}
+        </button>
+      ),
+    },
     {
       key: 'actions', header: '', render: (a) => (
         <div className="flex flex-wrap gap-3">
@@ -367,6 +456,92 @@ export function IpdPage() {
               <Button variant="secondary" onClick={() => setEditBillTarget(null)}>Cancel</Button>
               <Button loading={submitting} disabled={editItems.every((i) => !i.description)} onClick={handleSaveBill}>Save Changes</Button>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!reportsTarget} onClose={() => setReportsTarget(null)} title="View Reports">
+        {reportsTarget && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-600">{reportsTarget.patientName} <span className="text-xs text-ink-500">· {reportsTarget.uhid}</span></p>
+            {reportsLoading && <p className="text-sm text-ink-500">Loading…</p>}
+            {!reportsLoading && (
+              <div className="max-h-96 overflow-y-auto rounded-lg border border-ink-100">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-muted text-ink-500"><tr>
+                    <th className="px-3 py-2">Test / Scan</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Report</th>
+                  </tr></thead>
+                  <tbody>
+                    {reportRows.map((r) => (
+                      <tr key={`${r.testOrScan}-${r.id}`} className="border-t border-ink-100">
+                        <td className="px-3 py-2">{r.testOrScan}</td>
+                        <td className="px-3 py-2"><Badge>{r.status}</Badge></td>
+                        <td className="px-3 py-2">
+                          {r.reportFileUrl ? <a href={r.reportFileUrl} target="_blank" rel="noreferrer" className="font-medium text-brand-600 hover:underline">View</a> : <span className="text-ink-400">Not uploaded yet</span>}
+                        </td>
+                      </tr>
+                    ))}
+                    {reportRows.length === 0 && <tr><td colSpan={3} className="px-3 py-6 text-center text-ink-500">No lab or radiology orders on file yet.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!vitalsTarget} onClose={() => setVitalsTarget(null)} title="Vitals / Nursing Notes" widthClassName="max-w-2xl">
+        {vitalsTarget && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-600">{vitalsTarget.patientName} <span className="text-xs text-ink-500">· {vitalsTarget.uhid}</span></p>
+            <div className="max-h-96 space-y-2 overflow-y-auto">
+              {nursingChart.map((entry) => (
+                <div key={entry.id} className="rounded-lg bg-surface-muted p-3 text-sm">
+                  <p className="mb-1 text-xs font-medium text-ink-500">{new Date(entry.recordedAt).toLocaleString()} · {entry.nurseName}</p>
+                  <div className="flex flex-wrap gap-3 text-ink-700">
+                    {entry.temperature != null && <span>🌡 {entry.temperature}°F</span>}
+                    {entry.pulse != null && <span>♥ {entry.pulse} bpm</span>}
+                    {entry.bloodPressure && <span>BP {entry.bloodPressure}</span>}
+                    {entry.oxygen != null && <span>SpO2 {entry.oxygen}%</span>}
+                    {entry.respiratoryRate != null && <span>RR {entry.respiratoryRate}/min</span>}
+                    {entry.painScore != null && <span>Pain {entry.painScore}/10</span>}
+                    {entry.consciousness && <span>AVPU {entry.consciousness}</span>}
+                  </div>
+                  {entry.dailyNotes && (
+                    isHandwritingCapture(entry.dailyNotes)
+                      ? <img src={entry.dailyNotes} alt="Nursing note (handwritten)" className="mt-1 max-h-24 rounded border border-ink-100 bg-white" />
+                      : <p className="mt-1 text-xs text-ink-500">{entry.dailyNotes}</p>
+                  )}
+                </div>
+              ))}
+              {nursingChart.length === 0 && <p className="text-sm text-ink-500">No vitals recorded yet for this admission.</p>}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!doctorNotesTarget} onClose={() => setDoctorNotesTarget(null)} title="Doctor Notes">
+        {doctorNotesTarget && (
+          <div className="space-y-4">
+            <p className="text-sm text-ink-600">{doctorNotesTarget.patientName} <span className="text-xs text-ink-500">· {doctorNotesTarget.uhid}</span></p>
+            {doctorNotesTarget.doctorNotesUpdatedAt && (
+              <p className="text-xs text-ink-500">Last updated {new Date(doctorNotesTarget.doctorNotesUpdatedAt).toLocaleString()}</p>
+            )}
+            <HandwritingField
+              key={doctorNotesFieldKey}
+              label="Doctor notes (type or draw with stylus)"
+              value={doctorNotesDraft}
+              onChange={setDoctorNotesDraft}
+              multiline
+              padHeight={160}
+              readOnly={!canEditDoctorNotes}
+            />
+            {canEditDoctorNotes && (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="secondary" onClick={() => setDoctorNotesTarget(null)}>Cancel</Button>
+                <Button loading={doctorNotesSubmitting} onClick={handleSaveDoctorNotes}>Save Notes</Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

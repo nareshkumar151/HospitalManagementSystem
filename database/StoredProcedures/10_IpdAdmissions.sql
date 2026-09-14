@@ -1,6 +1,22 @@
 USE HMS_DB;
 GO
 
+-- Redefined here too (idempotent CREATE OR ALTER, same body as 26_Consents.sql) so a fresh install has it
+-- available regardless of which of these files happens to run first alphabetically/numerically.
+CREATE OR ALTER FUNCTION dbo.fn_UserDisplayName(@UserId INT)
+RETURNS NVARCHAR(200)
+AS
+BEGIN
+    DECLARE @Name NVARCHAR(200);
+    SELECT @Name = CASE WHEN u.RoleName = 'Doctor' THEN d.FullName ELSE e.FullName END
+    FROM Users u
+    LEFT JOIN Doctors d ON d.Id = u.LinkedProfileId AND u.RoleName = 'Doctor'
+    LEFT JOIN Employees e ON e.Id = u.LinkedProfileId AND u.RoleName <> 'Doctor'
+    WHERE u.Id = @UserId;
+    RETURN ISNULL(@Name, (SELECT Username FROM Users WHERE Id = @UserId));
+END
+GO
+
 CREATE OR ALTER PROCEDURE sp_IpdAdmission_NextNumber
 AS
 BEGIN
@@ -51,15 +67,15 @@ BEGIN
     SET NOCOUNT ON;
     SELECT a.Id, a.AdmissionNumber, a.PatientId, p.FullName AS PatientName, p.UHID, a.DoctorId, doc.FullName AS DoctorName,
            dept.Name AS DepartmentName, p.InsuranceCompany, p.InsurancePolicyNumber,
-           a.NurseUserId, nurse.Username AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
-           a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId
+           a.NurseUserId, dbo.fn_UserDisplayName(a.NurseUserId) AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
+           a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId,
+           a.DoctorNotes, a.DoctorNotesUpdatedAt
     FROM IpdAdmissions a
     JOIN Patients p ON p.Id = a.PatientId
     JOIN Doctors doc ON doc.Id = a.DoctorId
     JOIN Departments dept ON dept.Id = doc.DepartmentId
     JOIN Beds b ON b.Id = a.BedId
     JOIN Rooms r ON r.Id = b.RoomId
-    LEFT JOIN Users nurse ON nurse.Id = a.NurseUserId
     WHERE a.Id = @Id AND a.IsDeleted = 0;
 END
 GO
@@ -73,15 +89,15 @@ BEGIN
     -- top of it) must never blend across hospitals.
     SELECT a.Id, a.AdmissionNumber, a.PatientId, p.FullName AS PatientName, p.UHID, a.DoctorId, doc.FullName AS DoctorName,
            dept.Name AS DepartmentName, p.InsuranceCompany, p.InsurancePolicyNumber,
-           a.NurseUserId, nurse.Username AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
-           a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId
+           a.NurseUserId, dbo.fn_UserDisplayName(a.NurseUserId) AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
+           a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId,
+           a.DoctorNotes, a.DoctorNotesUpdatedAt
     FROM IpdAdmissions a
     JOIN Patients p ON p.Id = a.PatientId
     JOIN Doctors doc ON doc.Id = a.DoctorId
     JOIN Departments dept ON dept.Id = doc.DepartmentId
     JOIN Beds b ON b.Id = a.BedId
     JOIN Rooms r ON r.Id = b.RoomId
-    LEFT JOIN Users nurse ON nurse.Id = a.NurseUserId
     WHERE a.Status = 'Admitted' AND a.IsDeleted = 0 AND a.BranchId = @BranchId
     ORDER BY a.AdmissionDate DESC;
 END
@@ -98,15 +114,15 @@ BEGIN
     SET NOCOUNT ON;
     SELECT a.Id, a.AdmissionNumber, a.PatientId, p.FullName AS PatientName, p.UHID, a.DoctorId, doc.FullName AS DoctorName,
            dept.Name AS DepartmentName, p.InsuranceCompany, p.InsurancePolicyNumber,
-           a.NurseUserId, nurse.Username AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
-           a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId
+           a.NurseUserId, dbo.fn_UserDisplayName(a.NurseUserId) AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
+           a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId,
+           a.DoctorNotes, a.DoctorNotesUpdatedAt
     FROM IpdAdmissions a
     JOIN Patients p ON p.Id = a.PatientId
     JOIN Doctors doc ON doc.Id = a.DoctorId
     JOIN Departments dept ON dept.Id = doc.DepartmentId
     JOIN Beds b ON b.Id = a.BedId
     JOIN Rooms r ON r.Id = b.RoomId
-    LEFT JOIN Users nurse ON nurse.Id = a.NurseUserId
     WHERE a.IsDeleted = 0 AND a.BranchId = @BranchId
       AND (@Status IS NULL OR a.Status = @Status)
       AND (@FromDate IS NULL OR CAST(a.AdmissionDate AS DATE) >= @FromDate)
@@ -138,15 +154,15 @@ BEGIN
     -- every admission across every branch of the hospital, not just the branch currently viewing it.
     SELECT a.Id, a.AdmissionNumber, a.PatientId, p.FullName AS PatientName, p.UHID, a.DoctorId, doc.FullName AS DoctorName,
            dept.Name AS DepartmentName, p.InsuranceCompany, p.InsurancePolicyNumber,
-           a.NurseUserId, nurse.Username AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
-           a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId
+           a.NurseUserId, dbo.fn_UserDisplayName(a.NurseUserId) AS NurseName, a.BedId, b.BedNumber, r.RoomNumber, r.Type AS RoomType,
+           a.AdmissionDate, a.AdmissionType, a.Status, a.ReasonForAdmission, a.DischargeDate, a.BranchId,
+           a.DoctorNotes, a.DoctorNotesUpdatedAt
     FROM IpdAdmissions a
     JOIN Patients p ON p.Id = a.PatientId
     JOIN Doctors doc ON doc.Id = a.DoctorId
     JOIN Departments dept ON dept.Id = doc.DepartmentId
     JOIN Beds b ON b.Id = a.BedId
     JOIN Rooms r ON r.Id = b.RoomId
-    LEFT JOIN Users nurse ON nurse.Id = a.NurseUserId
     WHERE a.PatientId = @PatientId AND a.IsDeleted = 0
       AND (@BranchId IS NULL OR a.BranchId = @BranchId)
       AND (@HospitalId IS NULL OR a.HospitalId = @HospitalId)
@@ -199,6 +215,17 @@ BEGIN
     SELECT CASE WHEN EXISTS (
         SELECT 1 FROM IpdAdmissions WHERE PatientId = @PatientId AND Status = 'Admitted' AND IsDeleted = 0
     ) THEN 1 ELSE 0 END;
+END
+GO
+
+-- A single editable doctor's note against the admission (see 18_Schema_IpdDoctorNotes.sql) - each save
+-- overwrites the previous one rather than appending, matching the IPD/Admissions widget's "(editable option)".
+CREATE OR ALTER PROCEDURE sp_IpdAdmission_UpdateDoctorNotes
+    @Id INT, @DoctorNotes NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE IpdAdmissions SET DoctorNotes = @DoctorNotes, DoctorNotesUpdatedAt = SYSUTCDATETIME(), UpdatedAt = SYSUTCDATETIME() WHERE Id = @Id;
 END
 GO
 

@@ -321,6 +321,8 @@ export interface IpdAdmissionDto {
   reasonForAdmission: string | null
   dischargeDate: string | null
   branchId: number
+  doctorNotes: string | null
+  doctorNotesUpdatedAt: string | null
 }
 
 export interface NursingChartDto {

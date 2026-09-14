@@ -52,6 +52,14 @@ export const fetchPatientVisits = (patientId: number): AppThunk<Promise<OpdVisit
   }
 }
 
+// Re-selects an already-started (InProgress) visit as the active consultation - no API call, since we
+// already have it from fetchDoctorVisits. Lets a doctor get back to a consultation after navigating away or
+// reloading, instead of it becoming unreachable (StartConsultationAsync now refuses to start it a second
+// time - see the ConflictException there - so this is the only way back in).
+export const resumeVisit = (visit: OpdVisitDto): AppThunk<void> => (dispatch) => {
+  dispatch({ type: ONE_SUCCESS, payload: visit })
+}
+
 export const startConsultation = (appointmentId: number): AppThunk<Promise<OpdVisitDto>> => async (dispatch) => {
   try {
     const { data } = await apiClient.post<OpdVisitDto>('/opdvisits/start-consultation', { appointmentId })

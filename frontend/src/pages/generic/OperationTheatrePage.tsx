@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
+import { HandwritingField } from '../../components/clinical/HandwritingField'
 import { SurgeryFormsModal } from './SurgeryFormsModal'
 
 export function OperationTheatrePage() {
@@ -31,6 +32,14 @@ export function OperationTheatrePage() {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formsSurgery, setFormsSurgery] = useState<SurgeryRow | null>(null)
+
+  // "Mark completed" - Operation Notes support the stylus (was a bare window.prompt before); Anesthesia
+  // wasn't captured from this UI at all despite the backend already accepting it.
+  const [completeTarget, setCompleteTarget] = useState<SurgeryRow | null>(null)
+  const [completeNotes, setCompleteNotes] = useState('')
+  const [completeAnesthesia, setCompleteAnesthesia] = useState('')
+  const [completeFieldKey, setCompleteFieldKey] = useState(0)
+  const [completeSubmitting, setCompleteSubmitting] = useState(false)
 
   const refresh = () => dispatch(surgeryResource.fetchAll())
   useEffect(() => { refresh(); dispatch(fetchActiveAdmissions()); dispatch(fetchDoctors()) }, [dispatch])
@@ -54,15 +63,24 @@ export function OperationTheatrePage() {
     }
   }
 
-  const complete = async (id: number) => {
-    const notes = window.prompt('Operation notes:')
-    if (!notes) return
+  const openComplete = (s: SurgeryRow) => {
+    setCompleteTarget(s)
+    setCompleteNotes(''); setCompleteAnesthesia('')
+    setCompleteFieldKey((k) => k + 1)
+  }
+
+  const handleMarkCompleted = async () => {
+    if (!completeTarget || !completeNotes.trim()) return
+    setCompleteSubmitting(true)
     try {
-      await apiClient.put(`/operationtheatre/${id}/complete`, { operationNotes: notes })
+      await apiClient.put(`/operationtheatre/${completeTarget.id}/complete`, { operationNotes: completeNotes, anesthesia: completeAnesthesia || undefined })
       toast.success('Surgery marked completed.')
+      setCompleteTarget(null)
       refresh()
     } catch (error) {
       toast.error(extractErrorMessage(error))
+    } finally {
+      setCompleteSubmitting(false)
     }
   }
 
@@ -78,7 +96,7 @@ export function OperationTheatrePage() {
         <div className="flex items-center gap-3">
           <button onClick={() => setFormsSurgery(s)} className="text-xs font-medium text-brand-600 hover:underline">Forms</button>
           {role === 'Doctor' && s.status === 'Scheduled' && (
-            <button onClick={() => complete(s.id)} className="text-xs font-medium text-brand-600 hover:underline">Mark completed</button>
+            <button onClick={() => openComplete(s)} className="text-xs font-medium text-brand-600 hover:underline">Mark completed</button>
           )}
         </div>
       ),
@@ -131,6 +149,28 @@ export function OperationTheatrePage() {
       </Modal>
 
       {formsSurgery && <SurgeryFormsModal surgery={formsSurgery} onClose={() => setFormsSurgery(null)} />}
+
+      <Modal open={!!completeTarget} onClose={() => setCompleteTarget(null)} title="Mark Surgery Completed">
+        {completeTarget && (
+          <div className="space-y-4">
+            <p className="text-sm text-ink-600">{completeTarget.surgeryName} · {completeTarget.patientName}</p>
+            <HandwritingField
+              key={completeFieldKey}
+              label="Operation notes (type or draw with stylus)"
+              value={completeNotes}
+              onChange={setCompleteNotes}
+              multiline
+              required
+              padHeight={160}
+            />
+            <Input label="Anesthesia (optional)" value={completeAnesthesia} onChange={(e) => setCompleteAnesthesia(e.target.value)} />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setCompleteTarget(null)}>Cancel</Button>
+              <Button loading={completeSubmitting} disabled={!completeNotes.trim()} onClick={handleMarkCompleted}>Mark Completed</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

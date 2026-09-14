@@ -76,4 +76,12 @@ public class IpdAdmissionsController : ApiControllerBase
         await _ipdAdmissionService.TransferBedAsync(id, request);
         return NoContent();
     }
+
+    // A single editable note, not a log - see UpdateDoctorNotesAsync. Doctor writes it; Administrator can
+    // also correct it (matches AssignNurse's role set above), everyone else on this controller can only view
+    // it (GetById/Search/GetActive already return it to any of the four roles above).
+    [HttpPut("{id:int}/doctor-notes")]
+    [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Doctor)]
+    public async Task<ActionResult<IpdAdmissionDto>> UpdateDoctorNotes(int id, UpdateDoctorNotesRequest request)
+        => Ok(await _ipdAdmissionService.UpdateDoctorNotesAsync(id, request));
 }

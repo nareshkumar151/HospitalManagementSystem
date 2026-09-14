@@ -289,7 +289,7 @@ public class PdfService : IPdfService
             LabeledRow(column.Item(), "Surgeon", s.SurgeonName);
             LabeledRow(column.Item(), "Scheduled At", s.ScheduledAt.ToString("dd MMM yyyy, hh:mm tt"));
             LabeledRow(column.Item(), "Status", s.Status);
-            if (!string.IsNullOrWhiteSpace(s.OperationNotes)) Section(column.Item(), "Operation Notes", s.OperationNotes!);
+            if (!string.IsNullOrWhiteSpace(s.OperationNotes)) SectionTextOrImage(column.Item(), "Operation Notes", s.OperationNotes!);
 
             foreach (var checklist in bundle.Checklists)
             {
@@ -550,6 +550,25 @@ public class PdfService : IPdfService
         {
             column.Item().Text(label).SemiBold().FontColor(Color.FromHex(BrandHex));
             column.Item().Text(value);
+        });
+    }
+
+    /// <summary> Same layout as Section, but renders an image instead of dumping a base64 data URI as text
+    /// when the value is a stylus capture (e.g. Surgery.OperationNotes - see HandwritingField). </summary>
+    private static void SectionTextOrImage(IContainer container, string label, string value)
+    {
+        container.PaddingBottom(8).Column(column =>
+        {
+            column.Item().Text(label).SemiBold().FontColor(Color.FromHex(BrandHex));
+            if (IsHandwritingCapture(value))
+            {
+                var base64 = value[(value.IndexOf(',') + 1)..];
+                column.Item().Height(70).Image(Convert.FromBase64String(base64)).FitArea();
+            }
+            else
+            {
+                column.Item().Text(value);
+            }
         });
     }
 }

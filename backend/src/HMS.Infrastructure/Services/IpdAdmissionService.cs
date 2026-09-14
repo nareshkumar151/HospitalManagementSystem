@@ -79,4 +79,11 @@ public class IpdAdmissionService : IIpdAdmissionService
         await _db.ExecuteAsync("sp_IpdAdmission_TransferBed", new { Id = admissionId, request.NewBedId });
         await _auditService.LogAsync("BedTransferred", "IpdAdmission", admissionId.ToString());
     }
+
+    public async Task<IpdAdmissionDto> UpdateDoctorNotesAsync(int admissionId, UpdateDoctorNotesRequest request)
+    {
+        await GetByIdAsync(admissionId);
+        await _db.ExecuteAsync("sp_IpdAdmission_UpdateDoctorNotes", new { Id = admissionId, request.DoctorNotes });
+        return await GetByIdAsync(admissionId);
+    }
 }

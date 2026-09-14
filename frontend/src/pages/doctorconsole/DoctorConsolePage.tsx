@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import { Stethoscope, FlaskConical, Pill, CheckCircle2, BedDouble, History, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { fetchAppointments } from '../../features/appointments/appointmentsSlice'
-import { completeConsultation, fetchPatientVisits, startConsultation } from '../../features/opd/opdSlice'
+import { completeConsultation, fetchDoctorVisits, fetchPatientVisits, resumeVisit, startConsultation } from '../../features/opd/opdSlice'
 import { createPrescription } from '../../features/prescriptions/prescriptionsSlice'
 import { fetchLabCatalog, orderLabTest } from '../../features/laboratory/laboratorySlice'
 import { fetchMedicines } from '../../features/pharmacy/pharmacySlice'
@@ -22,7 +22,7 @@ export function DoctorConsolePage() {
   const dispatch = useAppDispatch()
   const doctorId = useAppSelector((state) => state.auth.user?.linkedProfileId)
   const { list: appointments } = useAppSelector((state) => state.appointments)
-  const { current: visit } = useAppSelector((state) => state.opd)
+  const { current: visit, todaysVisits } = useAppSelector((state) => state.opd)
   const { catalog } = useAppSelector((state) => state.laboratory)
   const { medicines } = useAppSelector((state) => state.pharmacy)
   const { departments } = useAppSelector((state) => state.doctors)
@@ -43,7 +43,12 @@ export function DoctorConsolePage() {
   const [historyStatus, setHistoryStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle')
 
   useEffect(() => {
-    if (doctorId) dispatch(fetchAppointments({ doctorId, date: today }))
+    if (doctorId) {
+      dispatch(fetchAppointments({ doctorId, date: today }))
+      // Needed to resume an already-started (InProgress) consultation - see handleResume below - since the
+      // active-consultation panel only otherwise exists in memory for as long as the tab that started it.
+      dispatch(fetchDoctorVisits(doctorId, today))
+    }
     dispatch(fetchLabCatalog())
     dispatch(fetchMedicines({ pageSize: 200 }))
     dispatch(fetchDepartments())
@@ -74,10 +79,13 @@ export function DoctorConsolePage() {
       setHistoryOpen(true)
       setPastVisits([])
       loadPatientHistory(started.patientId, started.id)
-      // Starting moves the appointment to InProgress (not Completed - see StartConsultationAsync), which
-      // drops it out of the "Scheduled" queue below - refetch so it disappears from the queue right away
-      // instead of only after the consultation is later completed.
-      if (doctorId) dispatch(fetchAppointments({ doctorId, date: today }))
+      // Starting moves the appointment to InProgress (not Completed - see StartConsultationAsync) - refetch
+      // both so the queue below re-labels it "In Progress" (with a Resume action) right away, and so the
+      // newly-created visit is available to resume from if the doctor navigates away before completing it.
+      if (doctorId) {
+        dispatch(fetchAppointments({ doctorId, date: today }))
+        dispatch(fetchDoctorVisits(doctorId, today))
+      }
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
@@ -111,12 +119,33 @@ export function DoctorConsolePage() {
       }
 
       toast.success('Consultation completed.')
-      if (doctorId) dispatch(fetchAppointments({ doctorId, date: today }))
+      if (doctorId) {
+        dispatch(fetchAppointments({ doctorId, date: today }))
+        dispatch(fetchDoctorVisits(doctorId, today))
+      }
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
       setSavingConsultation(false)
     }
+  }
+
+  // Gets a doctor back into a consultation they'd already started (InProgress) but navigated away from or
+  // reloaded the page before finishing - the visit itself was never lost (see StartConsultationAsync), only
+  // the in-memory "active consultation" panel was. Note: any symptoms/diagnosis/notes typed before leaving
+  // are not recovered here - those are never sent to the backend until Complete Consultation is pressed, so
+  // this resumes a blank form against the same visit rather than restoring unsaved text.
+  const handleResume = (appointmentId: number) => {
+    const existingVisit = todaysVisits.find((v) => v.appointmentId === appointmentId)
+    if (!existingVisit) {
+      toast.error("Couldn't find this consultation's record - try refreshing the page.")
+      return
+    }
+    resetConsultationForm()
+    setHistoryOpen(true)
+    setPastVisits([])
+    dispatch(resumeVisit(existingVisit))
+    loadPatientHistory(existingVisit.patientId, existingVisit.id)
   }
 
   const handleOrderLabTest = async () => {
@@ -130,7 +159,9 @@ export function DoctorConsolePage() {
     }
   }
 
-  const scheduledAppointments = appointments?.items.filter((a) => a.status === 'Scheduled') ?? []
+  // In Progress stays visible (with a Resume action) instead of vanishing once started - a doctor who
+  // navigates away or reloads mid-consultation needs a way back to that same patient (see handleResume).
+  const queuedAppointments = appointments?.items.filter((a) => a.status === 'Scheduled' || a.status === 'InProgress') ?? []
 
   return (
     <div>
@@ -140,13 +171,19 @@ export function DoctorConsolePage() {
         <Card className="lg:col-span-1">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink-900"><Stethoscope size={16} /> Today's Queue</h3>
           <div className="space-y-2">
-            {scheduledAppointments.length ? scheduledAppointments.map((a) => (
+            {queuedAppointments.length ? queuedAppointments.map((a) => (
               <div key={a.id} className="flex items-center justify-between rounded-lg bg-surface-muted px-3 py-2.5 text-sm">
                 <div>
                   <p className="font-medium text-ink-900">#{a.tokenNumber} · {a.patientName}</p>
-                  <p className="text-xs text-ink-500">{a.timeSlot}</p>
+                  <p className="text-xs text-ink-500">
+                    {a.timeSlot}{a.status === 'InProgress' && <span className="ml-1.5 font-medium text-warning-500">· In progress</span>}
+                  </p>
                 </div>
-                <Button size="sm" loading={busyAppointmentId === a.id} onClick={() => handleStart(a.id)}>Start</Button>
+                {a.status === 'InProgress' ? (
+                  <Button size="sm" variant="secondary" onClick={() => handleResume(a.id)}>Resume</Button>
+                ) : (
+                  <Button size="sm" loading={busyAppointmentId === a.id} onClick={() => handleStart(a.id)}>Start</Button>
+                )}
               </div>
             )) : <p className="text-sm text-ink-500">No patients waiting.</p>}
           </div>

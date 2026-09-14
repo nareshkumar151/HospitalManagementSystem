@@ -87,6 +87,18 @@ export const admitPatient = (payload: {
   }
 }
 
+// A single editable note against the admission (see sp_IpdAdmission_UpdateDoctorNotes) - each save overwrites
+// the previous one, not an append-only log.
+export const updateDoctorNotes = (admissionId: number, doctorNotes: string): AppThunk<Promise<IpdAdmissionDto>> => async (dispatch) => {
+  try {
+    const { data } = await apiClient.put<IpdAdmissionDto>(`/ipdadmissions/${admissionId}/doctor-notes`, { doctorNotes })
+    return data
+  } catch (error) {
+    dispatch({ type: FAILURE, payload: extractErrorMessage(error) })
+    throw error
+  }
+}
+
 export const dischargePatient = (admissionId: number, payload: {
   diagnosis: string; chiefComplaint?: string; pastHistory?: string; physicalExamination?: string
   investigation?: string; courseInHospital?: string; conditionAtDischarge: string

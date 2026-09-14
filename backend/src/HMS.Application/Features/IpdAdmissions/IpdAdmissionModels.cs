@@ -8,13 +8,18 @@ public record IpdAdmissionDto(
     string DepartmentName, string? InsuranceCompany, string? InsurancePolicyNumber,
     int? NurseUserId, string? NurseName, int BedId, string BedNumber, string RoomNumber, RoomType RoomType,
     DateTime AdmissionDate, AdmissionType AdmissionType, AdmissionStatus Status, string? ReasonForAdmission,
-    DateTime? DischargeDate, int BranchId);
+    DateTime? DischargeDate, int BranchId,
+    /// <summary> The attending doctor's own running note against this admission - a single editable field
+    /// (see sp_IpdAdmission_UpdateDoctorNotes), distinct from the discharge summary and from an individual
+    /// OpdVisit's own DoctorNotes. May hold a HandwritingField stylus capture instead of typed text. </summary>
+    string? DoctorNotes, DateTime? DoctorNotesUpdatedAt);
 
 public record AdmitPatientRequest(
     int PatientId, int DoctorId, int BedId, AdmissionType AdmissionType, string? ReasonForAdmission, int BranchId);
 
 public record AssignNurseRequest(int NurseUserId);
 public record TransferBedRequest(int NewBedId);
+public record UpdateDoctorNotesRequest(string? DoctorNotes);
 
 public interface IIpdAdmissionService
 {
@@ -29,4 +34,5 @@ public interface IIpdAdmissionService
     Task<IReadOnlyList<IpdAdmissionDto>> GetByPatientAsync(int patientId, int branchId);
     Task AssignNurseAsync(int admissionId, AssignNurseRequest request);
     Task TransferBedAsync(int admissionId, TransferBedRequest request);
+    Task<IpdAdmissionDto> UpdateDoctorNotesAsync(int admissionId, UpdateDoctorNotesRequest request);
 }
