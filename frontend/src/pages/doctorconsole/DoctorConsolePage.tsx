@@ -37,7 +37,9 @@ export function DoctorConsolePage() {
   const [referredToDepartmentId, setReferredToDepartmentId] = useState<number | ''>('')
   const [rxItems, setRxItems] = useState<RxItem[]>([])
   const [savingConsultation, setSavingConsultation] = useState(false)
-  const [labTestId, setLabTestId] = useState<number | ''>('')
+  const [selectedLabTestIds, setSelectedLabTestIds] = useState<number[]>([])
+  const [labTestSearch, setLabTestSearch] = useState('')
+  const [orderingLabTests, setOrderingLabTests] = useState(false)
   const [pastVisits, setPastVisits] = useState<OpdVisitDto[]>([])
   const [historyOpen, setHistoryOpen] = useState(true)
   const [historyStatus, setHistoryStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle')
@@ -56,7 +58,7 @@ export function DoctorConsolePage() {
 
   const resetConsultationForm = () => {
     setDiagnosis(''); setSymptoms(''); setClinicalNotes(''); setAdmissionRecommended(false)
-    setReferredToDepartmentId(''); setRxItems([])
+    setReferredToDepartmentId(''); setRxItems([]); setSelectedLabTestIds([]); setLabTestSearch('')
   }
 
   // Surface the patient's prior symptoms/diagnosis/notes (typed or hand-written) so the doctor has context
@@ -148,14 +150,25 @@ export function DoctorConsolePage() {
     loadPatientHistory(existingVisit.patientId, existingVisit.id)
   }
 
-  const handleOrderLabTest = async () => {
-    if (!visit || !labTestId) return
+  const toggleLabTest = (id: number) =>
+    setSelectedLabTestIds((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]))
+
+  // One test per API call (the backend orders them one at a time), but the doctor picks the whole panel at
+  // once instead of repeating "select a test, click Order" for every single test.
+  const handleOrderLabTests = async () => {
+    if (!visit || selectedLabTestIds.length === 0) return
+    setOrderingLabTests(true)
     try {
-      await dispatch(orderLabTest({ patientId: visit.patientId, labTestCatalogId: Number(labTestId), opdVisitId: visit.id }))
-      toast.success('Lab test ordered.')
-      setLabTestId('')
+      await Promise.all(selectedLabTestIds.map((id) =>
+        dispatch(orderLabTest({ patientId: visit.patientId, labTestCatalogId: id, opdVisitId: visit.id }))
+      ))
+      toast.success(`${selectedLabTestIds.length} lab test${selectedLabTestIds.length === 1 ? '' : 's'} ordered.`)
+      setSelectedLabTestIds([])
+      setLabTestSearch('')
     } catch (error) {
       toast.error(extractErrorMessage(error))
+    } finally {
+      setOrderingLabTests(false)
     }
   }
 
@@ -278,13 +291,38 @@ export function DoctorConsolePage() {
               </div>
 
               <div className="rounded-xl border border-ink-100 p-3">
-                <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink-900"><FlaskConical size={15} /> Order Lab Test</h4>
-                <div className="flex gap-2">
-                  <select className="flex-1 rounded-md border border-ink-100 px-2 py-1.5 text-sm" value={labTestId} onChange={(e) => setLabTestId(Number(e.target.value) || '')}>
-                    <option value="">Select a test</option>
-                    {catalog.map((t) => <option key={t.id} value={t.id}>{t.testName} · ₹{t.price}</option>)}
-                  </select>
-                  <Button size="sm" variant="secondary" onClick={handleOrderLabTest} disabled={!labTestId}>Order</Button>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h4 className="flex items-center gap-1.5 text-sm font-semibold text-ink-900"><FlaskConical size={15} /> Order Lab Test</h4>
+                  {selectedLabTestIds.length > 0 && <span className="text-xs font-medium text-brand-600">{selectedLabTestIds.length} selected</span>}
+                </div>
+                <input
+                  value={labTestSearch}
+                  onChange={(e) => setLabTestSearch(e.target.value)}
+                  placeholder="Search tests…"
+                  className="mb-2 w-full rounded-md border border-ink-100 px-2 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+                />
+                <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-ink-100 p-1.5">
+                  {catalog
+                    .filter((t) => t.testName.toLowerCase().includes(labTestSearch.trim().toLowerCase()))
+                    .map((t) => (
+                      <label key={t.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted">
+                        <input
+                          type="checkbox"
+                          checked={selectedLabTestIds.includes(t.id)}
+                          onChange={() => toggleLabTest(t.id)}
+                          className="h-4 w-4 rounded border-ink-300 text-brand-500"
+                        />
+                        {t.testName} <span className="text-xs text-ink-500">· ₹{t.price}</span>
+                      </label>
+                    ))}
+                  {catalog.length > 0 && catalog.filter((t) => t.testName.toLowerCase().includes(labTestSearch.trim().toLowerCase())).length === 0 && (
+                    <p className="px-2 py-1.5 text-xs text-ink-500">No matching tests.</p>
+                  )}
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <Button size="sm" variant="secondary" loading={orderingLabTests} disabled={selectedLabTestIds.length === 0} onClick={handleOrderLabTests}>
+                    Order {selectedLabTestIds.length > 0 ? `${selectedLabTestIds.length} Test${selectedLabTestIds.length === 1 ? '' : 's'}` : 'Tests'}
+                  </Button>
                 </div>
               </div>
 
