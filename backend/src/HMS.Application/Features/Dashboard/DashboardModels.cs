@@ -16,6 +16,14 @@ public record DashboardSummaryDto(
     int PendingBillsCount,
     int AvailableDoctorsCount,
     int TodaysSurgeriesCount,
+    /// <summary> Branch-wide count of admissions discharged today - Nurse Dashboard's own "Planned
+    /// Discharges" / "Discharged" tiles both read this: this app's discharge action is a single atomic step
+    /// (see DischargeService.DischargeAsync), so there's no separate "initiated but not yet completed" state
+    /// to tell the two apart - both tiles report the same real number rather than one being fabricated. </summary>
+    int DischargedTodayCount,
+    /// <summary> Branch-wide count of currently-admitted patients who have insurance on file (Patients.InsuranceCompany
+    /// not blank) - Nurse Dashboard's own "Insurance Patients" tile. </summary>
+    int InsurancePatientsCount,
     /// <summary> Doctor Dashboard tiles - populated only when a doctorId is passed to GetSummaryAsync (0 otherwise). </summary>
     int DoctorTodaysAppointments,
     int DoctorIpPatientsCount,

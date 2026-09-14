@@ -37,8 +37,8 @@ CREATE OR ALTER PROCEDURE sp_SurgeryChecklist_GetById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT c.Id, c.SurgeryId, c.ChecklistType, c.ItemsJson, c.Remarks, u.Username AS CompletedByName, c.CompletedAt
-    FROM SurgeryChecklists c JOIN Users u ON u.Id = c.CompletedByUserId
+    SELECT c.Id, c.SurgeryId, c.ChecklistType, c.ItemsJson, c.Remarks, dbo.fn_UserDisplayName(c.CompletedByUserId) AS CompletedByName, c.CompletedAt
+    FROM SurgeryChecklists c
     WHERE c.Id = @Id AND c.IsDeleted = 0;
 END
 GO
@@ -48,8 +48,8 @@ CREATE OR ALTER PROCEDURE sp_SurgeryChecklist_GetBySurgery
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT c.Id, c.SurgeryId, c.ChecklistType, c.ItemsJson, c.Remarks, u.Username AS CompletedByName, c.CompletedAt
-    FROM SurgeryChecklists c JOIN Users u ON u.Id = c.CompletedByUserId
+    SELECT c.Id, c.SurgeryId, c.ChecklistType, c.ItemsJson, c.Remarks, dbo.fn_UserDisplayName(c.CompletedByUserId) AS CompletedByName, c.CompletedAt
+    FROM SurgeryChecklists c
     WHERE c.SurgeryId = @SurgeryId AND c.IsDeleted = 0
     ORDER BY c.ChecklistType;
 END
@@ -73,9 +73,9 @@ CREATE OR ALTER PROCEDURE sp_SurgeryAnesthesiaRecord_GetBySurgery
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT a.Id, a.SurgeryId, a.RecordedAt, u.Username AS RecordedByName, a.AnesthesiaType, a.BloodPressure,
+    SELECT a.Id, a.SurgeryId, a.RecordedAt, dbo.fn_UserDisplayName(a.RecordedByUserId) AS RecordedByName, a.AnesthesiaType, a.BloodPressure,
            a.PulseRate, a.SpO2, a.Temperature, a.Remarks
-    FROM SurgeryAnesthesiaRecords a JOIN Users u ON u.Id = a.RecordedByUserId
+    FROM SurgeryAnesthesiaRecords a
     WHERE a.SurgeryId = @SurgeryId AND a.IsDeleted = 0
     ORDER BY a.RecordedAt;
 END
@@ -103,11 +103,11 @@ CREATE OR ALTER PROCEDURE sp_SurgeryRecoveryRecord_GetBySurgery
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT r.Id, r.SurgeryId, r.RecordedAt, u.Username AS RecordedByName, r.Activity, r.Respiration,
+    SELECT r.Id, r.SurgeryId, r.RecordedAt, dbo.fn_UserDisplayName(r.RecordedByUserId) AS RecordedByName, r.Activity, r.Respiration,
            r.Circulation, r.Consciousness, r.OxygenSaturation,
            (r.Activity + r.Respiration + r.Circulation + r.Consciousness + r.OxygenSaturation) AS AldreteTotal,
            r.BloodPressure, r.Pulse, r.SpO2, r.Remarks, r.DischargedFromRecoveryAt
-    FROM SurgeryRecoveryRecords r JOIN Users u ON u.Id = r.RecordedByUserId
+    FROM SurgeryRecoveryRecords r
     WHERE r.SurgeryId = @SurgeryId AND r.IsDeleted = 0
     ORDER BY r.RecordedAt;
 END
@@ -119,5 +119,30 @@ AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE SurgeryRecoveryRecords SET DischargedFromRecoveryAt = SYSUTCDATETIME() WHERE Id = @Id;
+END
+GO
+
+-- --- Nursing Notes (append-only log, stylus-capable - see 16_Schema_SurgeryNursingNotes.sql) -------------
+
+CREATE OR ALTER PROCEDURE sp_SurgeryNursingNote_Insert
+    @SurgeryId INT, @NoteText NVARCHAR(MAX), @RecordedByUserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO SurgeryNursingNotes (SurgeryId, NoteText, RecordedByUserId)
+    VALUES (@SurgeryId, @NoteText, @RecordedByUserId);
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_SurgeryNursingNote_GetBySurgery
+    @SurgeryId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT n.Id, n.SurgeryId, n.RecordedAt, dbo.fn_UserDisplayName(n.RecordedByUserId) AS RecordedByName, n.NoteText
+    FROM SurgeryNursingNotes n
+    WHERE n.SurgeryId = @SurgeryId AND n.IsDeleted = 0
+    ORDER BY n.RecordedAt;
 END
 GO

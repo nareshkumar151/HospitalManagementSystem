@@ -16,6 +16,7 @@ public class DashboardService : IDashboardService
         return new DashboardSummaryDto(h.TodaysPatients, h.TodaysRevenue, h.TodaysOpdRevenue, h.TodaysIpdRevenue,
             h.IpdPatientsCount, (int)Math.Round(h.BedOccupancyPercent),
             h.PendingBillsCount, h.AvailableDoctorsCount, h.TodaysSurgeriesCount,
+            h.DischargedTodayCount, h.InsurancePatientsCount,
             h.DoctorTodaysAppointments, h.DoctorIpPatientsCount, h.DoctorPlannedDischargesCount, h.DoctorTodaysSurgeriesCount,
             alerts.ToList());
     }
@@ -24,6 +25,7 @@ public class DashboardService : IDashboardService
         int TodaysPatients, decimal TodaysRevenue, decimal TodaysOpdRevenue, decimal TodaysIpdRevenue,
         int IpdPatientsCount, decimal BedOccupancyPercent,
         int PendingBillsCount, int AvailableDoctorsCount, int TodaysSurgeriesCount,
+        int DischargedTodayCount, int InsurancePatientsCount,
         int DoctorTodaysAppointments, int DoctorIpPatientsCount, int DoctorPlannedDischargesCount, int DoctorTodaysSurgeriesCount);
 
     public async Task<PlatformSummaryDto> GetPlatformSummaryAsync()

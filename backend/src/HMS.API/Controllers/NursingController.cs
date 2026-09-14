@@ -28,6 +28,17 @@ public class NursingController : ApiControllerBase
     [HttpGet("admissions/{admissionId:int}/vitals")]
     public async Task<ActionResult<IReadOnlyList<NursingChartDto>>> GetChart(int admissionId) => Ok(await _nursingService.GetChartAsync(admissionId));
 
+    // OPD/appointment-based vitals: a single editable snapshot per appointment, recorded from the
+    // Appointments page (Nurse role) rather than the IPD ward chart.
+    [HttpPost("appointments/{appointmentId:int}/vitals")]
+    [Authorize(Roles = RoleNames.Nurse)]
+    public async Task<ActionResult<NursingChartDto>> RecordAppointmentVitals(int appointmentId, RecordVitalsRequest request)
+        => Ok(await _nursingService.RecordAppointmentVitalsAsync(appointmentId, request, CurrentUserId));
+
+    [HttpGet("appointments/{appointmentId:int}/vitals")]
+    public async Task<ActionResult<NursingChartDto?>> GetAppointmentVitals(int appointmentId)
+        => Ok(await _nursingService.GetAppointmentVitalsAsync(appointmentId));
+
     [HttpPost("admissions/{admissionId:int}/requests")]
     [Authorize(Roles = RoleNames.Nurse)]
     public async Task<ActionResult<NursingRequestDto>> RaiseRequest(int admissionId, RaiseNursingRequestRequest request)

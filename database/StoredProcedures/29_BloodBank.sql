@@ -25,8 +25,8 @@ BEGIN
     SET NOCOUNT ON;
     SELECT r.Id, r.PatientId, p.FullName AS PatientName, r.IpdAdmissionId, r.BloodGroup, r.ComponentTransfused,
            r.UnitsTransfused, r.ReactionType, r.Symptoms, r.OnsetTime, r.ActionTaken, r.Outcome, r.Remarks,
-           u.Username AS ReportedByName
-    FROM TransfusionReactions r JOIN Patients p ON p.Id = r.PatientId JOIN Users u ON u.Id = r.ReportedByUserId
+           dbo.fn_UserDisplayName(r.ReportedByUserId) AS ReportedByName
+    FROM TransfusionReactions r JOIN Patients p ON p.Id = r.PatientId
     WHERE r.Id = @Id AND r.IsDeleted = 0;
 END
 GO
@@ -38,8 +38,8 @@ BEGIN
     SET NOCOUNT ON;
     SELECT r.Id, r.PatientId, p.FullName AS PatientName, r.IpdAdmissionId, r.BloodGroup, r.ComponentTransfused,
            r.UnitsTransfused, r.ReactionType, r.Symptoms, r.OnsetTime, r.ActionTaken, r.Outcome, r.Remarks,
-           u.Username AS ReportedByName
-    FROM TransfusionReactions r JOIN Patients p ON p.Id = r.PatientId JOIN Users u ON u.Id = r.ReportedByUserId
+           dbo.fn_UserDisplayName(r.ReportedByUserId) AS ReportedByName
+    FROM TransfusionReactions r JOIN Patients p ON p.Id = r.PatientId
     WHERE r.PatientId = @PatientId AND r.IsDeleted = 0
     ORDER BY r.OnsetTime DESC;
 END

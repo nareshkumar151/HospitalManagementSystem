@@ -16,8 +16,10 @@ public class AppointmentsController : ApiControllerBase
         _appointmentRequestService = appointmentRequestService;
     }
 
+    // Nurse now works from this page too (records vitals against a scheduled appointment) - was missing here,
+    // so the list silently 403'd for them despite the page being in their nav.
     [HttpGet]
-    [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Receptionist + "," + RoleNames.Doctor)]
+    [Authorize(Roles = RoleNames.Administrator + "," + RoleNames.Receptionist + "," + RoleNames.Doctor + "," + RoleNames.Nurse)]
     public async Task<ActionResult<PagedResult<AppointmentDto>>> Search(
         [FromQuery] PagedRequest request, [FromQuery] int? doctorId, [FromQuery] int? patientId, [FromQuery] DateTime? date)
         => Ok(await _appointmentService.SearchAsync(request, CurrentBranchId, doctorId, patientId, date));

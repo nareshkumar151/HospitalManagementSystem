@@ -81,12 +81,20 @@ export default function App() {
             <Route path="manage/hospitals" element={<HospitalsManagePage />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse']} />}>
+          {/* Standalone patient registry - Nurse works from Appointments instead (see navConfig.ts), so
+              they're deliberately left off this route too, not just the nav link. */}
+          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor']} />}>
             <Route path="patients" element={<PatientsPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse']} />}>
             <Route path="ipd" element={<IpdPage />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor']} />}>
+          {/* Nurse works from Appointments too now (records vitals against a scheduled visit) - was missing
+              here even though navConfig already listed the page for them, so the route guard itself 403'd
+              them straight back to the dashboard. */}
+          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse']} />}>
             <Route path="appointments" element={<AppointmentsPage />} />
           </Route>
 
@@ -125,7 +133,9 @@ export default function App() {
             <Route path="clinical-depts" element={<NewDepartmentsPage />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor', 'Nurse']} />}>
+          {/* Nurse's nav link to this was removed (item 10) - dropped here too so the page isn't reachable
+              by URL either. */}
+          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor']} />}>
             <Route path="medical-records" element={<MedicalRecordsPage />} />
           </Route>
 

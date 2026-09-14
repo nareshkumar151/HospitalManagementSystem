@@ -5,17 +5,19 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import {
   fetchChecklists, saveChecklist, fetchAnesthesiaRecords, recordAnesthesia,
   fetchRecoveryRecords, recordRecovery, dischargeFromRecovery,
+  fetchNursingNotes, addNursingNote,
 } from '../../features/ot/otRecordsSlice'
 import { CHECKLIST_TYPES, CHECKLIST_LABELS, CHECKLIST_DEFAULT_ITEMS, ALDRETE_COMPONENTS, type ChecklistType } from '../../utils/otChecklists'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
+import { HandwritingField, isHandwritingCapture } from '../../components/clinical/HandwritingField'
 import { downloadFile, extractErrorMessage } from '../../api/client'
 import type { SurgeryRow } from '../../features/generic/resources'
 import type { ChecklistItemDto, SurgeryChecklistDto, SurgeryAnesthesiaRecordDto, SurgeryRecoveryRecordDto } from '../../types'
 
-type Tab = ChecklistType | 'Anesthesia' | 'Recovery'
+type Tab = ChecklistType | 'Anesthesia' | 'Recovery' | 'NursingNotes'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'PreOp', label: CHECKLIST_LABELS.PreOp },
@@ -23,11 +25,13 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'OTCleaning', label: CHECKLIST_LABELS.OTCleaning },
   { key: 'Anesthesia', label: 'Anesthesia Monitoring' },
   { key: 'Recovery', label: 'Post-Op Recovery (Aldrete)' },
+  { key: 'NursingNotes', label: 'Nursing Notes' },
 ]
 
 export function SurgeryFormsModal({ surgery, onClose }: { surgery: SurgeryRow; onClose: () => void }) {
   const dispatch = useAppDispatch()
-  const { checklists, anesthesiaRecords, recoveryRecords } = useAppSelector((state) => state.otRecords)
+  const { checklists, anesthesiaRecords, recoveryRecords, nursingNotes } = useAppSelector((state) => state.otRecords)
+  const user = useAppSelector((state) => state.auth.user)
   const [tab, setTab] = useState<Tab>('PreOp')
   const [submitting, setSubmitting] = useState(false)
 
@@ -35,6 +39,7 @@ export function SurgeryFormsModal({ surgery, onClose }: { surgery: SurgeryRow; o
     dispatch(fetchChecklists(surgery.id))
     dispatch(fetchAnesthesiaRecords(surgery.id))
     dispatch(fetchRecoveryRecords(surgery.id))
+    dispatch(fetchNursingNotes(surgery.id))
   }, [dispatch, surgery.id])
 
   const downloadPdf = () =>
@@ -73,6 +78,10 @@ export function SurgeryFormsModal({ surgery, onClose }: { surgery: SurgeryRow; o
 
       {tab === 'Recovery' && (
         <RecoveryTab surgeryId={surgery.id} records={recoveryRecords} submitting={submitting} setSubmitting={setSubmitting} />
+      )}
+
+      {tab === 'NursingNotes' && (
+        <NursingNotesTab surgeryId={surgery.id} notes={nursingNotes} canAdd={user?.role === 'Nurse'} submitting={submitting} setSubmitting={setSubmitting} />
       )}
     </Modal>
   )
@@ -278,6 +287,57 @@ function RecoveryTab({ surgeryId, records, submitting, setSubmitting }: {
             {records.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-ink-500">No recovery readings yet.</td></tr>}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+function NursingNotesTab({ surgeryId, notes, canAdd, submitting, setSubmitting }: {
+  surgeryId: number; notes: import('../../types').SurgeryNursingNoteDto[]; canAdd: boolean
+  submitting: boolean; setSubmitting: (v: boolean) => void
+}) {
+  const dispatch = useAppDispatch()
+  const [noteText, setNoteText] = useState('')
+  // Forces the handwriting field to remount after each save so it doesn't stay stuck in draw-mode
+  // showing the previous note's canvas.
+  const [fieldKey, setFieldKey] = useState(0)
+
+  const add = async () => {
+    if (!noteText.trim()) return
+    setSubmitting(true)
+    try {
+      await dispatch(addNursingNote(surgeryId, noteText))
+      toast.success('Nursing note added.')
+      setNoteText('')
+      setFieldKey((k) => k + 1)
+    } catch (error) {
+      toast.error(extractErrorMessage(error))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {canAdd && (
+        <div className="space-y-2">
+          <HandwritingField key={fieldKey} label="New note (type or draw with stylus)" value={noteText} onChange={setNoteText} multiline padHeight={120} />
+          <Button loading={submitting} disabled={!noteText.trim()} onClick={add}>Add Note</Button>
+        </div>
+      )}
+
+      <div className="max-h-72 space-y-2 overflow-y-auto">
+        {notes.map((n) => (
+          <div key={n.id} className="rounded-lg bg-surface-muted p-3 text-sm">
+            <p className="mb-1 text-xs font-medium text-ink-500">{new Date(n.recordedAt).toLocaleString()} · {n.recordedByName}</p>
+            {isHandwritingCapture(n.noteText) ? (
+              <img src={n.noteText} alt="Handwritten note" className="max-h-28 rounded border border-ink-100 bg-white" />
+            ) : (
+              <p className="text-ink-700">{n.noteText}</p>
+            )}
+          </div>
+        ))}
+        {notes.length === 0 && <p className="text-sm text-ink-500">No nursing notes recorded yet.</p>}
       </div>
     </div>
   )

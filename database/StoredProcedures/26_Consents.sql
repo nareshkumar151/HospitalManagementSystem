@@ -1,6 +1,26 @@
 USE HMS_DB;
 GO
 
+-- "Recorded by" on a consent record showed the capturing staff member's login Username (e.g. "nurse.neha")
+-- rather than their actual name - looks wrong on what is, in effect, a legal document. Resolves the real
+-- display name instead: Doctors.FullName for a Doctor login, Employees.FullName for every other staff role
+-- (Administrator/Nurse/Pharmacist/LabTechnician/HR/Receptionist all have their profile there - see
+-- AuthService.CreateUserAsync), falling back to Username only for a login with no linked profile row
+-- (e.g. a bare Administrator account) or the login has since been removed.
+CREATE OR ALTER FUNCTION dbo.fn_UserDisplayName(@UserId INT)
+RETURNS NVARCHAR(200)
+AS
+BEGIN
+    DECLARE @Name NVARCHAR(200);
+    SELECT @Name = CASE WHEN u.RoleName = 'Doctor' THEN d.FullName ELSE e.FullName END
+    FROM Users u
+    LEFT JOIN Doctors d ON d.Id = u.LinkedProfileId AND u.RoleName = 'Doctor'
+    LEFT JOIN Employees e ON e.Id = u.LinkedProfileId AND u.RoleName <> 'Doctor'
+    WHERE u.Id = @UserId;
+    RETURN ISNULL(@Name, (SELECT Username FROM Users WHERE Id = @UserId));
+END
+GO
+
 CREATE OR ALTER PROCEDURE sp_ConsentTemplate_GetAll
     @IncludeInactive BIT = 0
 AS
@@ -35,7 +55,7 @@ GO
 CREATE OR ALTER PROCEDURE sp_ConsentRecord_Insert
     @PatientId INT, @TemplateId INT, @HospitalId INT, @BranchId INT, @Context NVARCHAR(20),
     @ContextId INT = NULL, @ProcedureName NVARCHAR(200) = NULL, @Decision NVARCHAR(10),
-    @SignedByName NVARCHAR(150), @RelationToPatient NVARCHAR(50) = NULL, @WitnessName NVARCHAR(150) = NULL,
+    @SignedByName NVARCHAR(MAX), @RelationToPatient NVARCHAR(50) = NULL, @WitnessName NVARCHAR(150) = NULL,
     @WitnessUserId INT = NULL, @RefusalReason NVARCHAR(400) = NULL, @Notes NVARCHAR(400) = NULL,
     @RecordedByUserId INT
 AS
@@ -59,11 +79,10 @@ BEGIN
     SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category, t.BodyText AS TemplateBodyText,
            c.Context, c.ContextId, c.ProcedureName, c.Decision, c.SignedByName, c.RelationToPatient,
            c.WitnessName, wu.Username AS WitnessUserName, c.RefusalReason, c.Notes,
-           ru.Username AS RecordedByName, c.SignedAt
+           dbo.fn_UserDisplayName(c.RecordedByUserId) AS RecordedByName, c.SignedAt
     FROM ConsentRecords c
     JOIN Patients p ON p.Id = c.PatientId
     JOIN ConsentTemplates t ON t.Id = c.TemplateId
-    JOIN Users ru ON ru.Id = c.RecordedByUserId
     LEFT JOIN Users wu ON wu.Id = c.WitnessUserId
     WHERE c.Id = @Id AND c.IsDeleted = 0;
 END
@@ -77,11 +96,10 @@ BEGIN
     SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category, t.BodyText AS TemplateBodyText,
            c.Context, c.ContextId, c.ProcedureName, c.Decision, c.SignedByName, c.RelationToPatient,
            c.WitnessName, wu.Username AS WitnessUserName, c.RefusalReason, c.Notes,
-           ru.Username AS RecordedByName, c.SignedAt
+           dbo.fn_UserDisplayName(c.RecordedByUserId) AS RecordedByName, c.SignedAt
     FROM ConsentRecords c
     JOIN Patients p ON p.Id = c.PatientId
     JOIN ConsentTemplates t ON t.Id = c.TemplateId
-    JOIN Users ru ON ru.Id = c.RecordedByUserId
     LEFT JOIN Users wu ON wu.Id = c.WitnessUserId
     WHERE c.PatientId = @PatientId AND c.IsDeleted = 0
     ORDER BY c.SignedAt DESC;
@@ -98,11 +116,10 @@ BEGIN
     SELECT c.Id, c.PatientId, p.FullName AS PatientName, c.TemplateId, t.Title AS TemplateTitle, t.Category, t.BodyText AS TemplateBodyText,
            c.Context, c.ContextId, c.ProcedureName, c.Decision, c.SignedByName, c.RelationToPatient,
            c.WitnessName, wu.Username AS WitnessUserName, c.RefusalReason, c.Notes,
-           ru.Username AS RecordedByName, c.SignedAt
+           dbo.fn_UserDisplayName(c.RecordedByUserId) AS RecordedByName, c.SignedAt
     FROM ConsentRecords c
     JOIN Patients p ON p.Id = c.PatientId
     JOIN ConsentTemplates t ON t.Id = c.TemplateId
-    JOIN Users ru ON ru.Id = c.RecordedByUserId
     LEFT JOIN Users wu ON wu.Id = c.WitnessUserId
     WHERE c.HospitalId = @HospitalId AND c.IsDeleted = 0
       AND (@Category IS NULL OR t.Category = @Category)

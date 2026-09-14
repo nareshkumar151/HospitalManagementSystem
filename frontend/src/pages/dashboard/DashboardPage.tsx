@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Users, IndianRupee, BedDouble, Receipt, Stethoscope, Scissors, AlertTriangle, CalendarCheck, LogOut, Hospital, Building2, CalendarClock } from 'lucide-react'
+import { Users, IndianRupee, BedDouble, Receipt, Stethoscope, Scissors, AlertTriangle, CalendarCheck, LogOut, Hospital, Building2, CalendarClock, ShieldCheck } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { fetchDashboardSummary, fetchPlatformSummary } from '../../features/dashboard/dashboardSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -32,7 +32,6 @@ export function DashboardPage() {
           <StatCard label="Employees" value={platformSummary?.totalEmployees ?? 0} icon={Users} tone="brand" />
           <StatCard label="Today's Appointments" value={platformSummary?.todaysAppointments ?? 0} icon={CalendarClock} tone="success" hint="Across every branch" />
           <StatCard label="Today's Revenue" value={`₹${(platformSummary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`} icon={IndianRupee} tone="success" hint="Across every branch" />
-          <StatCard label="Pending Bills" value={platformSummary?.pendingBillsCount ?? 0} icon={Receipt} tone="danger" />
         </div>
 
         <Card padded={false} className="mt-6">
@@ -66,6 +65,25 @@ export function DashboardPage() {
 
   if (status === 'loading' && !summary) return <FullPageSpinner />
 
+  // Nurse's own dashboard - exactly the tiles the ward's paper dashboard tracked, nothing else (no revenue
+  // figures, no pharmacy alerts/quick-actions card below - those aren't a nurse's concern here).
+  if (user?.role === 'Nurse') {
+    return (
+      <div>
+        <PageHeader title={`Welcome back, ${user.username}`} subtitle="Here's what's happening across the hospital today." />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <StatCard label="Total OPD Patients" value={summary?.todaysPatients ?? 0} icon={Users} tone="brand" />
+          <StatCard label="Total IP Patients" value={summary?.ipdPatientsCount ?? 0} icon={Users} tone="brand" />
+          <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
+          <StatCard label="Planned Discharges" value={summary?.dischargedTodayCount ?? 0} icon={LogOut} tone="success" hint="Today" />
+          <StatCard label="Discharged" value={summary?.dischargedTodayCount ?? 0} icon={LogOut} tone="success" hint="Today" />
+          <StatCard label="Insurance Patients" value={summary?.insurancePatientsCount ?? 0} icon={ShieldCheck} tone="brand" hint="Currently admitted" />
+          <StatCard label="Today's Surgeries" value={summary?.todaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <PageHeader title={`Welcome back, ${user?.username}`} subtitle="Here's what's happening across the hospital today." />
@@ -82,7 +100,7 @@ export function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Today's Patients" value={summary?.todaysPatients ?? 0} icon={Users} tone="brand" />
           <StatCard
-            label={user?.role === 'Receptionist' ? "Today's Collection" : "Today's Revenue"}
+            label={user?.role === 'Receptionist' ? "Today's Revenue" : "Today's Revenue"}
             value={`₹${(summary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`}
             icon={IndianRupee}
             tone="success"
@@ -103,7 +121,6 @@ export function DashboardPage() {
           />
           <StatCard label="IPD Patients" value={summary?.ipdPatientsCount ?? 0} icon={Users} tone="brand" hint="Currently admitted" />
           <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
-          <StatCard label="Pending Bills" value={summary?.pendingBillsCount ?? 0} icon={Receipt} tone="danger" />
           <StatCard label="Available Doctors" value={summary?.availableDoctorsCount ?? 0} icon={Stethoscope} tone="brand" />
           <StatCard label="Today's Surgeries" value={summary?.todaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
         </div>

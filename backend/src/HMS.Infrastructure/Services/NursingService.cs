@@ -59,6 +59,33 @@ public class NursingService : INursingService
     public Task<IReadOnlyList<NursingChartDto>> GetChartAsync(int admissionId)
         => _db.QueryAsync<NursingChartDto>("sp_NursingChart_GetByAdmission", new { IpdAdmissionId = admissionId });
 
+    public async Task<NursingChartDto> RecordAppointmentVitalsAsync(int appointmentId, RecordVitalsRequest request, int nurseUserId)
+    {
+        await _db.QuerySingleAsync<int>("sp_NursingChart_UpsertForAppointment", new
+        {
+            AppointmentId = appointmentId,
+            NurseUserId = nurseUserId,
+            request.Temperature,
+            request.Pulse,
+            request.BloodPressure,
+            request.Oxygen,
+            request.Weight,
+            request.SugarLevel,
+            request.MedicationSchedule,
+            request.DailyNotes,
+            request.PatientMonitoring,
+            request.RespiratoryRate,
+            request.PainScore,
+            request.Consciousness,
+            EarlyWarningScore = CalculateEarlyWarningScore(request),
+        });
+
+        return (await GetAppointmentVitalsAsync(appointmentId))!;
+    }
+
+    public Task<NursingChartDto?> GetAppointmentVitalsAsync(int appointmentId)
+        => _db.QuerySingleOrDefaultAsync<NursingChartDto>("sp_NursingChart_GetByAppointment", new { AppointmentId = appointmentId });
+
     public async Task<NursingRequestDto> RaiseRequestAsync(int admissionId, RaiseNursingRequestRequest request, int nurseUserId)
     {
         var newId = await _db.QuerySingleAsync<int>("sp_NursingRequest_Insert", new

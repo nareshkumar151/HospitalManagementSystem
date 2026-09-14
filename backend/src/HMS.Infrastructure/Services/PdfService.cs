@@ -242,7 +242,15 @@ public class PdfService : IPdfService
                 {
                     LabeledRow(left.Item(), "Category", record.Category);
                     LabeledRow(left.Item(), "Context", record.Context);
-                    LabeledRow(left.Item(), "Signed By", record.SignedByName + (record.RelationToPatient != null ? $" ({record.RelationToPatient})" : ""));
+                    if (IsHandwritingCapture(record.SignedByName))
+                    {
+                        LabeledSignatureRow(left.Item(), "Signed By", record.SignedByName);
+                        if (record.RelationToPatient != null) LabeledRow(left.Item(), "Relation", record.RelationToPatient);
+                    }
+                    else
+                    {
+                        LabeledRow(left.Item(), "Signed By", record.SignedByName + (record.RelationToPatient != null ? $" ({record.RelationToPatient})" : ""));
+                    }
                 });
                 row.RelativeItem().Column(right =>
                 {
@@ -254,11 +262,19 @@ public class PdfService : IPdfService
             if (!string.IsNullOrWhiteSpace(record.RefusalReason))
                 column.Item().PaddingTop(4).Text(text => { text.Span("Refusal Reason: ").SemiBold().FontColor(Colors.Red.Darken1); text.Span(record.RefusalReason!); });
 
-            // Signature block - a printed copy of this PDF still needs somewhere for a wet-ink signature,
-            // since the system captures a typed name/witness rather than a scanned signature image.
+            // Signature block - shows the actual stylus capture when the patient/family member signed
+            // digitally; falls back to a blank wet-ink line (a printed copy still needs somewhere to sign)
+            // when they were only typed in by name. Witness signature is always blank - no capture for it.
             column.Item().PaddingTop(16).Row(row =>
             {
-                row.RelativeItem().Column(c => { c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten1); c.Item().PaddingTop(2).Text("Patient / Representative Signature").FontSize(8).FontColor(Colors.Grey.Darken1); });
+                row.RelativeItem().Column(c =>
+                {
+                    if (IsHandwritingCapture(record.SignedByName))
+                        c.Item().Height(40).Image(Convert.FromBase64String(record.SignedByName[(record.SignedByName.IndexOf(',') + 1)..])).FitArea();
+                    else
+                        c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
+                    c.Item().PaddingTop(2).Text("Patient / Representative Signature").FontSize(8).FontColor(Colors.Grey.Darken1);
+                });
                 row.ConstantItem(20);
                 row.RelativeItem().Column(c => { c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten1); c.Item().PaddingTop(2).Text("Witness Signature").FontSize(8).FontColor(Colors.Grey.Darken1); });
             });
@@ -295,6 +311,24 @@ public class PdfService : IPdfService
                 column.Item().PaddingTop(8).Text("Post-Op Recovery Record (Aldrete Score)").SemiBold();
                 foreach (var r in bundle.RecoveryRecords)
                     column.Item().PaddingLeft(10).Text($"{r.RecordedAt:hh:mm tt} - Aldrete {r.AldreteTotal}/10, BP {r.BloodPressure ?? "-"}{(r.DischargedFromRecoveryAt.HasValue ? " - Discharged" : "")} ({r.RecordedByName})").FontSize(9);
+            }
+
+            if (bundle.NursingNotes.Count > 0)
+            {
+                column.Item().PaddingTop(8).Text("Nursing Notes").SemiBold();
+                foreach (var n in bundle.NursingNotes)
+                {
+                    column.Item().PaddingLeft(10).PaddingTop(2).Text($"{n.RecordedAt:hh:mm tt} ({n.RecordedByName})").FontSize(9).Italic();
+                    if (IsHandwritingCapture(n.NoteText))
+                    {
+                        var base64 = n.NoteText[(n.NoteText.IndexOf(',') + 1)..];
+                        column.Item().PaddingLeft(10).Height(60).Image(Convert.FromBase64String(base64)).FitArea();
+                    }
+                    else
+                    {
+                        column.Item().PaddingLeft(10).Text(n.NoteText).FontSize(9);
+                    }
+                }
             }
         });
     }
@@ -464,6 +498,30 @@ public class PdfService : IPdfService
         {
             row.ConstantItem(150).Text(label).SemiBold();
             row.RelativeItem().Text(value);
+        });
+    }
+
+    /// <summary> A clinical text field's value doubles as a stylus capture when it holds a base64 PNG data
+    /// URI - mirrors frontend/src/components/clinical/HandwritingField.tsx's isHandwritingCapture, since the
+    /// same string round-trips from there through the database into this PDF. </summary>
+    private static bool IsHandwritingCapture(string? value) => !string.IsNullOrEmpty(value) && value.StartsWith("data:image", StringComparison.Ordinal);
+
+    /// <summary> Same layout as LabeledRow, but renders an actual signature image instead of dumping the raw
+    /// base64 data URI as text when the field holds a stylus capture. </summary>
+    private static void LabeledSignatureRow(IContainer container, string label, string value)
+    {
+        container.PaddingBottom(3).Row(row =>
+        {
+            row.ConstantItem(150).Text(label).SemiBold();
+            if (IsHandwritingCapture(value))
+            {
+                var base64 = value[(value.IndexOf(',') + 1)..];
+                row.RelativeItem().Height(40).Image(Convert.FromBase64String(base64)).FitArea();
+            }
+            else
+            {
+                row.RelativeItem().Text(value);
+            }
         });
     }
 

@@ -74,7 +74,8 @@ public class PatientDocumentBundleService : IPatientDocumentBundleService
                 surgery,
                 await _operationTheatreService.GetChecklistsAsync(surgery.Id),
                 await _operationTheatreService.GetAnesthesiaRecordsAsync(surgery.Id),
-                await _operationTheatreService.GetRecoveryRecordsAsync(surgery.Id)));
+                await _operationTheatreService.GetRecoveryRecordsAsync(surgery.Id),
+                await _operationTheatreService.GetNursingNotesAsync(surgery.Id)));
         }
 
         var nursingChart = await _nursingService.GetChartAsync(admissionId);

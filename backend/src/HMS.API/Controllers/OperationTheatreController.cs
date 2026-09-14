@@ -18,9 +18,11 @@ public class OperationTheatreController : ApiControllerBase
         _pdfService = pdfService;
     }
 
-    // Receptionist no longer coordinates the OT calendar - Administrator/Doctor only.
+    // Receptionist no longer coordinates the OT calendar - Administrator/Doctor/Nurse (the OT page's own
+    // "Schedule Surgery" action is available to all three - Nurse was missing here, so every attempt of
+    // theirs was silently rejected with 403).
     [HttpPost]
-    [Authorize(Roles = RoleNames.AdminOnly + "," + RoleNames.Doctor)]
+    [Authorize(Roles = RoleNames.AdminOnly + "," + RoleNames.Doctor + "," + RoleNames.Nurse)]
     public async Task<ActionResult<SurgeryDto>> Schedule(ScheduleSurgeryRequest request) => Ok(await _operationTheatreService.ScheduleAsync(request));
 
     [HttpPut("{id:int}/complete")]
@@ -74,6 +76,17 @@ public class OperationTheatreController : ApiControllerBase
         return NoContent();
     }
 
+    // --- Nursing Notes (append-only, stylus-capable) -------------------------------------------------------
+
+    [HttpPost("nursing-notes")]
+    [Authorize(Roles = RoleNames.Nurse)]
+    public async Task<ActionResult<SurgeryNursingNoteDto>> AddNursingNote(AddSurgeryNursingNoteRequest request)
+        => Ok(await _operationTheatreService.AddNursingNoteAsync(request, CurrentUserId));
+
+    [HttpGet("{surgeryId:int}/nursing-notes")]
+    public async Task<ActionResult<IReadOnlyList<SurgeryNursingNoteDto>>> GetNursingNotes(int surgeryId)
+        => Ok(await _operationTheatreService.GetNursingNotesAsync(surgeryId));
+
     [HttpGet("{surgeryId:int}/pdf")]
     public async Task<IActionResult> DownloadFormsPdf(int surgeryId)
     {
@@ -81,7 +94,8 @@ public class OperationTheatreController : ApiControllerBase
             await _operationTheatreService.GetByIdAsync(surgeryId),
             await _operationTheatreService.GetChecklistsAsync(surgeryId),
             await _operationTheatreService.GetAnesthesiaRecordsAsync(surgeryId),
-            await _operationTheatreService.GetRecoveryRecordsAsync(surgeryId));
+            await _operationTheatreService.GetRecoveryRecordsAsync(surgeryId),
+            await _operationTheatreService.GetNursingNotesAsync(surgeryId));
         var pdfBytes = _pdfService.GenerateSurgeryFormsPdf(bundle);
         return File(pdfBytes, "application/pdf", $"OTForms-{surgeryId}.pdf");
     }

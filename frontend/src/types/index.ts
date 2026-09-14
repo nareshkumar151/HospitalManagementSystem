@@ -325,7 +325,8 @@ export interface IpdAdmissionDto {
 
 export interface NursingChartDto {
   id: number
-  ipdAdmissionId: number
+  ipdAdmissionId: number | null
+  appointmentId: number | null
   nurseUserId: number
   nurseName: string
   recordedAt: string
@@ -424,6 +425,14 @@ export interface SurgeryRecoveryRecordDto {
   spO2: number | null
   remarks: string | null
   dischargedFromRecoveryAt: string | null
+}
+
+export interface SurgeryNursingNoteDto {
+  id: number
+  surgeryId: number
+  recordedAt: string
+  recordedByName: string
+  noteText: string
 }
 
 export interface ErVisitDto {
@@ -564,6 +573,8 @@ export interface DashboardSummaryDto {
   pendingBillsCount: number
   availableDoctorsCount: number
   todaysSurgeriesCount: number
+  dischargedTodayCount: number
+  insurancePatientsCount: number
   doctorTodaysAppointments: number
   doctorIpPatientsCount: number
   doctorPlannedDischargesCount: number

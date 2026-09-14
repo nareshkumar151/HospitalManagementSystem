@@ -19,11 +19,12 @@ public class IpdAdmissionsController : ApiControllerBase
         _pdfService = pdfService;
     }
 
-    // Doctor included alongside front desk/nursing: an ER doctor recording an "Admit" disposition is
-    // navigated straight into this form pre-filled with the patient (see ErVisitFormsModal) and expected to
-    // be able to complete it themselves on the spot, not hit a permissions wall on submit.
+    // Doctor included alongside front desk: an ER doctor recording an "Admit" disposition is navigated
+    // straight into this form pre-filled with the patient (see ErVisitFormsModal) and expected to be able to
+    // complete it themselves on the spot, not hit a permissions wall on submit. Nurse deliberately excluded -
+    // admitting a patient is a front-desk/doctor decision, not a nursing one.
     [HttpPost]
-    [Authorize(Roles = RoleNames.FrontDesk + "," + RoleNames.Nurse + "," + RoleNames.Doctor)]
+    [Authorize(Roles = RoleNames.FrontDesk + "," + RoleNames.Doctor)]
     public async Task<ActionResult<IpdAdmissionDto>> Admit(AdmitPatientRequest request)
     {
         var created = await _ipdAdmissionService.AdmitAsync(request, CurrentBranchIdOrNull ?? request.BranchId);

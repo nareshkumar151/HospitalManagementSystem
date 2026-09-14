@@ -24,9 +24,11 @@ export const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard, roles: [...ALL_STAFF, 'SuperAdmin'] },
   { label: 'My Portal', path: '/app/patient', icon: LayoutDashboard, roles: ['Patient'] },
   { label: 'Hospitals', path: '/app/manage/hospitals', icon: Hospital, roles: ['SuperAdmin'] },
-  { label: 'Patients', path: '/app/patients', icon: Users, roles: ['Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
+  // Nurse works from Appointments (to record vitals against a scheduled visit) rather than the standalone
+  // patient registry - see Appointments below.
+  { label: 'Patients', path: '/app/patients', icon: Users, roles: ['Administrator', 'Receptionist', 'Doctor'] },
   { label: 'Emergency (ER)', path: '/app/er', icon: Siren, roles: ['Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
-  { label: 'Appointments', path: '/app/appointments', icon: CalendarCheck, roles: ['Administrator', 'Receptionist', 'Doctor'] },
+  { label: 'Appointments', path: '/app/appointments', icon: CalendarCheck, roles: ['Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
   { label: 'Doctor Console', path: '/app/doctor-console', icon: Stethoscope, roles: ['Doctor'] },
   { label: 'IPD / Admissions', path: '/app/ipd', icon: BedDouble, roles: ['Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
   { label: 'Nursing', path: '/app/nursing', icon: ClipboardList, roles: ['Nurse', 'Administrator'] },
@@ -38,7 +40,7 @@ export const navItems: NavItem[] = [
   { label: 'Operation Theatre', path: '/app/operation-theatre', icon: Scissors, roles: ['Administrator', 'Doctor', 'Nurse'] },
   { label: 'Consents', path: '/app/consents', icon: FileSignature, roles: ['Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
   { label: 'Blood Bank / Dialysis / Nutrition', path: '/app/clinical-depts', icon: Droplet, roles: ['Administrator', 'Doctor', 'Nurse', 'LabTechnician'] },
-  { label: 'Medical Records', path: '/app/medical-records', icon: FileText, roles: ['Administrator', 'Doctor', 'Nurse'] },
+  { label: 'Medical Records', path: '/app/medical-records', icon: FileText, roles: ['Administrator', 'Doctor'] },
   { label: 'Doctors', path: '/app/manage/doctors', icon: Stethoscope, roles: ['Administrator'] },
   { label: 'Departments', path: '/app/manage/departments', icon: Building2, roles: ['Administrator'] },
   { label: 'Employees', path: '/app/manage/employees', icon: Briefcase, roles: ['Administrator', 'HR'] },

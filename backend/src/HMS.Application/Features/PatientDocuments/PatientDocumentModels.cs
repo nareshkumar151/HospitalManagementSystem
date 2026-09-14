@@ -13,7 +13,8 @@ namespace HMS.Application.Features.PatientDocuments;
 /// <summary> One surgery plus every OT paperwork form recorded against it, grouped for a single printable section. </summary>
 public record SurgeryFormsBundle(
     SurgeryDto Surgery, IReadOnlyList<SurgeryChecklistDto> Checklists,
-    IReadOnlyList<SurgeryAnesthesiaRecordDto> AnesthesiaRecords, IReadOnlyList<SurgeryRecoveryRecordDto> RecoveryRecords);
+    IReadOnlyList<SurgeryAnesthesiaRecordDto> AnesthesiaRecords, IReadOnlyList<SurgeryRecoveryRecordDto> RecoveryRecords,
+    IReadOnlyList<SurgeryNursingNoteDto> NursingNotes);
 
 /// <summary> One ER visit plus its nurse/doctor assessments, grouped for a single printable section. </summary>
 public record ErVisitBundle(

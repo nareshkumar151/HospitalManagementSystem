@@ -43,6 +43,11 @@ public record RecordRecoveryRequest(
     int SurgeryId, int Activity, int Respiration, int Circulation, int Consciousness, int OxygenSaturation,
     string? BloodPressure, int? Pulse, decimal? SpO2, string? Remarks);
 
+// --- Nursing Notes (append-only, stylus-capable) ----------------------------------------------------------
+
+public record SurgeryNursingNoteDto(int Id, int SurgeryId, DateTime RecordedAt, string RecordedByName, string NoteText);
+public record AddSurgeryNursingNoteRequest(int SurgeryId, string NoteText);
+
 public interface IOperationTheatreService
 {
     Task<SurgeryDto> ScheduleAsync(ScheduleSurgeryRequest request);
@@ -61,4 +66,7 @@ public interface IOperationTheatreService
     Task<SurgeryRecoveryRecordDto> RecordRecoveryAsync(RecordRecoveryRequest request, int userId);
     Task<IReadOnlyList<SurgeryRecoveryRecordDto>> GetRecoveryRecordsAsync(int surgeryId);
     Task MarkRecoveryDischargedAsync(int recoveryRecordId);
+
+    Task<SurgeryNursingNoteDto> AddNursingNoteAsync(AddSurgeryNursingNoteRequest request, int userId);
+    Task<IReadOnlyList<SurgeryNursingNoteDto>> GetNursingNotesAsync(int surgeryId);
 }

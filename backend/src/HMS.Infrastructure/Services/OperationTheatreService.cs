@@ -128,4 +128,21 @@ public class OperationTheatreService : IOperationTheatreService
 
     public Task MarkRecoveryDischargedAsync(int recoveryRecordId)
         => _db.ExecuteAsync("sp_SurgeryRecoveryRecord_MarkDischarged", new { Id = recoveryRecordId });
+
+    // --- Nursing Notes ---------------------------------------------------------------------------------
+
+    public async Task<SurgeryNursingNoteDto> AddNursingNoteAsync(AddSurgeryNursingNoteRequest request, int userId)
+    {
+        var newId = await _db.QuerySingleAsync<int>("sp_SurgeryNursingNote_Insert", new
+        {
+            request.SurgeryId,
+            request.NoteText,
+            RecordedByUserId = userId,
+        });
+        var list = await GetNursingNotesAsync(request.SurgeryId);
+        return list.First(n => n.Id == newId);
+    }
+
+    public Task<IReadOnlyList<SurgeryNursingNoteDto>> GetNursingNotesAsync(int surgeryId)
+        => _db.QueryAsync<SurgeryNursingNoteDto>("sp_SurgeryNursingNote_GetBySurgery", new { SurgeryId = surgeryId });
 }

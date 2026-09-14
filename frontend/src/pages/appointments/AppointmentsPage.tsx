@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { AlertTriangle, Plus, Search, Send, X } from 'lucide-react'
+import { AlertTriangle, Plus, Search, Send, Stethoscope, X } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import {
   bookAppointment, cancelAppointment, fetchAppointments, fetchDoctorSlots,
@@ -10,16 +10,20 @@ import {
 import { fetchDoctors, fetchDepartments } from '../../features/doctors/doctorsSlice'
 import { fetchPatients } from '../../features/patients/patientsSlice'
 import { fetchActiveAdmissions } from '../../features/ipd/ipdSlice'
+import { fetchAppointmentVitals, recordAppointmentVitals } from '../../features/nursing/nursingSlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Table, type Column } from '../../components/ui/Table'
 import { Button } from '../../components/ui/Button'
-import { Select } from '../../components/ui/Input'
+import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
 import { SearchBox } from '../../components/ui/ListToolbar'
+import { HandwritingField } from '../../components/clinical/HandwritingField'
 import { extractErrorMessage } from '../../api/client'
 import type { AppointmentDto } from '../../types'
+
+const AVPU_OPTIONS = ['Alert', 'Verbal', 'Pain', 'Unresponsive']
 
 export function AppointmentsPage() {
   const dispatch = useAppDispatch()
@@ -32,7 +36,9 @@ export function AppointmentsPage() {
   const { list: doctors, departments } = useAppSelector((state) => state.doctors)
   const { active: activeAdmissions } = useAppSelector((state) => state.ipd)
   const isDoctor = user?.role === 'Doctor'
+  const isNurse = user?.role === 'Nurse'
   const canResolveRequests = user?.role === 'SuperAdmin' || user?.role === 'Administrator' || user?.role === 'Receptionist'
+  const { appointmentVitals } = useAppSelector((state) => state.nursing)
 
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [search, setSearch] = useState('')
@@ -52,6 +58,19 @@ export function AppointmentsPage() {
   const [requestType, setRequestType] = useState<'Cancel' | 'Transfer' | 'Refer'>('Cancel')
   const [requestReason, setRequestReason] = useState('')
   const [requestSubmitting, setRequestSubmitting] = useState(false)
+
+  // Vitals recorded against an OPD appointment - a single editable snapshot (see nursingSlice), not a
+  // growing history log like the IPD ward chart, so re-opening this on the same appointment loads and
+  // updates the one existing row instead of adding a new one.
+  const [vitalsTarget, setVitalsTarget] = useState<AppointmentDto | null>(null)
+  const [vitalsForm, setVitalsForm] = useState({
+    temperature: '', pulse: '', bloodPressure: '', oxygen: '', weight: '', sugarLevel: '', dailyNotes: '',
+    respiratoryRate: '', painScore: '', consciousness: 'Alert',
+  })
+  const [vitalsSubmitting, setVitalsSubmitting] = useState(false)
+  // Forces the handwriting field to remount per appointment so it doesn't carry over a stale draw-mode
+  // canvas from whichever appointment's vitals were open before.
+  const [vitalsFieldKey, setVitalsFieldKey] = useState(0)
 
   useEffect(() => {
     const timeout = setTimeout(() => dispatch(fetchAppointments({ date, search })), 300)
@@ -154,6 +173,58 @@ export function AppointmentsPage() {
     }
   }
 
+  const openVitalsModal = (a: AppointmentDto) => {
+    setVitalsTarget(a)
+    setVitalsForm({ temperature: '', pulse: '', bloodPressure: '', oxygen: '', weight: '', sugarLevel: '', dailyNotes: '', respiratoryRate: '', painScore: '', consciousness: 'Alert' })
+    setVitalsFieldKey((k) => k + 1)
+    dispatch(fetchAppointmentVitals(a.id))
+  }
+
+  // Prefill the form once the existing snapshot (if any) comes back, so editing it is a correction of the
+  // same reading rather than a blind overwrite.
+  useEffect(() => {
+    if (vitalsTarget && appointmentVitals && appointmentVitals.appointmentId === vitalsTarget.id) {
+      setVitalsForm({
+        temperature: appointmentVitals.temperature?.toString() ?? '',
+        pulse: appointmentVitals.pulse?.toString() ?? '',
+        bloodPressure: appointmentVitals.bloodPressure ?? '',
+        oxygen: appointmentVitals.oxygen?.toString() ?? '',
+        weight: appointmentVitals.weight?.toString() ?? '',
+        sugarLevel: appointmentVitals.sugarLevel?.toString() ?? '',
+        dailyNotes: appointmentVitals.dailyNotes ?? '',
+        respiratoryRate: appointmentVitals.respiratoryRate?.toString() ?? '',
+        painScore: appointmentVitals.painScore?.toString() ?? '',
+        consciousness: appointmentVitals.consciousness ?? 'Alert',
+      })
+      setVitalsFieldKey((k) => k + 1)
+    }
+  }, [appointmentVitals, vitalsTarget])
+
+  const handleSaveVitals = async () => {
+    if (!vitalsTarget) return
+    setVitalsSubmitting(true)
+    try {
+      await dispatch(recordAppointmentVitals(vitalsTarget.id, {
+        temperature: vitalsForm.temperature ? Number(vitalsForm.temperature) : undefined,
+        pulse: vitalsForm.pulse ? Number(vitalsForm.pulse) : undefined,
+        bloodPressure: vitalsForm.bloodPressure || undefined,
+        oxygen: vitalsForm.oxygen ? Number(vitalsForm.oxygen) : undefined,
+        weight: vitalsForm.weight ? Number(vitalsForm.weight) : undefined,
+        sugarLevel: vitalsForm.sugarLevel ? Number(vitalsForm.sugarLevel) : undefined,
+        dailyNotes: vitalsForm.dailyNotes || undefined,
+        respiratoryRate: vitalsForm.respiratoryRate ? Number(vitalsForm.respiratoryRate) : undefined,
+        painScore: vitalsForm.painScore ? Number(vitalsForm.painScore) : undefined,
+        consciousness: vitalsForm.consciousness || undefined,
+      }))
+      toast.success('Vitals saved.')
+      setVitalsTarget(null)
+    } catch (error) {
+      toast.error(extractErrorMessage(error))
+    } finally {
+      setVitalsSubmitting(false)
+    }
+  }
+
   const handleResolveRequest = async (id: number, status: 'Approved' | 'Rejected') => {
     try {
       await dispatch(resolveAppointmentRequest(id, status))
@@ -183,6 +254,10 @@ export function AppointmentsPage() {
               <Send size={13} /> Request Cancel/Transfer/Refer
             </button>
           ) : null
+        ) : isNurse ? (
+          <button onClick={() => openVitalsModal(a)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+            <Stethoscope size={13} /> Record Vitals
+          </button>
         ) : (
           <button onClick={() => handleCancel(a.id)} className="flex items-center gap-1 text-xs font-medium text-danger-500 hover:underline">
             <X size={13} /> Cancel
@@ -197,7 +272,7 @@ export function AppointmentsPage() {
       <PageHeader
         title="Appointments"
         subtitle="Book, view, and manage OPD appointments by date."
-        actions={!isDoctor ? <Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Book Appointment</Button> : undefined}
+        actions={!isDoctor && !isNurse ? <Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Book Appointment</Button> : undefined}
       />
 
       <Card padded={false}>
@@ -327,6 +402,45 @@ export function AppointmentsPage() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => setRequestTarget(null)}>Close</Button>
               <Button loading={requestSubmitting} disabled={!requestReason.trim()} onClick={handleSubmitRequest}>Send Request</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!vitalsTarget} onClose={() => setVitalsTarget(null)} title="Record Vitals">
+        {vitalsTarget && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-600">
+              {vitalsTarget.patientName} <span className="text-xs text-ink-500">· {vitalsTarget.uhid}</span>
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Input label="Temp (°F)" value={vitalsForm.temperature} onChange={(e) => setVitalsForm({ ...vitalsForm, temperature: e.target.value })} />
+              <Input label="Pulse" value={vitalsForm.pulse} onChange={(e) => setVitalsForm({ ...vitalsForm, pulse: e.target.value })} />
+            </div>
+            <Input label="Blood pressure" placeholder="120/80" value={vitalsForm.bloodPressure} onChange={(e) => setVitalsForm({ ...vitalsForm, bloodPressure: e.target.value })} />
+            <div className="grid grid-cols-2 gap-2">
+              <Input label="SpO2 (%)" value={vitalsForm.oxygen} onChange={(e) => setVitalsForm({ ...vitalsForm, oxygen: e.target.value })} />
+              <Input label="Weight (kg)" value={vitalsForm.weight} onChange={(e) => setVitalsForm({ ...vitalsForm, weight: e.target.value })} />
+            </div>
+            <Input label="Sugar level" value={vitalsForm.sugarLevel} onChange={(e) => setVitalsForm({ ...vitalsForm, sugarLevel: e.target.value })} />
+            <div className="grid grid-cols-2 gap-2">
+              <Input label="Resp. rate" value={vitalsForm.respiratoryRate} onChange={(e) => setVitalsForm({ ...vitalsForm, respiratoryRate: e.target.value })} />
+              <Input label="Pain score (0-10)" value={vitalsForm.painScore} onChange={(e) => setVitalsForm({ ...vitalsForm, painScore: e.target.value })} />
+            </div>
+            <Select label="Consciousness (AVPU)" value={vitalsForm.consciousness} onChange={(e) => setVitalsForm({ ...vitalsForm, consciousness: e.target.value })}>
+              {AVPU_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+            </Select>
+            <HandwritingField
+              key={vitalsFieldKey}
+              label="Notes (type or draw with stylus)"
+              value={vitalsForm.dailyNotes}
+              onChange={(v) => setVitalsForm({ ...vitalsForm, dailyNotes: v })}
+              multiline
+              padHeight={120}
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setVitalsTarget(null)}>Cancel</Button>
+              <Button loading={vitalsSubmitting} onClick={handleSaveVitals}>Save Vitals</Button>
             </div>
           </div>
         )}

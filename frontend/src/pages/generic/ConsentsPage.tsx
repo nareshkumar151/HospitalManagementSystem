@@ -13,6 +13,7 @@ import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
 import { SearchBox } from '../../components/ui/ListToolbar'
+import { HandwritingField, isHandwritingCapture } from '../../components/clinical/HandwritingField'
 import { downloadFile, extractErrorMessage } from '../../api/client'
 import type { ConsentContext, ConsentDecision, ConsentRecordDto, ConsentTemplateDto } from '../../types'
 
@@ -41,6 +42,10 @@ export function ConsentsPage() {
   const [refusalReason, setRefusalReason] = useState('')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // Forces HandwritingField to remount (and re-default its type/stylus toggle) whenever the signer's name
+  // is reset to plain text - otherwise it could stay stuck showing an empty drawing pad from the previous
+  // patient/submission instead of falling back to a text field.
+  const [signatureFieldKey, setSignatureFieldKey] = useState(0)
 
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [templateCode, setTemplateCode] = useState('')
@@ -61,6 +66,7 @@ export function ConsentsPage() {
     if (selectedPatient) {
       dispatch(fetchPatientConsents(selectedPatient.id))
       setSignedByName(selectedPatient.fullName)
+      setSignatureFieldKey((k) => k + 1)
     }
   }, [dispatch, selectedPatient])
 
@@ -69,8 +75,10 @@ export function ConsentsPage() {
   const resetCaptureForm = () => {
     setTemplateId(''); setContext('Registration'); setProcedureName(''); setDecision('Accepted')
     setRelationToPatient('Self'); setWitnessName(''); setRefusalReason(''); setNotes('')
-    // Back to the patient's own name - the form default for "Self"; staff overtypes it again for a guardian.
+    // Back to the patient's own name - the form default for "Self"; staff overtypes it (or has them sign
+    // again with the stylus) for a guardian.
     setSignedByName(selectedPatient?.fullName ?? '')
+    setSignatureFieldKey((k) => k + 1)
   }
 
   const handleCapture = async () => {
@@ -140,7 +148,16 @@ export function ConsentsPage() {
     { key: 'template', header: 'Consent', render: (c) => <>{c.templateTitle}{c.procedureName && <span className="block text-xs text-ink-500">{c.procedureName}</span>}</> },
     { key: 'context', header: 'Context', render: (c) => c.context },
     { key: 'decision', header: 'Decision', render: (c) => <Badge>{c.decision}</Badge> },
-    { key: 'signedBy', header: 'Signed by', render: (c) => <>{c.signedByName}{c.relationToPatient && <span className="block text-xs text-ink-500">{c.relationToPatient}</span>}</> },
+    {
+      key: 'signedBy', header: 'Signed by', render: (c) => (
+        <>
+          {isHandwritingCapture(c.signedByName)
+            ? <img src={c.signedByName} alt="Signature" className="h-10 max-w-[140px] rounded border border-ink-100 bg-white object-contain" />
+            : c.signedByName}
+          {c.relationToPatient && <span className="block text-xs text-ink-500">{c.relationToPatient}</span>}
+        </>
+      ),
+    },
     { key: 'witness', header: 'Witness', render: (c) => c.witnessName || c.witnessUserName || '—' },
     { key: 'details', header: 'Details', render: (c) => (c.decision === 'Refused' ? c.refusalReason : c.notes) || '—' },
     { key: 'recordedBy', header: 'Recorded by', render: (c) => c.recordedByName },
@@ -222,7 +239,14 @@ export function ConsentsPage() {
                   {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
                 </Select>
               </div>
-              <Input label="Signed by (name)" value={signedByName} onChange={(e) => setSignedByName(e.target.value)} />
+              <HandwritingField
+                key={signatureFieldKey}
+                label="Signed by (name or signature)"
+                value={signedByName}
+                onChange={setSignedByName}
+                padHeight={140}
+                required
+              />
               <Input label="Witness name (optional)" value={witnessName} onChange={(e) => setWitnessName(e.target.value)} />
               {decision === 'Refused' && (
                 <Input label="Reason for refusal" value={refusalReason} onChange={(e) => setRefusalReason(e.target.value)} />
