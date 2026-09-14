@@ -7,7 +7,7 @@ export type RoleName =
 export type Gender = 'Male' | 'Female' | 'Other'
 export type BloodGroup = 'Unknown' | 'APositive' | 'ANegative' | 'BPositive' | 'BNegative' | 'ABPositive' | 'ABNegative' | 'OPositive' | 'ONegative'
 export type AppointmentType = 'Online' | 'WalkIn'
-export type AppointmentStatus = 'Scheduled' | 'Completed' | 'Cancelled' | 'Rescheduled'
+export type AppointmentStatus = 'Scheduled' | 'InProgress' | 'Completed' | 'Cancelled' | 'Rescheduled'
 export type AdmissionType =
   | 'GeneralMedical' | 'GeneralSurgical' | 'Emergency' // legacy values, kept for existing records
   | 'MedicalManagement' | 'SurgicalManagement' | 'PostOpCare' | 'Observation' | 'Daycare'
@@ -579,6 +579,8 @@ export interface DashboardSummaryDto {
   doctorIpPatientsCount: number
   doctorPlannedDischargesCount: number
   doctorTodaysSurgeriesCount: number
+  doctorTomorrowAppointmentsCount: number
+  doctorInsurancePatientsCount: number
   pharmacyStockAlerts: { medicineId: number; medicineName: string; stock: number; reorderLevel: number }[]
 }
 

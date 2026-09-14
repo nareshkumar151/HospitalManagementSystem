@@ -84,47 +84,56 @@ export function DashboardPage() {
     )
   }
 
+  // Doctor's own dashboard - exactly the tiles their paper dashboard tracked, nothing else (no revenue
+  // figures, no pharmacy alerts/quick-actions card below - those aren't a doctor's concern here).
+  if (user?.role === 'Doctor') {
+    return (
+      <div>
+        <PageHeader title={`Welcome back, ${user.username}`} subtitle="Here's what's happening across the hospital today." />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <StatCard label="Total Appointments" value={summary?.doctorTodaysAppointments ?? 0} icon={CalendarCheck} tone="brand" hint="Today" />
+          <StatCard label="IP Patients" value={summary?.doctorIpPatientsCount ?? 0} icon={Users} tone="brand" hint="Currently admitted, under you" />
+          <StatCard label="Tomorrow Appointments" value={summary?.doctorTomorrowAppointmentsCount ?? 0} icon={CalendarClock} tone="brand" />
+          <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
+          <StatCard label="Planned Discharges" value={summary?.doctorPlannedDischargesCount ?? 0} icon={LogOut} tone="success" hint="Today" />
+          <StatCard label="Insurance Patients" value={summary?.doctorInsurancePatientsCount ?? 0} icon={ShieldCheck} tone="brand" hint="Currently admitted, under you" />
+          <StatCard label="Today's Surgeries" value={summary?.doctorTodaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <PageHeader title={`Welcome back, ${user?.username}`} subtitle="Here's what's happening across the hospital today." />
 
-      {user?.role === 'Doctor' ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <StatCard label="Total Appointments" value={summary?.doctorTodaysAppointments ?? 0} icon={CalendarCheck} tone="brand" hint="Today" />
-          <StatCard label="IP Patients" value={summary?.doctorIpPatientsCount ?? 0} icon={Users} tone="brand" hint="Currently admitted, under you" />
-          <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
-          <StatCard label="Planned Discharges" value={summary?.doctorPlannedDischargesCount ?? 0} icon={LogOut} tone="success" hint="Today" />
-          <StatCard label="Today's Surgeries" value={summary?.doctorTodaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Today's Patients" value={summary?.todaysPatients ?? 0} icon={Users} tone="brand" />
-          <StatCard
-            label={user?.role === 'Receptionist' ? "Today's Revenue" : "Today's Revenue"}
-            value={`₹${(summary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`}
-            icon={IndianRupee}
-            tone="success"
-          />
-          <StatCard
-            label="OPD Revenue"
-            value={`₹${(summary?.todaysOpdRevenue ?? 0).toLocaleString('en-IN')}`}
-            icon={IndianRupee}
-            tone="brand"
-            hint="Outpatient bills"
-          />
-          <StatCard
-            label="IPD Revenue"
-            value={`₹${(summary?.todaysIpdRevenue ?? 0).toLocaleString('en-IN')}`}
-            icon={IndianRupee}
-            tone="warning"
-            hint="Admission-linked bills"
-          />
-          <StatCard label="IPD Patients" value={summary?.ipdPatientsCount ?? 0} icon={Users} tone="brand" hint="Currently admitted" />
-          <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
-          <StatCard label="Available Doctors" value={summary?.availableDoctorsCount ?? 0} icon={Stethoscope} tone="brand" />
-          <StatCard label="Today's Surgeries" value={summary?.todaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
-        </div>
-      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Today's Patients" value={summary?.todaysPatients ?? 0} icon={Users} tone="brand" />
+        <StatCard
+          label={user?.role === 'Receptionist' ? "Today's Revenue" : "Today's Revenue"}
+          value={`₹${(summary?.todaysRevenue ?? 0).toLocaleString('en-IN')}`}
+          icon={IndianRupee}
+          tone="success"
+        />
+        <StatCard
+          label="OPD Revenue"
+          value={`₹${(summary?.todaysOpdRevenue ?? 0).toLocaleString('en-IN')}`}
+          icon={IndianRupee}
+          tone="brand"
+          hint="Outpatient bills"
+        />
+        <StatCard
+          label="IPD Revenue"
+          value={`₹${(summary?.todaysIpdRevenue ?? 0).toLocaleString('en-IN')}`}
+          icon={IndianRupee}
+          tone="warning"
+          hint="Admission-linked bills"
+        />
+        <StatCard label="IPD Patients" value={summary?.ipdPatientsCount ?? 0} icon={Users} tone="brand" hint="Currently admitted" />
+        <StatCard label="Bed Occupancy" value={`${summary?.bedOccupancyPercent ?? 0}%`} icon={BedDouble} tone="warning" />
+        <StatCard label="Available Doctors" value={summary?.availableDoctorsCount ?? 0} icon={Stethoscope} tone="brand" />
+        <StatCard label="Today's Surgeries" value={summary?.todaysSurgeriesCount ?? 0} icon={Scissors} tone="warning" />
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>

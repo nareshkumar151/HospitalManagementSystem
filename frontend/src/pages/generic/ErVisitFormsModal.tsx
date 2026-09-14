@@ -10,6 +10,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
+import { HandwritingField, isHandwritingCapture } from '../../components/clinical/HandwritingField'
 import { downloadFile, extractErrorMessage } from '../../api/client'
 import type { ErVisitDto } from '../../types'
 
@@ -158,14 +159,14 @@ function DoctorAssessmentTab({ visitId, canRecord, history, patientId, patientNa
     <div className="space-y-4">
       {canRecord && (
         <div className="space-y-3 rounded-lg border border-ink-100 p-3">
-          <Input label="History of present illness" value={form.historyOfPresentIllness} onChange={(e) => setForm({ ...form, historyOfPresentIllness: e.target.value })} />
-          <Input label="Examination findings" value={form.examinationFindings} onChange={(e) => setForm({ ...form, examinationFindings: e.target.value })} />
-          <Input label="Provisional diagnosis" value={form.provisionalDiagnosis} onChange={(e) => setForm({ ...form, provisionalDiagnosis: e.target.value })} />
-          <Input label="Treatment given" value={form.treatmentGiven} onChange={(e) => setForm({ ...form, treatmentGiven: e.target.value })} />
+          <HandwritingField label="History of present illness" multiline value={form.historyOfPresentIllness} onChange={(v) => setForm({ ...form, historyOfPresentIllness: v })} />
+          <HandwritingField label="Examination findings" multiline value={form.examinationFindings} onChange={(v) => setForm({ ...form, examinationFindings: v })} />
+          <HandwritingField label="Provisional diagnosis" multiline value={form.provisionalDiagnosis} onChange={(v) => setForm({ ...form, provisionalDiagnosis: v })} />
+          <HandwritingField label="Treatment given" multiline value={form.treatmentGiven} onChange={(v) => setForm({ ...form, treatmentGiven: v })} />
           <Select label="Disposition" value={form.disposition} onChange={(e) => setForm({ ...form, disposition: e.target.value })}>
             {DISPOSITIONS.map((d) => <option key={d} value={d}>{d}</option>)}
           </Select>
-          <Input label="Remarks" value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} />
+          <HandwritingField label="Remarks" multiline value={form.remarks} onChange={(v) => setForm({ ...form, remarks: v })} />
           <Button loading={submitting} onClick={save}>Record Assessment & Set Disposition</Button>
         </div>
       )}
@@ -173,8 +174,16 @@ function DoctorAssessmentTab({ visitId, canRecord, history, patientId, patientNa
         {history.map((h) => (
           <div key={h.id} className="rounded-lg bg-surface-muted p-3 text-sm">
             <p className="mb-1 text-xs font-medium text-ink-500">{new Date(h.assessedAt).toLocaleString()} · {h.doctorName} · <Badge>{h.disposition}</Badge></p>
-            {h.provisionalDiagnosis && <p className="text-ink-700">Dx: {h.provisionalDiagnosis}</p>}
-            {h.treatmentGiven && <p className="mt-1 text-xs text-ink-600">Treatment: {h.treatmentGiven}</p>}
+            {h.provisionalDiagnosis && (
+              isHandwritingCapture(h.provisionalDiagnosis)
+                ? <img src={h.provisionalDiagnosis} alt="Provisional diagnosis (handwritten)" className="mt-1 max-h-24 rounded border border-ink-100 bg-white" />
+                : <p className="text-ink-700">Dx: {h.provisionalDiagnosis}</p>
+            )}
+            {h.treatmentGiven && (
+              isHandwritingCapture(h.treatmentGiven)
+                ? <img src={h.treatmentGiven} alt="Treatment given (handwritten)" className="mt-1 max-h-24 rounded border border-ink-100 bg-white" />
+                : <p className="mt-1 text-xs text-ink-600">Treatment: {h.treatmentGiven}</p>
+            )}
           </div>
         ))}
         {history.length === 0 && <p className="text-sm text-ink-500">No doctor assessment recorded yet.</p>}

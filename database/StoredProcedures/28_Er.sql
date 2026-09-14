@@ -20,8 +20,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT v.Id, v.PatientId, p.FullName AS PatientName, p.UHID AS Uhid, v.ArrivalTime, v.ModeOfArrival,
-           v.BroughtBy, v.ChiefComplaint, v.TriageCategory, v.Status, u.Username AS RegisteredByName
-    FROM ErVisits v JOIN Patients p ON p.Id = v.PatientId JOIN Users u ON u.Id = v.RegisteredByUserId
+           v.BroughtBy, v.ChiefComplaint, v.TriageCategory, v.Status, dbo.fn_UserDisplayName(v.RegisteredByUserId) AS RegisteredByName
+    FROM ErVisits v JOIN Patients p ON p.Id = v.PatientId
     WHERE v.Id = @Id AND v.IsDeleted = 0;
 END
 GO
@@ -34,8 +34,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT v.Id, v.PatientId, p.FullName AS PatientName, p.UHID AS Uhid, v.ArrivalTime, v.ModeOfArrival,
-           v.BroughtBy, v.ChiefComplaint, v.TriageCategory, v.Status, u.Username AS RegisteredByName
-    FROM ErVisits v JOIN Patients p ON p.Id = v.PatientId JOIN Users u ON u.Id = v.RegisteredByUserId
+           v.BroughtBy, v.ChiefComplaint, v.TriageCategory, v.Status, dbo.fn_UserDisplayName(v.RegisteredByUserId) AS RegisteredByName
+    FROM ErVisits v JOIN Patients p ON p.Id = v.PatientId
     WHERE v.BranchId = @BranchId AND v.Status = 'InTreatment' AND v.IsDeleted = 0
     ORDER BY CASE v.TriageCategory WHEN 'Red' THEN 0 WHEN 'Yellow' THEN 1 ELSE 2 END, v.ArrivalTime;
 END
@@ -47,8 +47,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT v.Id, v.PatientId, p.FullName AS PatientName, p.UHID AS Uhid, v.ArrivalTime, v.ModeOfArrival,
-           v.BroughtBy, v.ChiefComplaint, v.TriageCategory, v.Status, u.Username AS RegisteredByName
-    FROM ErVisits v JOIN Patients p ON p.Id = v.PatientId JOIN Users u ON u.Id = v.RegisteredByUserId
+           v.BroughtBy, v.ChiefComplaint, v.TriageCategory, v.Status, dbo.fn_UserDisplayName(v.RegisteredByUserId) AS RegisteredByName
+    FROM ErVisits v JOIN Patients p ON p.Id = v.PatientId
     WHERE v.PatientId = @PatientId AND v.IsDeleted = 0
     ORDER BY v.ArrivalTime DESC;
 END
@@ -85,9 +85,9 @@ CREATE OR ALTER PROCEDURE sp_ErNurseAssessment_GetByVisit
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT a.Id, a.ErVisitId, a.AssessedAt, u.Username AS NurseName, a.BloodPressure, a.Pulse, a.Temperature,
+    SELECT a.Id, a.ErVisitId, a.AssessedAt, dbo.fn_UserDisplayName(a.NurseUserId) AS NurseName, a.BloodPressure, a.Pulse, a.Temperature,
            a.RespiratoryRate, a.SpO2, a.PainScore, a.GcsTotal, a.InitialActions, a.Remarks
-    FROM ErNurseAssessments a JOIN Users u ON u.Id = a.NurseUserId
+    FROM ErNurseAssessments a
     WHERE a.ErVisitId = @ErVisitId AND a.IsDeleted = 0
     ORDER BY a.AssessedAt DESC;
 END
@@ -95,8 +95,8 @@ GO
 
 CREATE OR ALTER PROCEDURE sp_ErDoctorAssessment_Insert
     @ErVisitId INT, @HistoryOfPresentIllness NVARCHAR(MAX) = NULL, @ExaminationFindings NVARCHAR(MAX) = NULL,
-    @ProvisionalDiagnosis NVARCHAR(400) = NULL, @TreatmentGiven NVARCHAR(MAX) = NULL, @Disposition NVARCHAR(20),
-    @Remarks NVARCHAR(400) = NULL, @DoctorId INT
+    @ProvisionalDiagnosis NVARCHAR(MAX) = NULL, @TreatmentGiven NVARCHAR(MAX) = NULL, @Disposition NVARCHAR(20),
+    @Remarks NVARCHAR(MAX) = NULL, @DoctorId INT
 AS
 BEGIN
     SET NOCOUNT ON;

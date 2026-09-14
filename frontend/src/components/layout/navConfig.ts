@@ -25,8 +25,9 @@ export const navItems: NavItem[] = [
   { label: 'My Portal', path: '/app/patient', icon: LayoutDashboard, roles: ['Patient'] },
   { label: 'Hospitals', path: '/app/manage/hospitals', icon: Hospital, roles: ['SuperAdmin'] },
   // Nurse works from Appointments (to record vitals against a scheduled visit) rather than the standalone
-  // patient registry - see Appointments below.
-  { label: 'Patients', path: '/app/patients', icon: Users, roles: ['Administrator', 'Receptionist', 'Doctor'] },
+  // patient registry - see Appointments below. Doctor removed too: registration is a front-desk task, and a
+  // doctor reaches their patients through their own appointment queue / Doctor Console instead.
+  { label: 'Patients', path: '/app/patients', icon: Users, roles: ['Administrator', 'Receptionist'] },
   { label: 'Emergency (ER)', path: '/app/er', icon: Siren, roles: ['Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
   { label: 'Appointments', path: '/app/appointments', icon: CalendarCheck, roles: ['Administrator', 'Receptionist', 'Doctor', 'Nurse'] },
   { label: 'Doctor Console', path: '/app/doctor-console', icon: Stethoscope, roles: ['Doctor'] },

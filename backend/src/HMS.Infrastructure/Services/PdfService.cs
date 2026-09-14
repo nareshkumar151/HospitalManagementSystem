@@ -353,13 +353,32 @@ public class PdfService : IPdfService
             foreach (var d in bundle.DoctorAssessments)
             {
                 column.Item().PaddingTop(6).Text($"ER Doctor Assessment - {d.AssessedAt:dd MMM yyyy, hh:mm tt} ({d.DoctorName})").SemiBold().FontSize(10);
-                if (!string.IsNullOrWhiteSpace(d.HistoryOfPresentIllness)) column.Item().PaddingLeft(10).Text($"HPI: {d.HistoryOfPresentIllness}").FontSize(9);
-                if (!string.IsNullOrWhiteSpace(d.ExaminationFindings)) column.Item().PaddingLeft(10).Text($"Examination: {d.ExaminationFindings}").FontSize(9);
-                if (!string.IsNullOrWhiteSpace(d.ProvisionalDiagnosis)) column.Item().PaddingLeft(10).Text($"Diagnosis: {d.ProvisionalDiagnosis}").FontSize(9);
-                if (!string.IsNullOrWhiteSpace(d.TreatmentGiven)) column.Item().PaddingLeft(10).Text($"Treatment: {d.TreatmentGiven}").FontSize(9);
+                LabeledTextOrImage(column, "HPI", d.HistoryOfPresentIllness);
+                LabeledTextOrImage(column, "Examination", d.ExaminationFindings);
+                LabeledTextOrImage(column, "Diagnosis", d.ProvisionalDiagnosis);
+                LabeledTextOrImage(column, "Treatment", d.TreatmentGiven);
+                LabeledTextOrImage(column, "Remarks", d.Remarks);
                 column.Item().PaddingLeft(10).Text($"Disposition: {d.Disposition}").FontSize(9).SemiBold();
             }
         });
+    }
+
+    /// <summary> Any of the ER Doctor Assessment's free-text fields may be a stylus capture (see
+    /// HandwritingField) instead of typed text - renders the image when it is, an inline "Label: value" line
+    /// otherwise, and nothing at all when the field wasn't filled in. </summary>
+    private static void LabeledTextOrImage(ColumnDescriptor column, string label, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        if (IsHandwritingCapture(value))
+        {
+            column.Item().PaddingLeft(10).PaddingTop(2).Text($"{label}:").FontSize(9);
+            var base64 = value[(value.IndexOf(',') + 1)..];
+            column.Item().PaddingLeft(10).Height(50).Image(Convert.FromBase64String(base64)).FitArea();
+        }
+        else
+        {
+            column.Item().PaddingLeft(10).Text($"{label}: {value}").FontSize(9);
+        }
     }
 
     private static void RenderNursingChart(IContainer container, IReadOnlyList<NursingChartDto> chart)

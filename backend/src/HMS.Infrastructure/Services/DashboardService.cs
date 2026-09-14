@@ -18,6 +18,7 @@ public class DashboardService : IDashboardService
             h.PendingBillsCount, h.AvailableDoctorsCount, h.TodaysSurgeriesCount,
             h.DischargedTodayCount, h.InsurancePatientsCount,
             h.DoctorTodaysAppointments, h.DoctorIpPatientsCount, h.DoctorPlannedDischargesCount, h.DoctorTodaysSurgeriesCount,
+            h.DoctorTomorrowAppointmentsCount, h.DoctorInsurancePatientsCount,
             alerts.ToList());
     }
 
@@ -26,7 +27,8 @@ public class DashboardService : IDashboardService
         int IpdPatientsCount, decimal BedOccupancyPercent,
         int PendingBillsCount, int AvailableDoctorsCount, int TodaysSurgeriesCount,
         int DischargedTodayCount, int InsurancePatientsCount,
-        int DoctorTodaysAppointments, int DoctorIpPatientsCount, int DoctorPlannedDischargesCount, int DoctorTodaysSurgeriesCount);
+        int DoctorTodaysAppointments, int DoctorIpPatientsCount, int DoctorPlannedDischargesCount, int DoctorTodaysSurgeriesCount,
+        int DoctorTomorrowAppointmentsCount, int DoctorInsurancePatientsCount);
 
     public async Task<PlatformSummaryDto> GetPlatformSummaryAsync()
     {

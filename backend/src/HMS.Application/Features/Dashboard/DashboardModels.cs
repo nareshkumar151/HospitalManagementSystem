@@ -29,6 +29,12 @@ public record DashboardSummaryDto(
     int DoctorIpPatientsCount,
     int DoctorPlannedDischargesCount,
     int DoctorTodaysSurgeriesCount,
+    /// <summary> Doctor Dashboard's own "Tomorrow Appointments" tile - a look-ahead so a doctor can gauge
+    /// tomorrow's OPD load, not a count of anything happening today. </summary>
+    int DoctorTomorrowAppointmentsCount,
+    /// <summary> Doctor-scoped equivalent of InsurancePatientsCount above - currently admitted, under this
+    /// doctor, with insurance on file. </summary>
+    int DoctorInsurancePatientsCount,
     IReadOnlyList<PharmacyStockAlertDto> PharmacyStockAlerts);
 
 public record PharmacyStockAlertDto(int MedicineId, string MedicineName, int Stock, int ReorderLevel);

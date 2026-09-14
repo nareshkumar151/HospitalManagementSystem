@@ -81,9 +81,10 @@ export default function App() {
             <Route path="manage/hospitals" element={<HospitalsManagePage />} />
           </Route>
 
-          {/* Standalone patient registry - Nurse works from Appointments instead (see navConfig.ts), so
-              they're deliberately left off this route too, not just the nav link. */}
-          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist', 'Doctor']} />}>
+          {/* Standalone patient registry - Nurse works from Appointments instead, and Doctor reaches their
+              patients through their own queue / Doctor Console (see navConfig.ts) - both deliberately left
+              off this route too, not just the nav link. */}
+          <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator', 'Receptionist']} />}>
             <Route path="patients" element={<PatientsPage />} />
           </Route>
 

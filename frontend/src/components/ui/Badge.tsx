@@ -12,7 +12,7 @@ const toneClasses: Record<Tone, string> = {
 }
 
 const STATUS_TONE: Record<string, Tone> = {
-  Scheduled: 'brand', Completed: 'success', Cancelled: 'danger', Rescheduled: 'warning',
+  Scheduled: 'brand', InProgress: 'warning', Completed: 'success', Cancelled: 'danger', Rescheduled: 'warning',
   Admitted: 'brand', Discharged: 'success', Available: 'success', Occupied: 'danger',
   Pending: 'warning', Paid: 'success', PartiallyPaid: 'warning', Draft: 'neutral', Refunded: 'neutral',
   Active: 'brand', Dispensed: 'success', Ordered: 'brand', SampleCollected: 'warning',

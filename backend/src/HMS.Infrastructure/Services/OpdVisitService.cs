@@ -2,6 +2,7 @@ using HMS.Application.Common.Exceptions;
 using HMS.Application.Common.Interfaces;
 using HMS.Application.Features.Appointments;
 using HMS.Application.Features.OpdVisits;
+using HMS.Domain.Enums;
 
 namespace HMS.Infrastructure.Services;
 
@@ -21,6 +22,12 @@ public class OpdVisitService : IOpdVisitService
         var appointment = await _db.QuerySingleOrDefaultAsync<AppointmentDto>("sp_Appointment_GetById", new { Id = request.AppointmentId })
             ?? throw new NotFoundException(nameof(Domain.Entities.Appointment), request.AppointmentId);
 
+        // Starting is only meaningful once, from a still-Scheduled slot - without this a doctor re-clicking
+        // Start (a slow network response, an accidental double-click, or a direct API call) would create a
+        // second OpdVisit for the same appointment.
+        if (appointment.Status != AppointmentStatus.Scheduled)
+            throw new ConflictException("This appointment has already been started or is no longer scheduled.");
+
         var isFreeFollowUp = await IsFreeFollowUpEligibleAsync(appointment.PatientId, doctorId);
         var doctor = await _db.QuerySingleAsync<dynamic>("sp_Doctor_GetById", new { Id = doctorId });
         decimal fee = isFreeFollowUp ? 0 : (decimal)doctor.ConsultationFee;
@@ -36,13 +43,17 @@ public class OpdVisitService : IOpdVisitService
             IsFreeFollowUp = isFreeFollowUp
         });
 
-        await _db.ExecuteAsync("sp_Appointment_MarkCompleted", new { Id = request.AppointmentId });
+        // Starting moves the appointment to InProgress, not Completed - it only actually becomes Completed
+        // once the doctor finishes the consultation (see CompleteConsultationAsync below). Jumping straight
+        // to Completed on Start made every appointment look "done" the instant a doctor opened it, even if
+        // they never wrote a diagnosis or the browser was closed mid-consult.
+        await _db.ExecuteAsync("sp_Appointment_MarkInProgress", new { Id = request.AppointmentId });
         return await GetByIdAsync(newId);
     }
 
     public async Task<OpdVisitDto> CompleteConsultationAsync(int opdVisitId, CompleteConsultationRequest request)
     {
-        await GetByIdAsync(opdVisitId);
+        var visit = await GetByIdAsync(opdVisitId);
         await _db.ExecuteAsync("sp_OpdVisit_CompleteConsultation", new
         {
             Id = opdVisitId,
@@ -54,6 +65,8 @@ public class OpdVisitService : IOpdVisitService
             request.ReferredToDepartmentId,
             request.TransferNotes
         });
+        // Only now - diagnosis actually recorded - does the appointment itself reach Completed.
+        await _db.ExecuteAsync("sp_Appointment_MarkCompleted", new { Id = visit.AppointmentId });
         await _auditService.LogAsync("OpdConsultationCompleted", "OpdVisit", opdVisitId.ToString());
         return await GetByIdAsync(opdVisitId);
     }

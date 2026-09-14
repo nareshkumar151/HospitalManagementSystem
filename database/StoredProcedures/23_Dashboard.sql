@@ -18,6 +18,7 @@ BEGIN
     -- until 5:30am IST, which used to make every "Today's ..." tile quietly show yesterday's figures for
     -- the first few hours of each day (see the same fix in 21_HR.sql's Attendance procs).
     DECLARE @Today DATE = CAST(DATEADD(MINUTE, 330, SYSUTCDATETIME()) AS DATE);
+    DECLARE @Tomorrow DATE = DATEADD(DAY, 1, @Today);
 
     SELECT
         (SELECT COUNT(*) FROM Appointments WHERE BranchId = @BranchId AND AppointmentDate = @Today AND IsDeleted = 0) AS TodaysPatients,
@@ -93,7 +94,11 @@ BEGIN
         (SELECT COUNT(*) FROM IpdAdmissions WHERE DoctorId = @DoctorId AND Status = 'Discharged' AND IsDeleted = 0
          AND CAST(DischargeDate AS DATE) = @Today) AS DoctorPlannedDischargesCount,
         (SELECT COUNT(*) FROM Surgeries s JOIN IpdAdmissions a ON a.Id = s.IpdAdmissionId
-         WHERE s.SurgeonDoctorId = @DoctorId AND CAST(s.ScheduledAt AS DATE) = @Today AND s.IsDeleted = 0) AS DoctorTodaysSurgeriesCount;
+         WHERE s.SurgeonDoctorId = @DoctorId AND CAST(s.ScheduledAt AS DATE) = @Today AND s.IsDeleted = 0) AS DoctorTodaysSurgeriesCount,
+        (SELECT COUNT(*) FROM Appointments WHERE DoctorId = @DoctorId AND AppointmentDate = @Tomorrow AND IsDeleted = 0) AS DoctorTomorrowAppointmentsCount,
+        (SELECT COUNT(*) FROM IpdAdmissions a JOIN Patients p ON p.Id = a.PatientId
+         WHERE a.DoctorId = @DoctorId AND a.Status = 'Admitted' AND a.IsDeleted = 0
+           AND p.InsuranceCompany IS NOT NULL AND p.InsuranceCompany <> '') AS DoctorInsurancePatientsCount;
 
     SELECT Id AS MedicineId, MedicineName, Stock, ReorderLevel
     FROM Medicines WHERE BranchId = @BranchId AND Stock <= ReorderLevel AND IsDeleted = 0

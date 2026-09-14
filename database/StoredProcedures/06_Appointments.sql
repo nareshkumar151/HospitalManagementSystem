@@ -116,6 +116,17 @@ BEGIN
 END
 GO
 
+-- Set once a doctor actually starts the consultation (see OpdVisitService.StartConsultationAsync) - a
+-- distinct state from Completed, which only follows once the consultation is actually finished.
+CREATE OR ALTER PROCEDURE sp_Appointment_MarkInProgress
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Appointments SET Status = 'InProgress', UpdatedAt = SYSUTCDATETIME() WHERE Id = @Id;
+END
+GO
+
 CREATE OR ALTER PROCEDURE sp_Appointment_MarkCompleted
     @Id INT
 AS
@@ -130,7 +141,9 @@ CREATE OR ALTER PROCEDURE sp_Appointment_GetBookedSlots
 AS
 BEGIN
     SET NOCOUNT ON;
+    -- InProgress included alongside Scheduled/Completed - a slot mid-consultation is still occupied, not
+    -- free for someone else to book into.
     SELECT TimeSlot FROM Appointments
-    WHERE DoctorId = @DoctorId AND AppointmentDate = @Date AND IsDeleted = 0 AND Status IN ('Scheduled','Completed');
+    WHERE DoctorId = @DoctorId AND AppointmentDate = @Date AND IsDeleted = 0 AND Status IN ('Scheduled','InProgress','Completed');
 END
 GO

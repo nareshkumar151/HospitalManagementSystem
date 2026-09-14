@@ -47,6 +47,9 @@ public enum AppointmentType
 public enum AppointmentStatus
 {
     Scheduled,
+    // Set once a doctor has actually started the consultation (StartConsultationAsync) - distinct from
+    // Completed, which is only reached once the consultation is actually finished (a diagnosis recorded).
+    InProgress,
     Completed,
     Cancelled,
     Rescheduled

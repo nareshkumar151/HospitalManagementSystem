@@ -74,6 +74,10 @@ export function DoctorConsolePage() {
       setHistoryOpen(true)
       setPastVisits([])
       loadPatientHistory(started.patientId, started.id)
+      // Starting moves the appointment to InProgress (not Completed - see StartConsultationAsync), which
+      // drops it out of the "Scheduled" queue below - refetch so it disappears from the queue right away
+      // instead of only after the consultation is later completed.
+      if (doctorId) dispatch(fetchAppointments({ doctorId, date: today }))
     } catch (error) {
       toast.error(extractErrorMessage(error))
     } finally {
