@@ -19,12 +19,20 @@ import { Badge } from '../../components/ui/Badge'
 import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import { HandwritingField, isHandwritingCapture } from '../../components/clinical/HandwritingField'
 import { apiClient, downloadFile, extractErrorMessage } from '../../api/client'
-import type { BillDto, IpdAdmissionDto } from '../../types'
+import type { BillDto, BillItemSection, IpdAdmissionDto } from '../../types'
 import { ADMISSION_TYPES, admissionTypeLabel } from '../../utils/admissionTypes'
 
 interface PatientReportRow { id: number; testOrScan: string; status: string; reportFileUrl: string | null }
 
-interface EditableLineItem { description: string; quantity: number; unitPrice: number }
+const SECTION_LABELS: Record<BillItemSection, string> = {
+  RoomTariff: 'Room Tariff',
+  Consultation: 'Consultation',
+  Investigation: 'Investigation',
+  GeneralService: 'General Service',
+  Others: 'Others',
+}
+
+interface EditableLineItem { description: string; quantity: number; unitPrice: number; section: BillItemSection }
 
 export function IpdPage() {
   const dispatch = useAppDispatch()
@@ -107,7 +115,7 @@ export function IpdPage() {
   const openEditBill = async (bill: BillDto) => {
     try {
       const full = await dispatch(fetchBillById(bill.id))
-      setEditItems(full.items.map((i) => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice })))
+      setEditItems(full.items.map((i) => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, section: i.section ?? 'Others' })))
       setEditDiscount(full.discountAmount)
       setEditGst(full.subTotal > 0 ? Math.round((full.gstAmount / full.subTotal) * 100) : 0)
       setEditBillTarget(full)
@@ -117,7 +125,7 @@ export function IpdPage() {
   }
 
   const editSubTotal = editItems.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0)
-  const addEditItem = () => setEditItems((i) => [...i, { description: '', quantity: 1, unitPrice: 0 }])
+  const addEditItem = () => setEditItems((i) => [...i, { description: '', quantity: 1, unitPrice: 0, section: 'Others' }])
   const updateEditItem = (index: number, patch: Partial<EditableLineItem>) =>
     setEditItems((i) => i.map((line, idx) => (idx === index ? { ...line, ...patch } : line)))
   const removeEditItem = (index: number) => setEditItems((i) => i.filter((_, idx) => idx !== index))
@@ -436,8 +444,15 @@ export function IpdPage() {
               <div className="space-y-2">
                 {editItems.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-2">
-                    <input className="col-span-6 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateEditItem(index, { description: e.target.value })} />
-                    <input type="number" min={1} className="col-span-2 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateEditItem(index, { quantity: Number(e.target.value) })} />
+                    <select
+                      className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-xs"
+                      value={item.section}
+                      onChange={(e) => updateEditItem(index, { section: e.target.value as BillItemSection })}
+                    >
+                      {Object.entries(SECTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                    <input className="col-span-4 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateEditItem(index, { description: e.target.value })} />
+                    <input type="number" min={1} className="col-span-1 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateEditItem(index, { quantity: Number(e.target.value) })} />
                     <input type="number" min={0} className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Unit price" value={item.unitPrice} onChange={(e) => updateEditItem(index, { unitPrice: Number(e.target.value) })} />
                     <button onClick={() => removeEditItem(index)} className="col-span-1 text-danger-500">✕</button>
                   </div>

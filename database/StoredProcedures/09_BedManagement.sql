@@ -42,6 +42,17 @@ BEGIN
 END
 GO
 
+-- Room Tariff rate settable from admin (Rate Master screen) - was only ever set once, at creation, with no
+-- way to revise it afterward.
+CREATE OR ALTER PROCEDURE sp_Room_UpdateDailyCharge
+    @Id INT, @DailyCharge DECIMAL(10,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Rooms SET DailyCharge = @DailyCharge WHERE Id = @Id;
+END
+GO
+
 /* ==================== Beds ==================== */
 CREATE OR ALTER PROCEDURE sp_Bed_GetAll
     @Status NVARCHAR(20) = NULL, @RoomType NVARCHAR(20) = NULL

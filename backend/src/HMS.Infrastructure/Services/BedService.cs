@@ -30,6 +30,9 @@ public class BedService : IBedService
         return rooms.First(r => r.Id == newId);
     }
 
+    public Task UpdateRoomDailyChargeAsync(int roomId, decimal dailyCharge)
+        => _db.ExecuteAsync("sp_Room_UpdateDailyCharge", new { Id = roomId, DailyCharge = dailyCharge });
+
     public Task<IReadOnlyList<BedDto>> GetBedsAsync(BedStatus? status = null, RoomType? roomType = null)
         => _db.QueryAsync<BedDto>("sp_Bed_GetAll", new { Status = status?.ToString(), RoomType = roomType?.ToString() });
 

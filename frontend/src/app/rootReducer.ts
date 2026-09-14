@@ -4,6 +4,7 @@ import { appointmentsReducer } from '../features/appointments/appointmentsSlice'
 import { attendanceReducer } from '../features/attendance/attendanceSlice'
 import { bedsReducer } from '../features/beds/bedsSlice'
 import { billingReducer } from '../features/billing/billingSlice'
+import { chargeCatalogReducer } from '../features/chargeCatalog/chargeCatalogSlice'
 import { consentsReducer } from '../features/consents/consentsSlice'
 import { dashboardReducer } from '../features/dashboard/dashboardSlice'
 import { doctorsReducer } from '../features/doctors/doctorsSlice'
@@ -35,6 +36,7 @@ export const rootReducer = combineReducers({
   nursing: nursingReducer,
   pharmacy: pharmacyReducer,
   billing: billingReducer,
+  chargeCatalog: chargeCatalogReducer,
   dashboard: dashboardReducer,
   employees: employeesReducer,
   organization: organizationReducer,

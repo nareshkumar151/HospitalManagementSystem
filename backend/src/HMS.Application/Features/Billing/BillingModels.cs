@@ -3,7 +3,11 @@ using HMS.Domain.Enums;
 
 namespace HMS.Application.Features.Billing;
 
-public record BillItemDto(string Description, int Quantity, decimal UnitPrice, decimal LineTotal);
+/// <summary> Section: RoomTariff | Consultation | Investigation | GeneralService | Others - which printed
+/// section of the provisional bill this line belongs to (null prints under "Others" - see PdfService).
+/// ItemDate: the date this specific charge was incurred - null falls back to the bill's own BillDate when
+/// printed, since one bill can carry charges dated across several days of a stay. </summary>
+public record BillItemDto(string Description, int Quantity, decimal UnitPrice, decimal LineTotal, string? Section, DateTime? ItemDate);
 
 public record BillDto(
     int Id, string BillNumber, int PatientId, string PatientName, BillType Type, BillCategory Category,
@@ -11,7 +15,7 @@ public record BillDto(
     decimal SubTotal, decimal GstAmount, decimal DiscountAmount, decimal TotalAmount,
     decimal PaidAmount, BillStatus Status, DateTime BillDate, IReadOnlyList<BillItemDto> Items, int BranchId);
 
-public record BillItemRequest(string Description, int Quantity, decimal UnitPrice);
+public record BillItemRequest(string Description, int Quantity, decimal UnitPrice, string? Section = null, DateTime? ItemDate = null);
 
 public record CreateBillRequest(
     int PatientId, int? OpdVisitId, int? IpdAdmissionId, BillType Type,
@@ -32,6 +36,17 @@ public record PaymentHistoryDto(
     int Id, int BillId, string BillNumber, int PatientId, string PatientName, string Uhid,
     decimal Amount, PaymentMode Mode, string? TransactionReference, bool IsRefund, DateTime PaidAt, string ReceivedByName);
 
+public record BillReceiptPaymentDto(string ReceiptNumber, DateTime PaidAt, decimal Amount, PaymentMode Mode, bool IsRefund);
+
+/// <summary> Everything the printable "Provisional Bill" needs beyond BillDto - patient/doctor/admission
+/// header details and the branch's own letterhead info, plus the receipt/payment history. Fetched only for
+/// the PDF/print view (see sp_Bill_GetReceiptDetails), not the day-to-day billing list screens. </summary>
+public record BillReceiptDto(
+    BillDto Bill, string PatientUhid, int? PatientAge, string PatientGender, bool HasInsurance,
+    string? DoctorName, string? AdmissionNumber, DateTime? AdmissionDate,
+    string GeneratedByName, string BranchName, string BranchAddress, string BranchContactNumber,
+    IReadOnlyList<BillReceiptPaymentDto> Payments);
+
 /// <summary> Handed to the frontend so it can open Razorpay's Checkout widget - never includes the key secret. </summary>
 public record RazorpayOrderResponseDto(string RazorpayOrderId, int AmountInPaise, string Currency, string RazorpayKeyId, int BillId);
 
@@ -45,6 +60,8 @@ public interface IBillingService
     /// already-reconciled amount can never silently disagree with the charges backing it. </summary>
     Task<BillDto> UpdateBillAsync(int id, UpdateBillRequest request);
     Task<BillDto> GetByIdAsync(int id);
+    /// <summary> For the printable Provisional Bill only - see BillReceiptDto. </summary>
+    Task<BillReceiptDto> GetReceiptDetailsAsync(int id);
     Task<PagedResult<BillDto>> SearchAsync(PagedRequest request, int branchId, BillStatus? status = null, BillCategory? category = null);
     /// <summary> Pass `branchId` to scope to one branch's bills for this patient (front-desk/staff use);
     /// pass null for every bill this patient has ever been issued, across every branch (their own view). </summary>

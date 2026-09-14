@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Users, Stethoscope, CalendarCheck, ClipboardList, Pill, Receipt, BedDouble,
   FlaskConical, ScanLine, Building2, Briefcase, Boxes, Truck, Wallet, CalendarClock, Bell,
-  FileBarChart, ShieldCheck, Scissors, FileText, Hospital, Clock, FileSignature, Siren, Droplet,
+  FileBarChart, ShieldCheck, Scissors, FileText, Hospital, Clock, FileSignature, Siren, Droplet, IndianRupee,
 } from 'lucide-react'
 import type { RoleName } from '../../types'
 
@@ -37,6 +37,9 @@ export const navItems: NavItem[] = [
   { label: 'Radiology', path: '/app/radiology', icon: ScanLine, roles: ['LabTechnician', 'Doctor', 'Administrator'] },
   { label: 'Pharmacy', path: '/app/pharmacy', icon: Pill, roles: ['Pharmacist', 'Administrator'] },
   { label: 'Billing', path: '/app/billing', icon: Receipt, roles: ['Administrator', 'Receptionist'] },
+  // Room Tariff/Investigation/Nurse Charges/General Service/Others rates - Consultation stays on the
+  // Doctors page (already per-doctor there).
+  { label: 'Rate Master', path: '/app/manage/rates', icon: IndianRupee, roles: ['Administrator'] },
   { label: 'Insurance', path: '/app/insurance', icon: ShieldCheck, roles: ['Administrator', 'Receptionist'] },
   { label: 'Operation Theatre', path: '/app/operation-theatre', icon: Scissors, roles: ['Administrator', 'Doctor', 'Nurse'] },
   { label: 'Consents', path: '/app/consents', icon: FileSignature, roles: ['Administrator', 'Receptionist', 'Doctor', 'Nurse'] },

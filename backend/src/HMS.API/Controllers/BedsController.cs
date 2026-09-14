@@ -26,6 +26,15 @@ public class BedsController : ApiControllerBase
     [Authorize(Roles = RoleNames.AdminOnly)]
     public async Task<ActionResult<RoomDto>> CreateRoom(UpsertRoomRequest request) => Ok(await _bedService.CreateRoomAsync(request));
 
+    // Room Tariff rate master - was only ever set once, at creation, with no way to revise it afterward.
+    [HttpPut("rooms/{id:int}/daily-charge")]
+    [Authorize(Roles = RoleNames.AdminOnly)]
+    public async Task<IActionResult> UpdateRoomDailyCharge(int id, [FromBody] decimal dailyCharge)
+    {
+        await _bedService.UpdateRoomDailyChargeAsync(id, dailyCharge);
+        return NoContent();
+    }
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<BedDto>>> GetBeds([FromQuery] BedStatus? status, [FromQuery] RoomType? roomType)
         => Ok(await _bedService.GetBedsAsync(status, roomType));

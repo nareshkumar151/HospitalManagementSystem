@@ -20,7 +20,7 @@ public interface IPdfService
     byte[] GenerateDischargeSummaryPdf(DischargeSummaryDto summary);
     byte[] GenerateAdmissionDocumentPdf(IpdAdmissionDto admission);
     byte[] GeneratePatientDetailsPdf(PatientDto patient);
-    byte[] GenerateBillReceiptPdf(BillDto bill);
+    byte[] GenerateBillReceiptPdf(BillReceiptDto receipt);
 
     byte[] GenerateConsentRecordPdf(ConsentRecordDto record);
     byte[] GenerateSurgeryFormsPdf(SurgeryFormsBundle bundle);

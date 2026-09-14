@@ -1,6 +1,6 @@
 import { apiClient, extractErrorMessage } from '../../api/client'
 import type { AppThunk } from '../../app/store'
-import type { BillCategory, BillDto, PagedResult, PaymentHistoryDto, RazorpayOrderResponseDto } from '../../types'
+import type { BillCategory, BillDto, BillItemSection, PagedResult, PaymentHistoryDto, RazorpayOrderResponseDto } from '../../types'
 
 export interface BillingState {
   pending: BillDto[]
@@ -60,9 +60,11 @@ export const fetchBillsByPatient = (patientId: number): AppThunk<Promise<void>> 
   }
 }
 
+export interface BillItemPayload { description: string; quantity: number; unitPrice: number; section?: BillItemSection; itemDate?: string }
+
 export const createBill = (payload: {
   patientId: number; opdVisitId?: number; ipdAdmissionId?: number; type: string
-  items: { description: string; quantity: number; unitPrice: number }[]
+  items: BillItemPayload[]
   discountAmount: number; gstPercent: number; branchId: number
 }): AppThunk<Promise<BillDto>> => async (dispatch) => {
   try {
@@ -77,7 +79,7 @@ export const createBill = (payload: {
 
 /** Edit Bill - refused by the backend once any payment has been collected against the bill. */
 export const updateBill = (id: number, payload: {
-  items: { description: string; quantity: number; unitPrice: number }[]
+  items: BillItemPayload[]
   discountAmount: number; gstPercent: number
 }): AppThunk<Promise<BillDto>> => async (dispatch) => {
   try {

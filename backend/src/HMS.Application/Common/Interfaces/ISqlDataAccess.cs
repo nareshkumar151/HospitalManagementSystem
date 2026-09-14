@@ -13,6 +13,10 @@ public interface ISqlDataAccess
     /// <summary> For procs that SELECT two result sets (e.g. rows + a TotalCount row for paging). </summary>
     Task<(IReadOnlyList<T1> Items, IReadOnlyList<T2> Second)> QueryMultipleAsync<T1, T2>(string storedProcedure, object? parameters = null);
 
+    /// <summary> For procs that SELECT three result sets (e.g. a bill's own header + its line items + its
+    /// payment history, all in one round trip - see sp_Bill_GetReceiptDetails). </summary>
+    Task<(IReadOnlyList<T1> First, IReadOnlyList<T2> Second, IReadOnlyList<T3> Third)> QueryMultipleAsync<T1, T2, T3>(string storedProcedure, object? parameters = null);
+
     Task<int> ExecuteAsync(string storedProcedure, object? parameters = null);
     Task<T> ExecuteScalarAsync<T>(string storedProcedure, object? parameters = null);
 }

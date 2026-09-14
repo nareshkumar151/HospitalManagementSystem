@@ -250,11 +250,15 @@ export interface PharmacySaleDto {
   items: PharmacySaleItemDto[]
 }
 
+export type BillItemSection = 'RoomTariff' | 'Consultation' | 'Investigation' | 'GeneralService' | 'Others'
+
 export interface BillItemDto {
   description: string
   quantity: number
   unitPrice: number
   lineTotal: number
+  section: BillItemSection | null
+  itemDate: string | null
 }
 
 export type BillCategory = 'OPD' | 'IPD'
@@ -295,6 +299,11 @@ export interface PaymentHistoryDto {
 
 export interface WardDto { id: number; name: string; type: RoomType; branchId: number }
 export interface RoomDto { id: number; wardId: number; roomNumber: string; type: RoomType; dailyCharge: number }
+
+// Rate master for Nurse Charges / General Service / Others - Room Tariff is RoomDto.dailyCharge,
+// Consultation is DoctorDto.consultationFee, Investigation is LabTestCatalogDto.price.
+export type ChargeCatalogCategory = 'NurseCharges' | 'GeneralService' | 'Others'
+export interface ChargeCatalogItemDto { id: number; category: ChargeCatalogCategory; itemName: string; rate: number; isActive: boolean }
 export interface BedDto { id: number; roomId: number; roomNumber: string; roomType: RoomType; bedNumber: string; status: BedStatus; isIcu: boolean }
 export interface BedOccupancySummaryDto { totalBeds: number; occupiedBeds: number; availableBeds: number; icuBeds: number; icuOccupied: number }
 

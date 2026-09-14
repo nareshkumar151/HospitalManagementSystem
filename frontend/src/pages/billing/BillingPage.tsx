@@ -6,6 +6,8 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { collectPayment, createBill, createRazorpayOrder, fetchPaymentHistory, fetchPendingBills, verifyRazorpayPayment } from '../../features/billing/billingSlice'
 import { fetchPatients } from '../../features/patients/patientsSlice'
 import { fetchActiveAdmissions } from '../../features/ipd/ipdSlice'
+import { fetchChargeCatalog } from '../../features/chargeCatalog/chargeCatalogSlice'
+import { fetchLabCatalog } from '../../features/laboratory/laboratorySlice'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Table, type Column } from '../../components/ui/Table'
@@ -17,9 +19,17 @@ import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
 import { downloadFile, extractErrorMessage } from '../../api/client'
 import { openRazorpayCheckout } from '../../utils/razorpay'
 import { admissionTypeLabel } from '../../utils/admissionTypes'
-import type { BillCategory, BillDto, PaymentHistoryDto } from '../../types'
+import type { BillCategory, BillDto, BillItemSection, PaymentHistoryDto } from '../../types'
 
-interface LineItem { description: string; quantity: number; unitPrice: number }
+interface LineItem { description: string; quantity: number; unitPrice: number; section: BillItemSection }
+
+const SECTION_LABELS: Record<BillItemSection, string> = {
+  RoomTariff: 'Room Tariff',
+  Consultation: 'Consultation',
+  Investigation: 'Investigation',
+  GeneralService: 'General Service',
+  Others: 'Others',
+}
 
 export function BillingPage() {
   const dispatch = useAppDispatch()
@@ -35,6 +45,8 @@ export function BillingPage() {
   const { pending, paymentHistory, status } = useAppSelector((state) => state.billing)
   const { list: patients } = useAppSelector((state) => state.patients)
   const { active: activeAdmissions } = useAppSelector((state) => state.ipd)
+  const { items: chargeCatalog } = useAppSelector((state) => state.chargeCatalog)
+  const { catalog: labCatalog } = useAppSelector((state) => state.laboratory)
 
   // OPD and IPD are kept fully separate here - their own tab, their own Pending Bills list, their own
   // Payment History, their own Generate Bill flow (no "Bill for OPD/IPD" toggle - the active tab already
@@ -50,7 +62,8 @@ export function BillingPage() {
   const [selectedPatient, setSelectedPatient] = useState<{ id: number; fullName: string; uhid: string } | null>(null)
   const [billType, setBillType] = useState(guidedIpdAdmissionId ? 'Admission' : 'Consultation')
   const [ipdAdmissionId, setIpdAdmissionId] = useState<number | ''>(guidedIpdAdmissionId ?? '')
-  const [items, setItems] = useState<LineItem[]>([{ description: '', quantity: 1, unitPrice: 0 }])
+  const [items, setItems] = useState<LineItem[]>([{ description: '', quantity: 1, unitPrice: 0, section: 'Others' }])
+  const [quickAddKey, setQuickAddKey] = useState('')
   const [discount, setDiscount] = useState(0)
   const [gst, setGst] = useState(5)
   // Mode of payment, chosen right on the Generate Bill form alongside the charges - Cash/Card/UPI/Insurance
@@ -76,6 +89,9 @@ export function BillingPage() {
   useEffect(() => { dispatch(fetchPendingBills(activeTab)) }, [dispatch, activeTab])
   useEffect(() => { dispatch(fetchPatients({ pageSize: 100 })) }, [dispatch])
   useEffect(() => { dispatch(fetchActiveAdmissions()) }, [dispatch])
+  // Rate master lookups - so Generate Bill's "Quick add from rate list" reflects whatever Administrator has
+  // set, instead of every charge being typed freehand each time.
+  useEffect(() => { dispatch(fetchChargeCatalog()); dispatch(fetchLabCatalog()) }, [dispatch])
 
   // A patient should already be selected when the form opens, not force picking one from a blank dropdown
   // every time - defaults to the first patient on file until the receptionist picks a different one.
@@ -118,9 +134,35 @@ export function BillingPage() {
   // The patient's own currently-active admission(s), for the IPD admission picker below.
   const patientActiveAdmissions = activeAdmissions.filter((a) => a.patientId === patientId)
 
-  const addItem = () => setItems((i) => [...i, { description: '', quantity: 1, unitPrice: 0 }])
+  const addItem = () => setItems((i) => [...i, { description: '', quantity: 1, unitPrice: 0, section: 'Others' }])
   const updateItem = (index: number, patch: Partial<LineItem>) => setItems((i) => i.map((line, idx) => (idx === index ? { ...line, ...patch } : line)))
   const removeItem = (index: number) => setItems((i) => i.filter((_, idx) => idx !== index))
+
+  // Rate master, flattened into one pick list - selecting an entry appends a prefilled line instead of the
+  // description/rate being retyped from memory each time. Grouped by <section>::<label>::<rate> so the same
+  // key both identifies the choice and carries its values, without a separate lookup table.
+  const quickAddOptions = [
+    ...labCatalog.map((t) => ({ key: `Investigation::${t.testName}::${t.price}`, label: `Investigation: ${t.testName}`, section: 'Investigation' as BillItemSection, rate: t.price, description: t.testName })),
+    ...chargeCatalog.map((c) => ({
+      key: `${c.category === 'NurseCharges' ? 'Others' : 'GeneralService'}::${c.itemName}::${c.rate}`,
+      label: `${c.category === 'NurseCharges' ? 'Nurse Charges' : c.category === 'Others' ? 'Others' : 'General Service'}: ${c.itemName}`,
+      section: (c.category === 'NurseCharges' ? 'Others' : c.category === 'Others' ? 'Others' : 'GeneralService') as BillItemSection,
+      rate: c.rate,
+      description: c.itemName,
+    })),
+  ]
+
+  const handleQuickAdd = (key: string) => {
+    const option = quickAddOptions.find((o) => o.key === key)
+    if (!option) return
+    setItems((i) => {
+      // The form starts with one blank row by default - fill that in first instead of leaving it dangling.
+      const blankIndex = i.findIndex((line) => !line.description)
+      const newLine: LineItem = { description: option.description, quantity: 1, unitPrice: option.rate, section: option.section }
+      return blankIndex >= 0 ? i.map((line, idx) => (idx === blankIndex ? newLine : line)) : [...i, newLine]
+    })
+    setQuickAddKey('')
+  }
   const subTotal = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0)
 
   const handleCreateBill = async () => {
@@ -139,7 +181,7 @@ export function BillingPage() {
       }))
       toast.success(`Bill ${bill.billNumber} generated for ₹${bill.totalAmount}`)
       setCreateOpen(false)
-      setItems([{ description: '', quantity: 1, unitPrice: 0 }]); setPatientId(''); setSelectedPatient(null); setPatientSearch(''); setDiscount(0); setIpdAdmissionId('')
+      setItems([{ description: '', quantity: 1, unitPrice: 0, section: 'Others' }]); setPatientId(''); setSelectedPatient(null); setPatientSearch(''); setDiscount(0); setIpdAdmissionId('')
       dispatch(fetchPendingBills(activeTab))
 
       if (createPayMode === 'PayLater') {
@@ -404,15 +446,32 @@ export function BillingPage() {
           )}
 
           <div>
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-ink-700">Line items</span>
-              <Button size="sm" variant="secondary" onClick={addItem}>+ Add line</Button>
+              <div className="flex items-center gap-2">
+                <select
+                  value={quickAddKey}
+                  onChange={(e) => handleQuickAdd(e.target.value)}
+                  className="rounded-md border border-ink-100 px-2 py-1.5 text-xs"
+                >
+                  <option value="">+ Quick add from rate list…</option>
+                  {quickAddOptions.map((o) => <option key={o.key} value={o.key}>{o.label} · ₹{o.rate}</option>)}
+                </select>
+                <Button size="sm" variant="secondary" onClick={addItem}>+ Add line</Button>
+              </div>
             </div>
             <div className="space-y-2">
               {items.map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2">
-                  <input className="col-span-6 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateItem(index, { description: e.target.value })} />
-                  <input type="number" min={1} className="col-span-2 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(index, { quantity: Number(e.target.value) })} />
+                  <select
+                    className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-xs"
+                    value={item.section}
+                    onChange={(e) => updateItem(index, { section: e.target.value as BillItemSection })}
+                  >
+                    {Object.entries(SECTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                  <input className="col-span-4 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateItem(index, { description: e.target.value })} />
+                  <input type="number" min={1} className="col-span-1 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(index, { quantity: Number(e.target.value) })} />
                   <input type="number" min={0} className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Unit price" value={item.unitPrice} onChange={(e) => updateItem(index, { unitPrice: Number(e.target.value) })} />
                   <button onClick={() => removeItem(index)} className="col-span-1 text-danger-500">✕</button>
                 </div>

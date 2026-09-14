@@ -20,6 +20,8 @@ public interface IBedService
 
     Task<IReadOnlyList<RoomDto>> GetRoomsAsync(int? wardId = null);
     Task<RoomDto> CreateRoomAsync(UpsertRoomRequest request);
+    /// <summary> Room Tariff rate master - the daily charge is otherwise only ever set once, at creation. </summary>
+    Task UpdateRoomDailyChargeAsync(int roomId, decimal dailyCharge);
 
     Task<IReadOnlyList<BedDto>> GetBedsAsync(BedStatus? status = null, RoomType? roomType = null);
     Task<BedDto> CreateBedAsync(UpsertBedRequest request);

@@ -4,6 +4,7 @@ using HMS.Application.Features.Auth;
 using HMS.Application.Features.Beds;
 using HMS.Application.Features.Billing;
 using HMS.Application.Features.BloodBank;
+using HMS.Application.Features.ChargeCatalog;
 using HMS.Application.Features.Consents;
 using HMS.Application.Features.Dashboard;
 using HMS.Application.Features.Departments;
@@ -79,6 +80,7 @@ public static class DependencyInjection
         services.AddScoped<IRadiologyService, RadiologyService>();
         services.AddScoped<IPharmacyService, PharmacyService>();
         services.AddScoped<IBillingService, BillingService>();
+        services.AddScoped<IChargeCatalogService, ChargeCatalogService>();
         services.AddScoped<IInsuranceService, InsuranceService>();
         services.AddScoped<IOperationTheatreService, OperationTheatreService>();
         services.AddScoped<IConsentService, ConsentService>();

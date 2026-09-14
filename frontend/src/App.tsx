@@ -29,6 +29,7 @@ import { MedicalRecordsPage } from './pages/generic/MedicalRecordsPage'
 import { NotificationsPage } from './pages/generic/NotificationsPage'
 import { HospitalsManagePage } from './pages/admin/HospitalsManagePage'
 import { DoctorsManagePage } from './pages/admin/DoctorsManagePage'
+import { RateMasterPage } from './pages/admin/RateMasterPage'
 import { DepartmentsManagePage } from './pages/admin/DepartmentsManagePage'
 import { EmployeesManagePage } from './pages/admin/EmployeesManagePage'
 import { AttendanceLeavePage } from './pages/admin/AttendanceLeavePage'
@@ -145,6 +146,7 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={['SuperAdmin', 'Administrator']} />}>
             <Route path="manage/doctors" element={<DoctorsManagePage />} />
             <Route path="manage/departments" element={<DepartmentsManagePage />} />
+            <Route path="manage/rates" element={<RateMasterPage />} />
             <Route path="manage/inventory" element={<InventoryPage />} />
             <Route path="manage/vendors" element={<VendorsPage />} />
             <Route path="reports" element={<ReportsPage />} />

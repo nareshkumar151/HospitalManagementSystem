@@ -41,6 +41,16 @@ public class SqlDataAccess : ISqlDataAccess
         return (items, second);
     }
 
+    public async Task<(IReadOnlyList<T1> First, IReadOnlyList<T2> Second, IReadOnlyList<T3> Third)> QueryMultipleAsync<T1, T2, T3>(string storedProcedure, object? parameters = null)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        using var multi = await connection.QueryMultipleAsync(storedProcedure, parameters, commandType: CommandType.StoredProcedure);
+        var first = (await multi.ReadAsync<T1>()).AsList();
+        var second = (await multi.ReadAsync<T2>()).AsList();
+        var third = (await multi.ReadAsync<T3>()).AsList();
+        return (first, second, third);
+    }
+
     public async Task<int> ExecuteAsync(string storedProcedure, object? parameters = null)
     {
         using var connection = _connectionFactory.CreateConnection();

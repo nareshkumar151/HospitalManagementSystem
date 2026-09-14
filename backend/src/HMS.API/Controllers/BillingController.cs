@@ -122,10 +122,10 @@ public class BillingController : ApiControllerBase
     [HttpGet("{id:int}/pdf")]
     public async Task<IActionResult> DownloadReceipt(int id)
     {
-        var bill = await _billingService.GetByIdAsync(id);
-        if (User.IsInRole(RoleNames.Patient) && CurrentLinkedProfileId != bill.PatientId) return Forbid();
+        var receipt = await _billingService.GetReceiptDetailsAsync(id);
+        if (User.IsInRole(RoleNames.Patient) && CurrentLinkedProfileId != receipt.Bill.PatientId) return Forbid();
 
-        var pdfBytes = _pdfService.GenerateBillReceiptPdf(bill);
-        return File(pdfBytes, "application/pdf", $"Receipt-{bill.BillNumber}.pdf");
+        var pdfBytes = _pdfService.GenerateBillReceiptPdf(receipt);
+        return File(pdfBytes, "application/pdf", $"Receipt-{receipt.Bill.BillNumber}.pdf");
     }
 }

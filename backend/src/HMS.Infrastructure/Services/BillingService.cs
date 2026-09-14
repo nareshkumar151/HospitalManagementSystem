@@ -53,7 +53,9 @@ public class BillingService : IBillingService
                 item.Description,
                 item.Quantity,
                 item.UnitPrice,
-                LineTotal = item.Quantity * item.UnitPrice
+                LineTotal = item.Quantity * item.UnitPrice,
+                item.Section,
+                item.ItemDate
             });
         }
 
@@ -84,7 +86,9 @@ public class BillingService : IBillingService
                 item.Description,
                 item.Quantity,
                 item.UnitPrice,
-                LineTotal = item.Quantity * item.UnitPrice
+                LineTotal = item.Quantity * item.UnitPrice,
+                item.Section,
+                item.ItemDate
             });
         }
 
@@ -97,6 +101,23 @@ public class BillingService : IBillingService
         var (headers, items) = await _db.QueryMultipleAsync<BillHeaderRow, BillItemDto>("sp_Bill_GetById", new { Id = id });
         var header = headers.FirstOrDefault() ?? throw new NotFoundException(nameof(Domain.Entities.Bill), id);
         return Map(header, items);
+    }
+
+    public async Task<BillReceiptDto> GetReceiptDetailsAsync(int id)
+    {
+        var (headers, items, payments) = await _db.QueryMultipleAsync<BillReceiptHeaderRow, BillItemDto, BillReceiptPaymentRow>("sp_Bill_GetReceiptDetails", new { Id = id });
+        var h = headers.FirstOrDefault() ?? throw new NotFoundException(nameof(Domain.Entities.Bill), id);
+
+        var bill = new BillDto(
+            h.Id, h.BillNumber, h.PatientId, h.PatientName, Enum.Parse<BillType>(h.Type),
+            h.IpdAdmissionId is not null ? BillCategory.IPD : BillCategory.OPD, h.OpdVisitId, h.IpdAdmissionId,
+            h.SubTotal, h.GstAmount, h.DiscountAmount, h.TotalAmount, h.PaidAmount, Enum.Parse<BillStatus>(h.Status), h.BillDate, items.ToList(), h.BranchId);
+
+        return new BillReceiptDto(
+            bill, h.PatientUhid, h.PatientAge, h.PatientGender, h.HasInsurance,
+            h.DoctorName, h.AdmissionNumber, h.AdmissionDate,
+            h.GeneratedByName, h.BranchName, h.BranchAddress, h.BranchContactNumber,
+            payments.Select(p => new BillReceiptPaymentDto(p.ReceiptNumber, p.PaidAt, p.Amount, Enum.Parse<PaymentMode>(p.Mode), p.IsRefund)).ToList());
     }
 
     public async Task<PagedResult<BillDto>> SearchAsync(PagedRequest request, int branchId, BillStatus? status = null, BillCategory? category = null)
@@ -259,4 +280,13 @@ public class BillingService : IBillingService
     internal record PaymentHistoryRow(
         int Id, int BillId, string BillNumber, int PatientId, string PatientName, string Uhid,
         decimal Amount, string Mode, string? TransactionReference, bool IsRefund, DateTime PaidAt, string ReceivedByName);
+
+    internal record BillReceiptHeaderRow(
+        int Id, string BillNumber, int PatientId, string PatientName, string Type, int? OpdVisitId, int? IpdAdmissionId,
+        decimal SubTotal, decimal GstAmount, decimal DiscountAmount, decimal TotalAmount, decimal PaidAmount, string Status, DateTime BillDate, int BranchId,
+        string PatientUhid, int? PatientAge, string PatientGender, bool HasInsurance,
+        string? DoctorName, string? AdmissionNumber, DateTime? AdmissionDate,
+        string GeneratedByName, string BranchName, string BranchAddress, string BranchContactNumber);
+
+    internal record BillReceiptPaymentRow(string ReceiptNumber, DateTime PaidAt, decimal Amount, string Mode, bool IsRefund);
 }
