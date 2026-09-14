@@ -221,14 +221,29 @@ public class PdfService : IPdfService
 
                     column.Item().PaddingTop(10).Text($"Billed Amount In Words : {NumberToWordsIndian(bill.TotalAmount)}").FontSize(9).Italic();
 
-                    column.Item().PaddingTop(30).Row(row =>
+                    column.Item().PaddingTop(24).Row(row =>
                     {
                         row.RelativeItem().Text(t =>
                         {
                             t.Span("Prepared By : ").SemiBold();
                             t.Span(receipt.GeneratedByName);
                         });
-                        row.RelativeItem().AlignRight().Text("Signature").SemiBold();
+                        // A stylus-signed bill (Generate Bill's optional Signature field) prints the actual
+                        // capture here instead of leaving a blank line for a wet-ink signature.
+                        var signature = receipt.PreparedBySignature ?? "";
+                        if (IsHandwritingCapture(signature))
+                        {
+                            var base64 = signature[(signature.IndexOf(',') + 1)..];
+                            row.RelativeItem().Column(sig =>
+                            {
+                                sig.Item().AlignRight().Height(40).Width(150).Image(Convert.FromBase64String(base64)).FitArea();
+                                sig.Item().AlignRight().Text("Signature").FontSize(8).SemiBold();
+                            });
+                        }
+                        else
+                        {
+                            row.RelativeItem().AlignRight().Text("Signature").SemiBold();
+                        }
                     });
                 });
 

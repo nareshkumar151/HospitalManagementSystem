@@ -65,7 +65,7 @@ export interface BillItemPayload { description: string; quantity: number; unitPr
 export const createBill = (payload: {
   patientId: number; opdVisitId?: number; ipdAdmissionId?: number; type: string
   items: BillItemPayload[]
-  discountAmount: number; gstPercent: number; branchId: number
+  discountAmount: number; gstPercent: number; branchId: number; preparedBySignature?: string
 }): AppThunk<Promise<BillDto>> => async (dispatch) => {
   try {
     const { data } = await apiClient.post<BillDto>('/billing', payload)

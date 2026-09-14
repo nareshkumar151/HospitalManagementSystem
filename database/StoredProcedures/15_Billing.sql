@@ -30,17 +30,19 @@ BEGIN
 END
 GO
 
+-- @PreparedBySignature: a stylus capture (data:image/png;base64,...) from the person generating the bill,
+-- or NULL to leave the printed receipt's signature line blank for a wet-ink signature - see PdfService.
 CREATE OR ALTER PROCEDURE sp_Bill_Insert
     @BillNumber NVARCHAR(30), @PatientId INT, @OpdVisitId INT = NULL, @IpdAdmissionId INT = NULL, @Type NVARCHAR(20),
     @SubTotal DECIMAL(12,2), @GstAmount DECIMAL(12,2), @DiscountAmount DECIMAL(12,2), @TotalAmount DECIMAL(12,2),
-    @GeneratedByUserId INT, @BranchId INT
+    @GeneratedByUserId INT, @BranchId INT, @PreparedBySignature NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO Bills (BillNumber, PatientId, OpdVisitId, IpdAdmissionId, Type, SubTotal, GstAmount, DiscountAmount,
-        TotalAmount, GeneratedByUserId, BranchId, HospitalId)
+        TotalAmount, GeneratedByUserId, BranchId, HospitalId, PreparedBySignature)
     VALUES (@BillNumber, @PatientId, @OpdVisitId, @IpdAdmissionId, @Type, @SubTotal, @GstAmount, @DiscountAmount,
-        @TotalAmount, @GeneratedByUserId, @BranchId, (SELECT HospitalId FROM Branches WHERE Id = @BranchId));
+        @TotalAmount, @GeneratedByUserId, @BranchId, (SELECT HospitalId FROM Branches WHERE Id = @BranchId), @PreparedBySignature);
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO
@@ -114,7 +116,8 @@ BEGIN
            COALESCE(ipd_doc.FullName, opd_doc.FullName) AS DoctorName,
            a.AdmissionNumber, a.AdmissionDate,
            dbo.fn_UserDisplayName(b.GeneratedByUserId) AS GeneratedByName,
-           br.Name AS BranchName, br.Address AS BranchAddress, br.ContactNumber AS BranchContactNumber
+           br.Name AS BranchName, br.Address AS BranchAddress, br.ContactNumber AS BranchContactNumber,
+           b.PreparedBySignature
     FROM Bills b
     JOIN Patients p ON p.Id = b.PatientId
     JOIN Branches br ON br.Id = b.BranchId

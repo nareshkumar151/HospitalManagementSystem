@@ -17,9 +17,12 @@ public record BillDto(
 
 public record BillItemRequest(string Description, int Quantity, decimal UnitPrice, string? Section = null, DateTime? ItemDate = null);
 
+/// <summary> PreparedBySignature: an optional stylus capture (see HandwritingField) from whoever is
+/// generating the bill - prints on the receipt in place of a blank wet-ink signature line. </summary>
 public record CreateBillRequest(
     int PatientId, int? OpdVisitId, int? IpdAdmissionId, BillType Type,
-    IReadOnlyList<BillItemRequest> Items, decimal DiscountAmount, decimal GstPercent, int BranchId);
+    IReadOnlyList<BillItemRequest> Items, decimal DiscountAmount, decimal GstPercent, int BranchId,
+    string? PreparedBySignature = null);
 
 /// <summary> Edit Bill - only the charges (line items, discount, GST) can change; patient, category, and
 /// bill type are fixed once generated. Refused (see UpdateBillAsync) once any payment has been collected. </summary>
@@ -45,7 +48,7 @@ public record BillReceiptDto(
     BillDto Bill, string PatientUhid, int? PatientAge, string PatientGender, bool HasInsurance,
     string? DoctorName, string? AdmissionNumber, DateTime? AdmissionDate,
     string GeneratedByName, string BranchName, string BranchAddress, string BranchContactNumber,
-    IReadOnlyList<BillReceiptPaymentDto> Payments);
+    IReadOnlyList<BillReceiptPaymentDto> Payments, string? PreparedBySignature);
 
 /// <summary> Handed to the frontend so it can open Razorpay's Checkout widget - never includes the key secret. </summary>
 public record RazorpayOrderResponseDto(string RazorpayOrderId, int AmountInPaise, string Currency, string RazorpayKeyId, int BillId);

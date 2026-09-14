@@ -16,6 +16,7 @@ import { Input, Select } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Badge } from '../../components/ui/Badge'
 import { SearchBox, PaginationBar } from '../../components/ui/ListToolbar'
+import { HandwritingField } from '../../components/clinical/HandwritingField'
 import { downloadFile, extractErrorMessage } from '../../api/client'
 import { openRazorpayCheckout } from '../../utils/razorpay'
 import { admissionTypeLabel } from '../../utils/admissionTypes'
@@ -71,6 +72,10 @@ export function BillingPage() {
   // preserves the old flow (auto-opens Collect Payment, Razorpay included) for whoever isn't paying on the
   // spot - see handleCreateBill.
   const [createPayMode, setCreatePayMode] = useState('Cash')
+  // Optional stylus signature from whoever is generating the bill - prints on the receipt in place of a
+  // blank wet-ink signature line (see PdfService.GenerateBillReceiptPdf).
+  const [signature, setSignature] = useState('')
+  const [signatureFieldKey, setSignatureFieldKey] = useState(0)
   const [payAmount, setPayAmount] = useState(0)
   const [payMode, setPayMode] = useState('Cash')
   const [submitting, setSubmitting] = useState(false)
@@ -178,10 +183,12 @@ export function BillingPage() {
         discountAmount: discount,
         gstPercent: gst,
         branchId: user?.branchId ?? 1,
+        preparedBySignature: signature || undefined,
       }))
       toast.success(`Bill ${bill.billNumber} generated for ₹${bill.totalAmount}`)
       setCreateOpen(false)
       setItems([{ description: '', quantity: 1, unitPrice: 0, section: 'Others' }]); setPatientId(''); setSelectedPatient(null); setPatientSearch(''); setDiscount(0); setIpdAdmissionId('')
+      setSignature(''); setSignatureFieldKey((k) => k + 1)
       dispatch(fetchPendingBills(activeTab))
 
       if (createPayMode === 'PayLater') {
@@ -490,6 +497,14 @@ export function BillingPage() {
               <option value="PayLater">Decide later / Pay online</option>
             </Select>
           </div>
+
+          <HandwritingField
+            key={signatureFieldKey}
+            label="Signature (optional - type or draw with stylus)"
+            value={signature}
+            onChange={setSignature}
+            padHeight={120}
+          />
 
           <div className="rounded-lg bg-surface-muted p-3 text-sm text-ink-700">
             Subtotal ₹{subTotal.toFixed(2)} + GST {gst}% − Discount ₹{discount} ={' '}

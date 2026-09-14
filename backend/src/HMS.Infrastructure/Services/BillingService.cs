@@ -42,7 +42,8 @@ public class BillingService : IBillingService
             request.DiscountAmount,
             TotalAmount = totalAmount,
             GeneratedByUserId = userId,
-            request.BranchId
+            request.BranchId,
+            request.PreparedBySignature
         });
 
         foreach (var item in request.Items)
@@ -117,7 +118,8 @@ public class BillingService : IBillingService
             bill, h.PatientUhid, h.PatientAge, h.PatientGender, h.HasInsurance,
             h.DoctorName, h.AdmissionNumber, h.AdmissionDate,
             h.GeneratedByName, h.BranchName, h.BranchAddress, h.BranchContactNumber,
-            payments.Select(p => new BillReceiptPaymentDto(p.ReceiptNumber, p.PaidAt, p.Amount, Enum.Parse<PaymentMode>(p.Mode), p.IsRefund)).ToList());
+            payments.Select(p => new BillReceiptPaymentDto(p.ReceiptNumber, p.PaidAt, p.Amount, Enum.Parse<PaymentMode>(p.Mode), p.IsRefund)).ToList(),
+            h.PreparedBySignature);
     }
 
     public async Task<PagedResult<BillDto>> SearchAsync(PagedRequest request, int branchId, BillStatus? status = null, BillCategory? category = null)
@@ -286,7 +288,8 @@ public class BillingService : IBillingService
         decimal SubTotal, decimal GstAmount, decimal DiscountAmount, decimal TotalAmount, decimal PaidAmount, string Status, DateTime BillDate, int BranchId,
         string PatientUhid, int? PatientAge, string PatientGender, bool HasInsurance,
         string? DoctorName, string? AdmissionNumber, DateTime? AdmissionDate,
-        string GeneratedByName, string BranchName, string BranchAddress, string BranchContactNumber);
+        string GeneratedByName, string BranchName, string BranchAddress, string BranchContactNumber,
+        string? PreparedBySignature);
 
     internal record BillReceiptPaymentRow(string ReceiptNumber, DateTime PaidAt, decimal Amount, string Mode, bool IsRefund);
 }
