@@ -157,7 +157,7 @@ export function AttendanceLeavePage() {
             type="month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+            className="rounded-lg border border-ink-100 bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
           />
         </div>
         <div className="mt-4">
@@ -195,7 +195,7 @@ export function AttendanceLeavePage() {
           <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><CalendarRange size={16} /> Leave Balances</h3>
           <input
             type="number" value={balanceYear} onChange={(e) => setBalanceYear(Number(e.target.value) || balanceYear)}
-            className="w-24 rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+            className="w-24 rounded-lg border border-ink-100 bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
           />
         </div>
         <div className="p-4">

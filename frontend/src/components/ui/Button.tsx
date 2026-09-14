@@ -21,7 +21,7 @@ interface ButtonProps extends SafeButtonAttributes {
 
 const variantClasses: Record<Variant, string> = {
   primary: 'bg-brand-500 text-white hover:bg-brand-600 shadow-sm shadow-brand-500/20',
-  secondary: 'bg-white text-ink-700 border border-ink-100 hover:border-brand-300 hover:text-brand-600',
+  secondary: 'bg-surface text-ink-700 border border-ink-100 hover:border-brand-300 hover:text-brand-600',
   ghost: 'bg-transparent text-ink-700 hover:bg-ink-100',
   danger: 'bg-danger-500 text-white hover:opacity-90',
   success: 'bg-success-500 text-white hover:opacity-90',

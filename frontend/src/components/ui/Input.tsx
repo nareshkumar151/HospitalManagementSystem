@@ -33,7 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ label, error, h
     <input
       ref={ref}
       className={clsx(
-        'w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow placeholder:text-ink-500/70',
+        'w-full rounded-lg border bg-surface px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow placeholder:text-ink-500/70',
         'focus:ring-2 focus:ring-brand-400/40 focus:border-brand-400',
         error ? 'border-danger-500' : 'border-ink-100',
         className
@@ -55,7 +55,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, error
     <select
       ref={ref}
       className={clsx(
-        'w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow',
+        'w-full rounded-lg border bg-surface px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow',
         'focus:ring-2 focus:ring-brand-400/40 focus:border-brand-400',
         error ? 'border-danger-500' : 'border-ink-100',
         className

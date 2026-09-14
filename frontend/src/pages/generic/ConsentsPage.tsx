@@ -296,7 +296,7 @@ export function ConsentsPage() {
               value={templateBody}
               onChange={(e) => setTemplateBody(e.target.value)}
               rows={5}
-              className="w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
+              className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm text-ink-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
             />
           </label>
           <div className="flex justify-end gap-2 pt-2">

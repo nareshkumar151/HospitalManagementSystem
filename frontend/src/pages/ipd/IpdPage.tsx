@@ -343,12 +343,12 @@ export function IpdPage() {
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium text-ink-700">From</span>
             <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-              className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+              className="rounded-lg border border-ink-100 bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium text-ink-700">To</span>
             <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-              className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+              className="rounded-lg border border-ink-100 bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
           </label>
           <Select label="Status" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1) }} className="w-40">
             <option value="Admitted">Admitted</option>
@@ -416,11 +416,11 @@ export function IpdPage() {
             </div>
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink-700">Diagnosis</span>
-              <textarea className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" rows={2} value={dischargeDiagnosis} onChange={(e) => setDischargeDiagnosis(e.target.value)} />
+              <textarea className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" rows={2} value={dischargeDiagnosis} onChange={(e) => setDischargeDiagnosis(e.target.value)} />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink-700">Condition at discharge</span>
-              <textarea className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" rows={2} value={dischargeCondition} onChange={(e) => setDischargeCondition(e.target.value)} />
+              <textarea className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" rows={2} value={dischargeCondition} onChange={(e) => setDischargeCondition(e.target.value)} />
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => setDischargeTarget(null)}>Cancel</Button>
@@ -445,15 +445,15 @@ export function IpdPage() {
                 {editItems.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-2">
                     <select
-                      className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-xs"
+                      className="col-span-3 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-xs"
                       value={item.section}
                       onChange={(e) => updateEditItem(index, { section: e.target.value as BillItemSection })}
                     >
                       {Object.entries(SECTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
-                    <input className="col-span-4 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateEditItem(index, { description: e.target.value })} />
-                    <input type="number" min={1} className="col-span-1 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateEditItem(index, { quantity: Number(e.target.value) })} />
-                    <input type="number" min={0} className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Unit price" value={item.unitPrice} onChange={(e) => updateEditItem(index, { unitPrice: Number(e.target.value) })} />
+                    <input className="col-span-4 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateEditItem(index, { description: e.target.value })} />
+                    <input type="number" min={1} className="col-span-1 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateEditItem(index, { quantity: Number(e.target.value) })} />
+                    <input type="number" min={0} className="col-span-3 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm" placeholder="Unit price" value={item.unitPrice} onChange={(e) => updateEditItem(index, { unitPrice: Number(e.target.value) })} />
                     <button onClick={() => removeEditItem(index)} className="col-span-1 text-danger-500">✕</button>
                   </div>
                 ))}

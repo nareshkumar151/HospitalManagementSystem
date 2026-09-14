@@ -28,11 +28,11 @@ function ColorField({ label, value, onChange, hint }: { label: string; value: st
       <div className="flex items-center gap-3">
         <input
           type="color" value={value} onChange={(e) => onChange(e.target.value)}
-          className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-ink-100 bg-white p-1"
+          className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-ink-100 bg-surface p-1"
         />
         <input
           type="text" value={value} onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
+          className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
         />
       </div>
       {hint && <span className="mt-1 block text-xs text-ink-500">{hint}</span>}

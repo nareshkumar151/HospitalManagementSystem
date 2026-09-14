@@ -99,7 +99,7 @@ export function LaboratoryPage() {
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-ink-700">Result summary</span>
             <textarea rows={4} value={resultSummary} onChange={(e) => setResultSummary(e.target.value)}
-              className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+              className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
           </label>
           <p className="text-xs text-ink-500">File upload storage is wired to Local/Azure Blob at the API layer per the NFR; this demo records the result text.</p>
           <div className="flex justify-end gap-2">

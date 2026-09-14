@@ -15,6 +15,7 @@
   --color-brand-800: #10534b;
   --color-brand-900: #10453f;
 
+  --color-accent-100: #e0e7ff;
   --color-accent-500: #6366f1;
   --color-accent-600: #4f46e5;
 
@@ -26,12 +27,91 @@
   --color-ink-300: #cbd5e1;
   --color-ink-100: #eef2f6;
 
+  /* -500 is the accented text/icon shade; -50/-100 are the soft chip/badge backgrounds behind it (Badge,
+     StatCard) - kept as our own tokens rather than Tailwind's built-in red/amber/green scales so dark mode
+     (below) can repaint them too. */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
   --color-danger-500: #e5484d;
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
   --color-warning-500: #f0a020;
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
   --color-success-500: #22a06b;
 
   --shadow-card: 0 1px 2px rgba(15, 23, 32, 0.04), 0 8px 24px -12px rgba(15, 23, 32, 0.12);
   --shadow-pop: 0 20px 40px -16px rgba(15, 23, 32, 0.28);
+}
+
+/* ---------------------------------------------------------------------------
+   Light / Dark mode - every component above is themed purely through the
+   --color-* custom properties Tailwind's utilities already read (bg-surface,
+   text-ink-900, border-ink-100, ...), so repainting those here is enough to
+   re-theme the whole app without touching individual components.
+
+   Three states: an explicit user choice (ThemeToggle) stamps
+   data-theme="dark"/"light" on <html> (see useTheme.ts and the blocking
+   inline script in index.html, which avoids a flash of the wrong theme on
+   load); the default "system" setting stamps nothing, so plain
+   prefers-color-scheme decides. Dark values are declared twice (system-
+   preferred and explicitly-chosen) so an explicit toggle always wins over
+   the OS setting in either direction.
+   --------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --color-surface: #141a21;
+    --color-surface-muted: #0b0e13;
+    --color-ink-900: #f1f5f9;
+    --color-ink-700: #cbd5e1;
+    --color-ink-500: #8896a6;
+    --color-ink-300: #3a4552;
+    --color-ink-100: #232b34;
+
+    --color-brand-50: #0f2622;
+    --color-brand-100: #123a32;
+    --color-danger-50: #2a1416;
+    --color-danger-100: #3a1a1d;
+    --color-warning-50: #26200f;
+    --color-warning-100: #362c14;
+    --color-success-50: #10261c;
+    --color-success-100: #163524;
+    --color-accent-100: #211f42;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    --shadow-pop: 0 20px 40px -16px rgba(0, 0, 0, 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-surface: #141a21;
+  --color-surface-muted: #0b0e13;
+  --color-ink-900: #f1f5f9;
+  --color-ink-700: #cbd5e1;
+  --color-ink-500: #8896a6;
+  --color-ink-300: #3a4552;
+  --color-ink-100: #232b34;
+
+  --color-brand-50: #0f2622;
+  --color-brand-100: #123a32;
+  --color-danger-50: #2a1416;
+  --color-danger-100: #3a1a1d;
+  --color-warning-50: #26200f;
+  --color-warning-100: #362c14;
+  --color-success-50: #10261c;
+  --color-success-100: #163524;
+  --color-accent-100: #211f42;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 20px 40px -16px rgba(0, 0, 0, 0.6);
 }
 
 @layer base {
@@ -61,7 +141,7 @@
 
 @layer utilities {
   .glass {
-    background: color-mix(in srgb, white 72%, transparent);
+    background: color-mix(in srgb, var(--color-surface) 72%, transparent);
     backdrop-filter: blur(14px) saturate(160%);
   }
 }

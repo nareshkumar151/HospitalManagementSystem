@@ -171,7 +171,7 @@ export function PatientPortalPage() {
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink-700">Date</span>
               <input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+                className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
             </label>
             <Select label="Time slot" value={slot} onChange={(e) => setSlot(e.target.value)}>
               <option value="" disabled>Select a slot</option>

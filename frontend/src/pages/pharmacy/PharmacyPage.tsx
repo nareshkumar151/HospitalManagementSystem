@@ -170,7 +170,7 @@ export function PharmacyPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search medicines…"
-            className="w-full max-w-sm rounded-lg border border-ink-100 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+            className="w-full max-w-sm rounded-lg border border-ink-100 bg-surface px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
           />
         </div>
         <div className="p-4">
@@ -195,11 +195,11 @@ export function PharmacyPage() {
                 const medicine = medicines?.items.find((m) => m.id === line.medicineId)
                 return (
                   <div key={index} className="grid grid-cols-12 items-center gap-2 rounded-lg bg-surface-muted p-2">
-                    <select className="col-span-6 rounded-md border border-ink-100 px-2 py-1.5 text-sm" value={line.medicineId} onChange={(e) => updateCartLine(index, { medicineId: Number(e.target.value) })}>
+                    <select className="col-span-6 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm" value={line.medicineId} onChange={(e) => updateCartLine(index, { medicineId: Number(e.target.value) })}>
                       <option value={0} disabled>Select medicine</option>
                       {medicines?.items.map((m) => <option key={m.id} value={m.id}>{m.medicineName} (stock: {m.stock})</option>)}
                     </select>
-                    <input type="number" min={1} className="col-span-2 rounded-md border border-ink-100 px-2 py-1.5 text-sm" value={line.quantity} onChange={(e) => updateCartLine(index, { quantity: Number(e.target.value) })} />
+                    <input type="number" min={1} className="col-span-2 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm" value={line.quantity} onChange={(e) => updateCartLine(index, { quantity: Number(e.target.value) })} />
                     <span className="col-span-3 text-sm text-ink-500">
                       {medicine ? `₹${(medicine.sellingPrice * line.quantity).toFixed(2)}` : '—'}
                     </span>

@@ -6,6 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Effisys Group Hospital Management System" />
     <title>Effisys Group HMS</title>
+    <script>
+      // Applies a saved explicit Light/Dark choice before first paint (see src/hooks/useTheme.ts) - without
+      // this, the app would render in the wrong theme for a frame (or the OS-default one) and visibly flip
+      // once React mounts. No stored preference (the default "System" setting) means leaving this alone
+      // entirely and letting prefers-color-scheme in index.css decide, same as everywhere else.
+      (function () {
+        try {
+          var t = localStorage.getItem('hms-theme')
+          if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t)
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

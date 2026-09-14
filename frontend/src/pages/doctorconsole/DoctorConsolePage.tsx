@@ -273,17 +273,17 @@ export function DoctorConsolePage() {
                   {rxItems.map((item, index) => (
                     <div key={index} className="grid grid-cols-12 gap-2 rounded-lg bg-surface-muted p-2">
                       <select
-                        className="col-span-4 rounded-md border border-ink-100 px-2 py-1.5 text-xs"
+                        className="col-span-4 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-xs"
                         value={item.medicineId}
                         onChange={(e) => updateRxItem(index, { medicineId: Number(e.target.value) })}
                       >
                         <option value={0} disabled>Medicine</option>
                         {medicines?.items.map((m) => <option key={m.id} value={m.id}>{m.medicineName}</option>)}
                       </select>
-                      <input className="col-span-2 rounded-md border border-ink-100 px-2 py-1.5 text-xs" placeholder="Dosage" value={item.dosage} onChange={(e) => updateRxItem(index, { dosage: e.target.value })} />
-                      <input className="col-span-2 rounded-md border border-ink-100 px-2 py-1.5 text-xs" placeholder="Frequency" value={item.frequency} onChange={(e) => updateRxItem(index, { frequency: e.target.value })} />
-                      <input type="number" className="col-span-1 rounded-md border border-ink-100 px-2 py-1.5 text-xs" placeholder="Days" value={item.durationDays} onChange={(e) => updateRxItem(index, { durationDays: Number(e.target.value) })} />
-                      <input className="col-span-2 rounded-md border border-ink-100 px-2 py-1.5 text-xs" placeholder="Instructions" value={item.instructions} onChange={(e) => updateRxItem(index, { instructions: e.target.value })} />
+                      <input className="col-span-2 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-xs" placeholder="Dosage" value={item.dosage} onChange={(e) => updateRxItem(index, { dosage: e.target.value })} />
+                      <input className="col-span-2 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-xs" placeholder="Frequency" value={item.frequency} onChange={(e) => updateRxItem(index, { frequency: e.target.value })} />
+                      <input type="number" className="col-span-1 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-xs" placeholder="Days" value={item.durationDays} onChange={(e) => updateRxItem(index, { durationDays: Number(e.target.value) })} />
+                      <input className="col-span-2 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-xs" placeholder="Instructions" value={item.instructions} onChange={(e) => updateRxItem(index, { instructions: e.target.value })} />
                       <button onClick={() => removeRxItem(index)} className="col-span-1 text-xs text-danger-500">✕</button>
                     </div>
                   ))}
@@ -299,7 +299,7 @@ export function DoctorConsolePage() {
                   value={labTestSearch}
                   onChange={(e) => setLabTestSearch(e.target.value)}
                   placeholder="Search tests…"
-                  className="mb-2 w-full rounded-md border border-ink-100 px-2 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+                  className="mb-2 w-full rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
                 />
                 <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-ink-100 p-1.5">
                   {catalog

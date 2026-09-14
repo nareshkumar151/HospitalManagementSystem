@@ -11,6 +11,7 @@ import { logout } from '../../features/auth/authActions'
 import { notificationResource, type NotificationRow } from '../../features/generic/resources'
 import { apiClient } from '../../api/client'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { ThemeToggle } from './ThemeToggle'
 
 const POLL_INTERVAL_MS = 20_000
 
@@ -24,9 +25,9 @@ const CATEGORY_ICON: Record<string, typeof CalendarClock> = {
 
 const CATEGORY_TONE: Record<string, string> = {
   Appointment: 'bg-brand-100 text-brand-600',
-  LabReady: 'bg-amber-100 text-warning-500',
-  Medicine: 'bg-purple-100 text-purple-600',
-  Billing: 'bg-green-100 text-success-500',
+  LabReady: 'bg-warning-100 text-warning-500',
+  Medicine: 'bg-accent-100 text-accent-600',
+  Billing: 'bg-success-100 text-success-500',
   FollowUp: 'bg-ink-100 text-ink-600',
 }
 
@@ -229,6 +230,7 @@ export function Topbar() {
     <header className="glass sticky top-0 z-30 flex h-16 items-center justify-between border-b border-ink-100 px-4 md:px-6">
       <LanguageSwitcher />
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <NotificationBell />
 
         <div className="relative">
@@ -263,7 +265,7 @@ export function Topbar() {
                 </button>
                 <button
                   onClick={() => { dispatch(logout()); navigate('/login') }}
-                  className="flex w-full items-center gap-2 px-3.5 py-2.5 text-sm text-danger-500 hover:bg-red-50"
+                  className="flex w-full items-center gap-2 px-3.5 py-2.5 text-sm text-danger-500 hover:bg-danger-50"
                 >
                   <LogOut size={15} /> Sign out
                 </button>

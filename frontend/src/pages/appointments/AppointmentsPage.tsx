@@ -279,14 +279,14 @@ export function AppointmentsPage() {
         <div className="flex flex-wrap items-center gap-3 border-b border-ink-100 p-4">
           <label className="text-sm font-medium text-ink-700">Date</label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+            className="rounded-lg border border-ink-100 bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
           <div className="relative ml-auto w-full max-w-sm">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by UHID, mobile, or patient name…"
-              className="w-full rounded-lg border border-ink-100 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+              className="w-full rounded-lg border border-ink-100 bg-surface py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
             />
           </div>
         </div>
@@ -364,7 +364,7 @@ export function AppointmentsPage() {
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink-700">Date</span>
               <input type="date" value={bookDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setBookDate(e.target.value)}
-                className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+                className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
             </label>
             <Select label="Time slot" value={slot} onChange={(e) => setSlot(e.target.value)}>
               <option value="" disabled>Select a slot</option>
@@ -395,7 +395,7 @@ export function AppointmentsPage() {
                 value={requestReason}
                 onChange={(e) => setRequestReason(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
+                className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm text-ink-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
               />
             </label>
             <p className="text-xs text-ink-500">This sends a request to the front desk - you cannot cancel the appointment directly.</p>

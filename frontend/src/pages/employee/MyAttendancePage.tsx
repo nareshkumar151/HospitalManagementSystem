@@ -119,18 +119,18 @@ export function MyAttendancePage() {
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink-700">From date</span>
               <input type="date" value={fromDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setFromDate(e.target.value)}
-                className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+                className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink-700">To date</span>
               <input type="date" value={toDate} min={fromDate || new Date().toISOString().slice(0, 10)} onChange={(e) => setToDate(e.target.value)}
-                className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+                className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
             </label>
           </div>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-ink-700">Reason</span>
             <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)}
-              className="w-full rounded-lg border border-ink-100 px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+              className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
           </label>
           {requestedDays > 0 && myLeaveBalance && (
             <p className={`text-xs ${exceedsBalance ? 'font-medium text-danger-500' : 'text-ink-500'}`}>

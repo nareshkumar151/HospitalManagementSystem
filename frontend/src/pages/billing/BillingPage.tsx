@@ -369,12 +369,12 @@ export function BillingPage() {
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium text-ink-700">From</span>
             <input type="date" value={paymentFromDate} onChange={(e) => { setPaymentFromDate(e.target.value); setPaymentPage(1) }}
-              className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+              className="rounded-lg border border-ink-100 bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium text-ink-700">To</span>
             <input type="date" value={paymentToDate} onChange={(e) => { setPaymentToDate(e.target.value); setPaymentPage(1) }}
-              className="rounded-lg border border-ink-100 px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
+              className="rounded-lg border border-ink-100 bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
           </label>
           {(paymentSearch || paymentFromDate || paymentToDate) && (
             <Button variant="secondary" size="sm" onClick={() => { setPaymentSearch(''); setPaymentFromDate(''); setPaymentToDate(''); setPaymentPage(1) }}>
@@ -459,7 +459,7 @@ export function BillingPage() {
                 <select
                   value={quickAddKey}
                   onChange={(e) => handleQuickAdd(e.target.value)}
-                  className="rounded-md border border-ink-100 px-2 py-1.5 text-xs"
+                  className="rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-xs"
                 >
                   <option value="">+ Quick add from rate list…</option>
                   {quickAddOptions.map((o) => <option key={o.key} value={o.key}>{o.label} · ₹{o.rate}</option>)}
@@ -471,15 +471,15 @@ export function BillingPage() {
               {items.map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2">
                   <select
-                    className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-xs"
+                    className="col-span-3 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-xs"
                     value={item.section}
                     onChange={(e) => updateItem(index, { section: e.target.value as BillItemSection })}
                   >
                     {Object.entries(SECTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
-                  <input className="col-span-4 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateItem(index, { description: e.target.value })} />
-                  <input type="number" min={1} className="col-span-1 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(index, { quantity: Number(e.target.value) })} />
-                  <input type="number" min={0} className="col-span-3 rounded-md border border-ink-100 px-2 py-1.5 text-sm" placeholder="Unit price" value={item.unitPrice} onChange={(e) => updateItem(index, { unitPrice: Number(e.target.value) })} />
+                  <input className="col-span-4 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm" placeholder="Description" value={item.description} onChange={(e) => updateItem(index, { description: e.target.value })} />
+                  <input type="number" min={1} className="col-span-1 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm" placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(index, { quantity: Number(e.target.value) })} />
+                  <input type="number" min={0} className="col-span-3 rounded-md border border-ink-100 bg-surface px-2 py-1.5 text-sm" placeholder="Unit price" value={item.unitPrice} onChange={(e) => updateItem(index, { unitPrice: Number(e.target.value) })} />
                   <button onClick={() => removeItem(index)} className="col-span-1 text-danger-500">✕</button>
                 </div>
               ))}

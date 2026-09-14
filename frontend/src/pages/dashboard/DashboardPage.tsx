@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Users, IndianRupee, BedDouble, Receipt, Stethoscope, Scissors, AlertTriangle, CalendarCheck, LogOut, Hospital, Building2, CalendarClock, ShieldCheck } from 'lucide-react'
+import { Users, IndianRupee, BedDouble, Stethoscope, Scissors, AlertTriangle, CalendarCheck, LogOut, Hospital, Building2, CalendarClock, ShieldCheck } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { fetchDashboardSummary, fetchPlatformSummary } from '../../features/dashboard/dashboardSlice'
 import { PageHeader } from '../../components/ui/PageHeader'

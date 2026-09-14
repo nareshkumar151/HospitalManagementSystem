@@ -56,14 +56,14 @@ export function HandwritingField({ label, value, onChange, required, multiline, 
           <button
             type="button"
             onClick={() => switchMode('type')}
-            className={clsx('flex items-center gap-1 rounded px-2 py-1 font-medium transition-colors', mode === 'type' ? 'bg-white text-brand-600 shadow-sm' : 'text-ink-500 hover:text-ink-700')}
+            className={clsx('flex items-center gap-1 rounded px-2 py-1 font-medium transition-colors', mode === 'type' ? 'bg-surface text-brand-600 shadow-sm' : 'text-ink-500 hover:text-ink-700')}
           >
             <Keyboard size={12} /> Type
           </button>
           <button
             type="button"
             onClick={() => switchMode('draw')}
-            className={clsx('flex items-center gap-1 rounded px-2 py-1 font-medium transition-colors', mode === 'draw' ? 'bg-white text-brand-600 shadow-sm' : 'text-ink-500 hover:text-ink-700')}
+            className={clsx('flex items-center gap-1 rounded px-2 py-1 font-medium transition-colors', mode === 'draw' ? 'bg-surface text-brand-600 shadow-sm' : 'text-ink-500 hover:text-ink-700')}
           >
             <PenLine size={12} /> Stylus
           </button>
@@ -76,13 +76,13 @@ export function HandwritingField({ label, value, onChange, required, multiline, 
             rows={3}
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
-            className="w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
+            className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
           />
         ) : (
           <input
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
-            className="w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
+            className="w-full rounded-lg border border-ink-100 bg-surface px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-400 focus:ring-2 focus:ring-brand-400/40"
           />
         )
       ) : (

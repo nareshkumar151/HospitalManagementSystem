@@ -11,6 +11,7 @@ import { login } from '../../features/auth/authActions'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { LanguageSwitcher } from '../../components/layout/LanguageSwitcher'
+import { ThemeToggle } from '../../components/layout/ThemeToggle'
 import { extractErrorMessage } from '../../api/client'
 
 const schema = z.object({
@@ -40,7 +41,8 @@ export function LoginPage() {
 
   return (
     <div className="relative grid min-h-screen grid-cols-1 md:grid-cols-2">
-      <div className="absolute right-4 top-4 z-10 rounded-lg bg-surface/90 px-2 py-1.5 shadow-[var(--shadow-card)] backdrop-blur">
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-lg bg-surface/90 px-2 py-1.5 shadow-[var(--shadow-card)] backdrop-blur">
+        <ThemeToggle />
         <LanguageSwitcher />
       </div>
 
